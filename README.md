@@ -1,1 +1,1 @@
-# PsicoHC
+# MedHC
