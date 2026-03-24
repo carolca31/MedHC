@@ -11,6 +11,7 @@ window.__firebaseMode = 'local'; // se cambia a 'cloud' si Firebase carga OK
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js" onerror="window.__firebaseFailed=true"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js" onerror="window.__firebaseFailed=true"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-storage-compat.js" onerror="window.__firebaseFailed=true"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js" onerror="window.__firebaseFailed=true"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;}
 body{font-family:'Segoe UI',Arial,sans-serif;background:#F4F6F9;color:#1E2A3A;font-size:14px;}
@@ -68,6 +69,8 @@ button{cursor:pointer;}
 #tabnav::-webkit-scrollbar{display:none;}
 .tbtn{padding:8px 11px;border:none;border-bottom:3px solid transparent;background:transparent;color:var(--mid);font-size:11px;font-weight:500;white-space:nowrap;display:flex;align-items:center;gap:3px;transition:all .15s;}
 .tbtn.act{border-bottom-color:var(--accent);background:var(--apl);color:var(--adk);font-weight:700;}
+.tbtn.tab-locked{color:var(--light);opacity:.65;}
+.tbtn.tab-locked:hover{color:var(--mid);opacity:.85;}
 #tcontent{flex:1;overflow-y:auto;padding:20px 24px;-webkit-overflow-scrolling:touch;}
 
 /* Sections */
@@ -223,7 +226,7 @@ pre{background:var(--alt);border:1px solid var(--border);border-radius:9px;paddi
 .dx-csub{display:flex;gap:7px;padding:3px 0;font-size:11px;color:var(--dx-sub);line-height:1.4;align-items:flex-start;}
 .dx-scb{display:flex;align-items:center;justify-content:center;width:15px;height:15px;border:1.5px solid var(--dx-brd);border-radius:3px;cursor:pointer;flex-shrink:0;margin-top:1px;transition:all .12s;background:var(--dx-s2);}
 .dx-scb.on{background:var(--dx-a);border-color:var(--dx-a);}
-.dx-scb.on::after{content:'✓';font-size:9px;color:#fff;font-weight:700;}
+.dx-scb.on::after{content:'';font-size:9px;color:#fff;font-weight:700;}
 .dx-ntog{font-size:10px;color:var(--dx-a);background:none;border:none;cursor:pointer;padding:0 10px 7px 35px;display:block;text-decoration:underline;text-underline-offset:2px;}
 .dx-nwrap{padding:0 10px 8px 35px;display:none;}
 .dx-nwrap.on{display:block;}
@@ -270,7 +273,7 @@ pre{background:var(--alt);border:1px solid var(--border);border-radius:9px;paddi
 .dx-irow:last-child{border-bottom:none;}
 .dx-icb{width:14px;height:14px;border:1.5px solid var(--dx-brd);border-radius:3px;cursor:pointer;flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;transition:all .12s;background:var(--dx-s2);}
 .dx-icb.on{background:var(--dx-a);border-color:var(--dx-a);}
-.dx-icb.on::after{content:'✓';font-size:9px;color:#fff;font-weight:700;}
+.dx-icb.on::after{content:'';font-size:9px;color:#fff;font-weight:700;}
 .dx-ilbl{flex:1;color:var(--dx-txt);line-height:1.4;}
 .dx-imk{font-size:10px;font-weight:600;padding:1px 5px;border-radius:3px;margin-left:4px;}
 .dx-imk.p{background:rgba(8,145,178,.14);color:var(--dx-a);}
@@ -296,6 +299,21 @@ pre{background:var(--alt);border:1px solid var(--border);border-radius:9px;paddi
 </head>
 <body>
 
+<!-- ══ PANTALLA LOGIN ══════════════════════════════════════════ -->
+<div id="login-screen" style="display:none;position:fixed;inset:0;background:linear-gradient(135deg,#0F172A 0%,#1A3A6E 60%,#0891B2 100%);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:#fff;border-radius:20px;padding:40px 36px;max-width:400px;width:100%;box-shadow:0 32px 80px rgba(0,0,0,.35);text-align:center;">
+    <div style="width:72px;height:72px;background:linear-gradient(135deg,#1A3A6E,#0891B2);border-radius:18px;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:32px;">🧠</div>
+    <div style="font-size:24px;font-weight:800;color:#1A3A6E;margin-bottom:4px;">MedHC</div>
+    <div style="font-size:13px;color:#64748B;margin-bottom:28px;line-height:1.5;">Historia Clínica Psicológica<br>Plataforma profesional segura</div>
+    <button id="btn-google-login" onclick="loginWithGoogle()" style="width:100%;padding:13px 20px;background:#fff;border:2px solid #E2E8F0;border-radius:12px;font-size:14px;font-weight:600;color:#1E293B;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:10px;transition:all .2s;box-shadow:0 2px 8px rgba(0,0,0,.08);">
+      <svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+      Continuar con Google
+    </button>
+    <div id="login-error" style="display:none;margin-top:14px;padding:10px 14px;background:#FEF2F2;border-radius:8px;font-size:12px;color:#DC2626;"></div>
+    <div style="margin-top:20px;font-size:11px;color:#94A3B8;line-height:1.6;">Tus datos se guardan de forma segura<br>vinculados a tu cuenta de Google.</div>
+  </div>
+</div>
+
 <div id="loading">
   <div style="margin-bottom:4px"><img src="logo.png" alt="MedHC" style="width:60px;height:60px;object-fit:contain;"></div>
   <div style="font-size:14px;color:var(--mid);font-weight:600">Cargando MedHC...</div>
@@ -319,11 +337,11 @@ pre{background:var(--alt);border:1px solid var(--border);border-radius:9px;paddi
 <div id="settings-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:1000;align-items:center;justify-content:center;padding:20px">
   <div style="background:#fff;border-radius:16px;max-width:480px;width:100%;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.2)">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
-      <div style="font-size:16px;font-weight:800;color:var(--cobalt)">Ajustes del perfil</div>
+      <div style="font-size:16px;font-weight:800;color:var(--cobalt)">⚙️ Ajustes del perfil</div>
       <button onclick="closeSettings()" style="padding:4px 10px;background:var(--rpl);color:var(--danger);border:none;border-radius:6px;font-size:12px;font-weight:700">Cerrar</button>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 16px">
-      <div class="fld"><label>Nombre completo</label><input id="s-nombre" placeholder="Ej: Carol Castillo"></div>
+      <div class="fld"><label>Nombre completo</label><input id="s-nombre" placeholder="Ej: Magdalena Aponte"></div>
       <div class="fld"><label>Título profesional</label><input id="s-titulo" placeholder="Ej: Psicóloga/o Clínica/o"></div>
       <div class="fld"><label>Cédula de identidad</label><input id="s-cedula" placeholder="Ej: 12345678"></div>
       <div class="fld"><label>Número de registro / matrícula</label><input id="s-registro" placeholder="Ej: FPV-12345"></div>
@@ -426,7 +444,7 @@ pre{background:var(--alt);border:1px solid var(--border);border-radius:9px;paddi
         <div style="font-size:14px;font-weight:800;color:var(--brown);line-height:1">MedHC</div>
         <div id="prof-name-display" style="font-size:10px;color:var(--accent);font-weight:700;margin-top:2px">Psicología Clínica</div>
       </div>
-      <button onclick="openSettings()" style="padding:5px 8px;background:var(--alt);border:1.5px solid var(--border);border-radius:7px;font-size:14px;color:var(--mid)" title="Ajustes del perfil"></button>
+      <button onclick="openSettings()" style="padding:5px 8px;background:var(--alt);border:1.5px solid var(--border);border-radius:7px;font-size:14px;color:var(--mid)" title="Ajustes del perfil">⚙️</button>
     </div>
     <div id="save-st">Guardado en la nube</div>
     <div id="mode-badge" style="display:none;font-size:9px;font-weight:700;text-align:center;padding:2px 6px;background:var(--ypl);color:var(--mid);border-radius:4px;margin-top:3px">Modo local (sin internet)</div>
@@ -434,6 +452,15 @@ pre{background:var(--alt);border:1px solid var(--border);border-radius:9px;paddi
   </div>
   <div id="srch-wrap"><input id="srch" placeholder=" Buscar paciente..." oninput="renderList()"/></div>
   <div id="plist"></div>
+  <div style="padding:7px 11px 0;border-top:1px solid var(--border)">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 2px">
+      <div style="min-width:0;flex:1">
+        <div id="user-email-display" style="font-size:10px;color:var(--mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis"></div>
+        <button id="plan-badge" onclick="showPlanModal()" style="font-size:10px;font-weight:700;color:var(--mid);background:none;border:none;padding:0;cursor:pointer;text-align:left">Plan Gratuito</button>
+      </div>
+      <button onclick="logOut()" title="Cerrar sesión" style="padding:4px 8px;background:var(--rpl);color:var(--danger);border:none;border-radius:6px;font-size:11px;font-weight:700;flex-shrink:0;margin-left:6px">Salir</button>
+    </div>
+  </div>
   <div id="sfoot">0 historias clínicas</div>
 </div>
 
@@ -443,14 +470,17 @@ pre{background:var(--alt);border:1px solid var(--border);border-radius:9px;paddi
     <div style="margin-bottom:4px"><img src="logo.png" alt="MedHC" style="width:80px;height:80px;object-fit:contain;"></div>
     <div style="font-size:22px;font-weight:800;color:var(--cobalt)">MedHC</div>
     <div id="welcome-prof" style="font-size:13px;color:var(--accent);font-weight:700"></div>
-    <div style="font-size:12px;color:var(--mid);max-width:360px;text-align:center;line-height:1.7">Selecciona un paciente o crea una nueva historia clínica.</div>
-    <button class="btn-green" onclick="createPatient()">+ Nueva Historia Clínica</button>
+    <div style="font-size:12px;color:var(--mid);max-width:360px;text-align:center;line-height:1.7">Bienvenido/a. Crea una nueva historia o accede a las existentes.</div>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;justify-content:center">
+      <button class="btn-green" onclick="createPatient()">+ Nueva Historia Clínica</button>
+      <button onclick="openSB()" style="padding:8px 18px;background:var(--surface);color:var(--cobalt);border:2px solid var(--cobalt);border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;">Mis historias</button>
+    </div>
     <div style="margin-top:6px;padding:7px 14px;background:var(--apl);border:1px solid var(--accent);border-radius:8px;font-size:11px;color:var(--mid);text-align:center">Datos guardados en la nube</div>
   </div>
 
   <div id="pview">
     <div id="phdr">
-      <button id="btn-menu" onclick="openSB()">☰</button>
+      <button id="btn-menu" onclick="openSB()"></button>
       <button id="btn-back" onclick="showWelcome()">← Volver</button>
       <div>
         <div id="hdr-hc" style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.14em"></div>
@@ -474,7 +504,7 @@ pre{background:var(--alt);border:1px solid var(--border);border-radius:9px;paddi
     <div class="dx-mtop">
       <div class="dx-mtr">
         <div class="dx-mcodes" id="dx-mcodes"></div>
-        <button class="dx-mcls" onclick="dxCloseModal()">✕</button>
+        <button class="dx-mcls" onclick="dxCloseModal()"></button>
       </div>
       <div class="dx-mtitle" id="dx-mtitle"></div>
       <div class="dx-mstag" id="dx-mstag"></div>
@@ -545,11 +575,13 @@ const LocalMeta={
   async set(key,val){localStorage.setItem("medhc_meta_"+key,JSON.stringify(val));}
 };
 
+let auth=null;
 try{
   if(window.__firebaseFailed) throw new Error("Firebase scripts failed to load");
   firebase.initializeApp(firebaseConfig);
   db=firebase.firestore();
   storage=firebase.storage();
+  auth=firebase.auth();
   useLocal=false;
   window.__firebaseMode='cloud';
 } catch(e){
@@ -562,10 +594,13 @@ try{
     }
   };
   storage=null;
+  auth=null;
 }
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let patients=[],selectedId=null,activeTab="identificacion",yearCounter={},saveTimer=null,pendingType=null;
+let currentUser=null; // Firebase Auth user
+let userPlan={plan:"free",modules:[],historyCount:0}; // plan del usuario actual
 let profesional={nombre:"",titulo:"Psicóloga/o Clínica/o",cedula:"",registro:"",pais:"",ciudad:"",centro:"",telefono:""};
 function loadProfesional(){const s=localStorage.getItem("medhc_prof");if(s)profesional=JSON.parse(s);updateProfDisplay();}
 function updateProfDisplay(){
@@ -609,7 +644,7 @@ async function selectType(tipo){
   const nx=(yearCounter[yr]||0)+1;yearCounter[yr]=nx;
   try{
     if(useLocal)await LocalMeta.set("yearCounter",yearCounter);
-    else await db.collection("meta").doc("yearCounter").set(yearCounter);
+    else await db.collection("meta").doc("yearCounter_"+(currentUser?currentUser.uid:"shared")).set(yearCounter);
   }catch(e){}
   const p=emptyP();p.hcCode=`HC-${yr}-${String(nx).padStart(3,"0")}`;p.tipoHistoria=tipo;
   patients.unshift(p);
@@ -777,16 +812,25 @@ function emptyP(){
 
 // ── Save ──────────────────────────────────────────────────────────────────────
 function saveP(p){
+  // Update in-memory immediately
+  const _idx=patients.findIndex(function(x){return x.id===p.id;});
+  if(_idx!==-1)patients[_idx]=p;
   setSS("saving");clearTimeout(saveTimer);
   saveTimer=setTimeout(async()=>{
-    try{await db.collection("pacientes").doc(p.id).set(p);setSS("saved");}
-    catch(e){setSS("error");}
+    try{
+      // Save under user's own subcollection when authenticated
+      const col=currentUser
+        ? db.collection("users").doc(currentUser.uid).collection("pacientes")
+        : db.collection("pacientes");
+      await col.doc(p.id).set(p);
+      setSS("saved");
+    }catch(e){setSS("error");}
   },900);
 }
 function setSS(s){
   const el=document.getElementById("save-st");if(!el)return;
   if(s==="saving"){el.style.color="var(--yellow)";el.textContent="Guardando...";}
-  else if(s==="error"){el.style.color="var(--danger)";el.textContent="⚠️ Error al guardar";}
+  else if(s==="error"){el.style.color="var(--danger)";el.textContent=" Error al guardar";}
   else{
     if(useLocal){el.style.color="var(--mid)";el.textContent="Guardado localmente";}
     else{el.style.color="var(--accent)";el.textContent="Guardado en la nube";}
@@ -807,11 +851,16 @@ function updLabel(f,v){
 
 // ── Create / Delete ───────────────────────────────────────────────────────────
 function createPatient(){
+  if(!canCreateMore()){
+    showPlanModal();
+    return;
+  }
   document.getElementById("type-modal").style.display="flex";
 }
 async function deletePatient(id){
   if(!confirm("¿Eliminar esta historia clínica? No se puede deshacer."))return;
-  await db.collection("pacientes").doc(id).delete();
+  const _col2=currentUser?db.collection("users").doc(currentUser.uid).collection("pacientes"):db.collection("pacientes");
+  await _col2.doc(id).delete();
   patients=patients.filter(p=>p.id!==id);
   if(selectedId===id)showWelcome();
   renderList();
@@ -850,7 +899,7 @@ function renderList(){
   document.getElementById("plist").innerHTML=f.length===0
     ?`<div style="text-align:center;padding:28px 0;color:var(--light);font-size:12px">${patients.length===0?"Crea la primera historia clínica ":"Sin resultados."}</div>`
     :f.map(p=>`<div class="pcard" onclick="selectP('${p.id}')">
-      <button class="pc-del" onclick="event.stopPropagation();deletePatient('${p.id}')"></button>
+      <button class="pc-del" onclick="event.stopPropagation();deletePatient('${p.id}')">🗑</button>
       <div class="pc-hc">${p.hcCode}</div>
       <div class="pc-name">${esc(p.nombre)||"Sin nombre"}</div>
       <div class="pc-sub">${p.edad?p.edad+" años":"Edad no registrada"}${p.gradoEscolar?" · "+p.gradoEscolar:""}</div>
@@ -889,7 +938,7 @@ const TABS_ADULTO=[
   {k:"ad_habitos",l:"Hábitos y Consumo",i:""},
   {k:"ad_emocional",l:"Área Emocional",i:""},
   {k:"ad_cognitivo",l:"Área Cognitiva",i:""},
-  {k:"ad_riesgo",l:"Riesgo",i:"⚠️"},
+  {k:"ad_riesgo",l:"Riesgo",i:""},
   {k:"antecedentes",l:"Antecedentes",i:""},
   {k:"clinico",l:"Observación Clínica",i:""},
   {k:"hipotesis",l:"Hipótesis y Plan",i:""},
@@ -913,7 +962,7 @@ const TABS_ADOLESCENTE=[
   {k:"ado_habitos",l:"Hábitos y Consumo",i:""},
   {k:"ado_familiar",l:"Dinámica Familiar",i:""},
   {k:"ado_pareja",l:"Pareja y Sexualidad",i:""},
-  {k:"ado_riesgo",l:"Riesgo",i:"⚠️"},
+  {k:"ado_riesgo",l:"Riesgo",i:""},
   {k:"antecedentes",l:"Antecedentes",i:""},
   {k:"clinico",l:"Observación Clínica",i:""},
   {k:"hipotesis",l:"Hipótesis y Plan",i:""},
@@ -930,23 +979,23 @@ function isPareja(){const p=getP();return p&&p.tipoHistoria==="Pareja";}
 function isFamilia(){const p=getP();return p&&p.tipoHistoria==="Familia";}
 function isGrupal(){const p=getP();return p&&p.tipoHistoria==="Grupo terapéutico";}
 const TABS_GRP=[
-  {k:"grp_identificacion",l:"Identificación",i:"👥"},
+  {k:"grp_identificacion",l:"Identificación",i:""},
   {k:"grp_objetivo",l:"Objetivo",i:""},
   {k:"grp_criterios",l:"Criterios",i:""},
   {k:"grp_participantes",l:"Participantes",i:""},
-  {k:"grp_dinamica",l:"Dinámica Grupal",i:"🔥"},
+  {k:"grp_dinamica",l:"Dinámica Grupal",i:""},
   {k:"grp_plan",l:"Plan de Intervención",i:""},
   {k:"grp_sesiones",l:"Sesiones",i:""},
-  {k:"grp_alertas",l:"Alertas",i:"⚠️"},
+  {k:"grp_alertas",l:"Alertas",i:""},
   {k:"grp_evolucion",l:"Evolución",i:""},
   {k:"grp_cierre",l:"Cierre",i:""},
   {k:"informe",l:"Resumen HC",i:""},
 ];
 const TABS_FAM=[
-  {k:"fam_identificacion",l:"Identificación",i:"👨‍👩‍👧"},
+  {k:"fam_identificacion",l:"Identificación",i:"‍‍"},
   {k:"fam_motivo",l:"Motivo de Consulta",i:""},
   {k:"fam_estructura",l:"Estructura Familiar",i:""},
-  {k:"fam_dinamica",l:"Dinámica Familiar",i:"🔥"},
+  {k:"fam_dinamica",l:"Dinámica Familiar",i:""},
   {k:"fam_relaciones",l:"Relaciones Clave",i:""},
   {k:"fam_problema",l:"Problema Actual",i:""},
   {k:"fam_areas",l:"Áreas Afectadas",i:""},
@@ -971,7 +1020,7 @@ const TABS_PAREJA=[
   {k:"par_sexual",l:"Área Sexual",i:""},
   {k:"par_familiar",l:"Familia y Contexto",i:""},
   {k:"par_conductas",l:"Conductas Problemáticas",i:""},
-  {k:"par_riesgo",l:"Riesgo",i:"⚠️"},
+  {k:"par_riesgo",l:"Riesgo",i:""},
   {k:"par_fortalezas",l:"Fortalezas",i:""},
   {k:"par_clinico",l:"Observación Clínica",i:""},
   {k:"par_hipotesis",l:"Hipótesis y Plan",i:""},
@@ -983,7 +1032,7 @@ const TABS_PAREJA=[
 ];
 
 const TABS_AM=[
-  {k:"identificacion",l:"Identificación",i:"🧓"},
+  {k:"identificacion",l:"Identificación",i:""},
   {k:"am_motivo",l:"Motivo de Consulta",i:""},
   {k:"am_historia",l:"Historia de Vida",i:""},
   {k:"am_red_apoyo",l:"Red de Apoyo",i:""},
@@ -993,7 +1042,7 @@ const TABS_AM=[
   {k:"am_emocional",l:"Área Emocional",i:""},
   {k:"am_conducta",l:"Conducta",i:""},
   {k:"am_habitos",l:"Hábitos y Salud",i:""},
-  {k:"am_riesgo",l:"Riesgo",i:"⚠️"},
+  {k:"am_riesgo",l:"Riesgo",i:""},
   {k:"antecedentes",l:"Antecedentes",i:""},
   {k:"clinico",l:"Observación Clínica",i:""},
   {k:"hipotesis",l:"Hipótesis y Plan",i:""},
@@ -1013,24 +1062,39 @@ function getTabs(){
   return TABS_INFANTIL;
 }
 function renderTabs(){
-  document.getElementById("tabnav").innerHTML=getTabs().map(t=>
-    `<button class="tbtn${activeTab===t.k?" act":""}" onclick="switchTab('${t.k}')">${t.i} ${t.l}</button>`
-  ).join("");
-  setTimeout(updateArrows,10);
-}
-function switchTab(k){
-  activeTab=k;renderTabs();renderTab();
-  // Scroll activo al centro
+  const tabs=getTabs();
+  const p=getP();
+  const tipo=p?p.tipoHistoria:"";
+  document.getElementById("tabnav").innerHTML=tabs.map(t=>{
+    const locked=isTabLocked(t.k,tipo);
+    const act=activeTab===t.k?" act":"";
+    return `<button class="tbtn${act}${locked?" tab-locked":""}" onclick="switchTab('${t.k}')" ${locked?'title="Desbloquea este módulo"':''}>${t.i} ${t.l}${locked?" 🔒":""}</button>`;
+  }).join("");
   setTimeout(()=>{
     const nav=document.getElementById("tabnav");
-    const act=nav.querySelector(".act");
+    const act=nav?nav.querySelector(".act"):null;
+    if(act&&nav){
+      const navRect=nav.getBoundingClientRect();
+      const actRect=act.getBoundingClientRect();
+      nav.scrollLeft+=actRect.left-navRect.left-(navRect.width/2)+(actRect.width/2);
+    }
+    if(typeof updateArrows==="function")updateArrows();
+  },30);
+}
+function switchTab(k){
+  const p=getP();
+  if(p&&isTabLocked(k,p.tipoHistoria)){showPlanModal();return;}
+  activeTab=k;renderTabs();renderTab();
+  setTimeout(()=>{
+    const nav=document.getElementById("tabnav");
+    const act=nav?nav.querySelector(".act"):null;
     if(act&&nav){
       const navRect=nav.getBoundingClientRect();
       const actRect=act.getBoundingClientRect();
       const offset=actRect.left-navRect.left-(navRect.width/2)+(actRect.width/2);
       nav.scrollLeft+=offset;
     }
-    updateArrows();
+    if(typeof updateArrows==="function")updateArrows();
   },30);
 }
 function scrollTabs(dir){
@@ -1071,9 +1135,20 @@ function mchk(label,f,v=[],opts,hint=""){
   return`<div class="fld"><label>${label}</label><div class="mchk">${opts.map(o=>`<button class="cbtn${v.includes(o)?" on":""}" onclick="toggleArr('${f}','${o}')">${o}</button>`).join("")}</div>${hint?`<div class="hint">${hint}</div>`:""}</div>`;
 }
 function scale(label,f,v,lbls=["Nunca","Rara vez","A veces","Frecuentemente","Siempre"]){
-  const btns=Array.from({length:lbls.length},(_,i)=>`<button class="sbtn${String(i)===String(v)?" on":""}" onclick="upd('${f}','${i}')">${i}</button>`).join("");
-  const lbl=v!==""&&lbls[parseInt(v)]?`<span class="slbl">${lbls[parseInt(v)]}</span>`:"";
+  const btns=Array.from({length:lbls.length},(_,i)=>`<button class="sbtn${String(i)===String(v)?" on":""}" data-scale-field="${f}" data-scale-idx="${i}" onclick="updScale(this,'${f}',${i},${JSON.stringify(lbls)})">${i}</button>`).join("");
+  const lbl=v!==""&&lbls[parseInt(v)]?`<span class="slbl" data-scale-lbl="${f}">${lbls[parseInt(v)]}</span>`:`<span class="slbl" data-scale-lbl="${f}"></span>`;
   return`<div class="fld"><label>${label}</label><div class="scrow">${btns}${lbl}</div><div class="hint">0 = ${lbls[0]} &nbsp;|&nbsp; ${lbls.length-1} = ${lbls[lbls.length-1]}</div></div>`;
+}
+function updScale(btn,f,idx,lbls){
+  const p=getP();if(!p)return;
+  p[f]=String(idx);saveP({...p});
+  // Update all buttons in same scale group
+  btn.closest('.scrow').querySelectorAll('.sbtn[data-scale-field="'+f+'"]').forEach(function(b){
+    b.classList.toggle('on', b.dataset.scaleIdx===String(idx));
+  });
+  // Update label
+  const lbl=btn.closest('.scrow').querySelector('.slbl[data-scale-lbl="'+f+'"]');
+  if(lbl)lbl.textContent=lbls[idx]||'';
 }
 function g2(c){return`<div class="g2">${c}</div>`;}
 function g3(c){return`<div class="g3">${c}</div>`;}
@@ -1184,7 +1259,7 @@ function renderTab(){
         <div style="padding:12px 13px">
           <div style="display:flex;justify-content:space-between;margin-bottom:9px">
             <strong style="font-size:11px;color:var(--adk)">Conviviente #${i+1}</strong>
-            <button class="btn-del" onclick="delConv(${i})">Eliminar</button>
+            <button class="btn-del" onclick="delConv(${i})">🗑 Eliminar</button>
           </div>
           <div class="g2">
             <div class="fld"><label>Nombre y apellido</label><input value="${esc(c.nombre)}" oninput="updConv(${i},'nombre',this.value)"></div>
@@ -1655,7 +1730,7 @@ function renderTab(){
         <div style="padding:13px 14px">
           <div style="display:flex;justify-content:space-between;margin-bottom:9px">
             <strong style="font-size:12px;color:var(--adk)">Evaluación #${i+1}</strong>
-            <button class="btn-del" onclick="delEval(${i})">Eliminar</button>
+            <button class="btn-del" onclick="delEval(${i})">🗑 Eliminar</button>
           </div>
           <div class="g2">
             <div class="fld"><label>Nombre del test</label><input value="${esc(ev.nombre)}" oninput="updEval(${i},'nombre',this.value)"></div>
@@ -1698,7 +1773,7 @@ function renderTab(){
           <div class="fld"><label>Observaciones clínicas</label><textarea rows="3" oninput="updSes(${i},'observaciones',this.value)">${esc(s.observaciones)}</textarea></div>
           <div class="fld"><label>Intervención aplicada</label><textarea rows="2" oninput="updSes(${i},'intervencion',this.value)">${esc(s.intervencion)}</textarea></div>
           <div class="fld"><label>Tareas o recomendaciones</label><textarea rows="2" oninput="updSes(${i},'tareas',this.value)">${esc(s.tareas)}</textarea></div>
-          <button class="btn-del" onclick="delSes(${i})">Eliminar sesión</button>
+          <button class="btn-del" onclick="delSes(${i})">🗑 Eliminar sesión</button>
         </div>
       </div>`;
     }).join("");
@@ -1789,7 +1864,7 @@ function renderTab(){
           <div class="fld"><label>¿Cómo impacta esto en el plan terapéutico?</label>
             <textarea rows="2" placeholder="Ajustes al plan de intervención según el resultado de la derivación..." oninput="updDer(${i},'impacto',this.value)">${esc(d.impacto)}</textarea>
           </div>
-          <button class="btn-del" onclick="delDer(${i})">Eliminar derivación</button>
+          <button class="btn-del" onclick="delDer(${i})">🗑 Eliminar derivación</button>
         </div>
       </div>`).join("");
     el.innerHTML=sec(25,"Derivaciones a Otros Especialistas",
@@ -2022,9 +2097,9 @@ function renderTab(){
     const ncAdo=nivelColorAdo[p.nivelRiesgoAdo]||"var(--mid)";
     el.innerHTML=
       `<div style="margin-bottom:16px;padding:12px 16px;background:#FDECEA;border:2px solid var(--danger);border-radius:11px;font-size:12px;color:#7C1414;font-weight:700">
-        ⚠️ En adolescentes el riesgo suicida y las autolesiones son más frecuentes de lo que se expresa. Evaluar siempre con preguntas directas y en un clima de confianza.
+         En adolescentes el riesgo suicida y las autolesiones son más frecuentes de lo que se expresa. Evaluar siempre con preguntas directas y en un clima de confianza.
       </div>`+
-      sec("⚠️","Evaluación de Riesgo",
+      sec("","Evaluación de Riesgo",
         fld("¿Presenta ideación suicida actualmente?",sel("ideacionSuicidaAdo",p.ideacionSuicidaAdo,["No","Ideación pasiva — no querer seguir viviendo sin plan","Ideación activa sin plan","Ideación activa con plan","No evaluado aún"]))+
         g2(
           fld("¿Ha tenido intentos de suicidio previos?",sel("intentosPreviosAdo",p.intentosPreviosAdo,["No","Sí — 1 intento","Sí — 2 o más intentos","Sí — intento reciente (último mes)","No evaluado aún"]))+
@@ -2067,6 +2142,7 @@ function renderTab(){
             <div class="fld"><label>Edad</label><input type="number" value="${esc(p.edadA)}" oninput="upd('edadA',this.value)"></div>
             <div class="fld"><label>Cédula / DNI</label><input type="text" value="${esc(p.cedulaA)}" oninput="upd('cedulaA',this.value)"></div>
             <div class="fld"><label>Ocupación</label><input type="text" value="${esc(p.ocupacionA||'')}" placeholder="Ej: Docente..." oninput="upd('ocupacionA',this.value)"></div>
+            <div class="fld"><label>HC vinculada</label><div style="display:flex;gap:6px;align-items:center"><input type="text" value="${esc(p.hcVinculadaA||'')}" placeholder="Ej: HC-2026-004" oninput="upd('hcVinculadaA',this.value)" style="flex:1"><button onclick="verHCVinculada('${esc(p.hcVinculadaA||'')}',this)" style="padding:4px 9px;background:var(--cobalt-light);border:1px solid var(--border);border-radius:6px;font-size:10px;color:var(--cobalt);white-space:nowrap">Ver HC</button></div></div>
           </div>
           <div style="padding:12px 16px;background:var(--rpl);border-radius:10px;border:1.5px solid var(--rose)">
             <div style="font-size:10px;font-weight:800;color:var(--rose);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Persona B</div>
@@ -2074,6 +2150,7 @@ function renderTab(){
             <div class="fld"><label>Edad</label><input type="number" value="${esc(p.edadB)}" oninput="upd('edadB',this.value)"></div>
             <div class="fld"><label>Cédula / DNI</label><input type="text" value="${esc(p.cedulaB)}" oninput="upd('cedulaB',this.value)"></div>
             <div class="fld"><label>Ocupación</label><input type="text" value="${esc(p.ocupacionB||'')}" placeholder="Ej: Ingeniero..." oninput="upd('ocupacionB',this.value)"></div>
+            <div class="fld"><label>HC vinculada</label><div style="display:flex;gap:6px;align-items:center"><input type="text" value="${esc(p.hcVinculadaB||'')}" placeholder="Ej: HC-2026-004" oninput="upd('hcVinculadaB',this.value)" style="flex:1"><button onclick="verHCVinculada('${esc(p.hcVinculadaB||'')}',this)" style="padding:4px 9px;background:var(--cobalt-light);border:1px solid var(--border);border-radius:6px;font-size:10px;color:var(--cobalt);white-space:nowrap">Ver HC</button></div></div>
           </div>
         </div>`+
         g2(
@@ -2259,7 +2336,7 @@ function renderTab(){
     el.innerHTML=
       sec(10,"Conductas Problemáticas",
         `<div style="margin-bottom:12px;padding:10px 14px;background:var(--rpl);border-radius:9px;font-size:11px;color:var(--danger);font-weight:700">
-          ⚠️ Si se identifica violencia de pareja, evaluar viabilidad de la terapia conjunta antes de continuar.
+           Si se identifica violencia de pareja, evaluar viabilidad de la terapia conjunta antes de continuar.
         </div>`+
         g2(
           fld("Celos",sel("conductasCelos",p.conductasCelos,["Ausentes","Leves — ocasionales sin impacto","Moderados — generan conflictos frecuentes","Intensos — conductas de control o vigilancia","Severos — acoso o control extremo"]))+
@@ -2283,9 +2360,9 @@ function renderTab(){
     const labelA=p.nombreA||"Persona A";const labelB=p.nombreB||"Persona B";
     el.innerHTML=
       `<div style="margin-bottom:16px;padding:12px 16px;background:#FDECEA;border:2px solid var(--danger);border-radius:11px;font-size:12px;color:#7C1414;font-weight:700">
-        ⚠️ Si hay violencia activa de pareja, la terapia conjunta puede ser contraproducente o peligrosa. Evaluar derivación individual primero.
+         Si hay violencia activa de pareja, la terapia conjunta puede ser contraproducente o peligrosa. Evaluar derivación individual primero.
       </div>`+
-      sec("⚠️","Evaluación de Riesgo en la Relación",
+      sec("","Evaluación de Riesgo en la Relación",
         fld("Riesgo físico o de seguridad",sel("riesgoFisicoPareja",p.riesgoFisicoPareja,["Sin riesgo identificado","Riesgo bajo — incidentes aislados sin lesiones","Riesgo moderado — violencia frecuente","Riesgo alto — lesiones o amenazas graves","Riesgo muy alto — peligro inmediato"]))+
         fld("Control o coerción extrema",sel("riesgoControlExtremo",p.riesgoControlExtremo,["No identificado","Leve — control en algunas áreas","Moderado — múltiples áreas de control","Severo — aislamiento, vigilancia, amenazas","Muy severo — situación de abuso grave"]))+
         fld("Viabilidad de la terapia de pareja",sel("viabilidadTerapia",p.viabilidadTerapia,["Viable — no hay violencia activa","Viable con precauciones — violencia leve/histórica","Requiere trabajo individual previo","No viable actualmente — violencia activa","Derivar a recursos de violencia de género"]))+
@@ -2552,9 +2629,9 @@ function renderTab(){
     const nc=nivelColor[p.nivelRiesgoGlobal]||"var(--mid)";
     el.innerHTML=
       `<div style="margin-bottom:16px;padding:12px 16px;background:#FDECEA;border:2px solid var(--danger);border-radius:11px;font-size:12px;color:#7C1414;font-weight:700">
-        ⚠️ Esta sección debe evaluarse en todas las historias clínicas de adultos. La información registrada aquí es confidencial y clínicamente sensible.
+         Esta sección debe evaluarse en todas las historias clínicas de adultos. La información registrada aquí es confidencial y clínicamente sensible.
       </div>`+
-      sec("⚠️","Evaluación de Riesgo",
+      sec("","Evaluación de Riesgo",
         fld("¿Presenta ideación suicida actualmente?",sel("ideacionSuicidaActual",p.ideacionSuicidaActual,["No","Ideación pasiva — no querer seguir viviendo sin plan","Ideación activa sin plan definido","Ideación activa con plan definido","No evaluado aún"]))+
         fld("¿Ha tenido ideación suicida en el pasado?",sel("ideacionSuicidaPasada",p.ideacionSuicidaPasada,["No","Sí — ideación pasiva en el pasado","Sí — ideación activa sin intento","Sí — asociada a intentos previos","No evaluado aún"]))+
         fld("¿Presenta plan suicida actualmente?",sel("planSuicida",p.planSuicida,["No","Plan vago o no estructurado","Plan concreto sin medios accesibles","Plan concreto con medios accesibles — URGENTE","No evaluado aún"]))+
@@ -2622,7 +2699,7 @@ function renderTab(){
             fld("Problemas de visión",sel("amVision",p.amVision,["Sin alteración","Alteración leve — usa corrección","Alteración moderada","Alteración severa — impacta autonomía"]))+
             fld("Problemas de audición",sel("amAudicion",p.amAudicion,["Sin alteración","Alteración leve","Alteración moderada — usa audífono","Alteración severa — comunicación comprometida"]))
           )+
-          fld("Medicación actual (polifarmacia)",ta("amMedicacion",p.amMedicacion,3,"Listar medicamentos actuales. Ojo: polifarmacia (5+ fármacos) puede afectar cognición y conducta."),"⚠️ La polifarmacia es frecuente y puede explicar síntomas cognitivos o emocionales.")
+          fld("Medicación actual (polifarmacia)",ta("amMedicacion",p.amMedicacion,3,"Listar medicamentos actuales. Ojo: polifarmacia (5+ fármacos) puede afectar cognición y conducta.")," La polifarmacia es frecuente y puede explicar síntomas cognitivos o emocionales.")
         )
       );
   }
@@ -2630,7 +2707,7 @@ function renderTab(){
   else if(activeTab==="am_red_apoyo"){
     el.innerHTML=
       `<div style="margin-bottom:10px;padding:9px 13px;background:var(--apl);border-radius:9px;font-size:11px;color:var(--adk);font-weight:700">
-         🔑 La red de apoyo es un factor protector CLAVE en el adulto mayor. Evalúa tanto la cantidad como la calidad real del apoyo recibido.
+          La red de apoyo es un factor protector CLAVE en el adulto mayor. Evalúa tanto la cantidad como la calidad real del apoyo recibido.
       </div>`+
       sec("B","Red de Apoyo y Contexto Social",
         g2(
@@ -2669,7 +2746,7 @@ function renderTab(){
   else if(activeTab==="am_funcional"){
     el.innerHTML=
       `<div style="margin-bottom:10px;padding:9px 13px;background:var(--apl);border-radius:9px;font-size:11px;color:var(--adk);font-weight:700">
-         🔥 Área clave y exclusiva del adulto mayor. Detecta el nivel real de independencia. Una pérdida funcional no siempre es visible en la consulta.
+          Área clave y exclusiva del adulto mayor. Detecta el nivel real de independencia. Una pérdida funcional no siempre es visible en la consulta.
       </div>`+
       sec("D","Área Funcional",
         sec("","Actividades Básicas de la Vida Diaria (ABVD)",
@@ -2701,7 +2778,7 @@ function renderTab(){
   else if(activeTab==="am_cognitivo"){
     el.innerHTML=
       `<div style="margin-bottom:10px;padding:9px 13px;background:var(--cobalt-light);border-radius:9px;font-size:11px;color:var(--cobalt);font-weight:700">
-         🧠 Área fundamental en el adulto mayor. El objetivo no es diagnosticar demencia, sino documentar el perfil cognitivo actual y su evolución.
+          Área fundamental en el adulto mayor. El objetivo no es diagnosticar demencia, sino documentar el perfil cognitivo actual y su evolución.
       </div>`+
       sec("E","Área Cognitiva",
         sec("","Orientación y Memoria",
@@ -2729,7 +2806,7 @@ function renderTab(){
   else if(activeTab==="am_emocional"){
     el.innerHTML=
       `<div style="margin-bottom:10px;padding:9px 13px;background:var(--ypl);border-radius:9px;font-size:11px;color:var(--mid);font-weight:700">
-         💡 Depresión en adulto mayor ≠ tristeza evidente. Con frecuencia se presenta como apatía, fatiga, quejas somáticas o retraimiento. La ansiedad también puede enmascararse.
+          Depresión en adulto mayor ≠ tristeza evidente. Con frecuencia se presenta como apatía, fatiga, quejas somáticas o retraimiento. La ansiedad también puede enmascararse.
       </div>`+
       sec("F","Área Emocional",
         g2(
@@ -2801,9 +2878,9 @@ function renderTab(){
   else if(activeTab==="am_riesgo"){
     el.innerHTML=
       `<div style="margin-bottom:16px;padding:12px 16px;background:#FDECEA;border:2px solid var(--danger);border-radius:11px;font-size:12px;color:#7C1414;font-weight:700">
-        ⚠️ En adultos mayores, el riesgo incluye dimensiones exclusivas: caídas, abandono, maltrato y deterioro cognitivo avanzado. Evalúa todas.
+         En adultos mayores, el riesgo incluye dimensiones exclusivas: caídas, abandono, maltrato y deterioro cognitivo avanzado. Evalúa todas.
       </div>`+
-      sec("⚠️","Evaluación de Riesgo — Adulto Mayor",
+      sec("","Evaluación de Riesgo — Adulto Mayor",
         sec("","Riesgo de Caídas",
           g2(
             fld("¿Ha tenido caídas en el último año?",sel("amCaidas",p.amCaidas,["No","Sí — 1 caída sin consecuencias graves","Sí — 1 caída con consecuencias (fractura, hospitalización)","Sí — 2 o más caídas","Caída reciente (último mes)"]))+
@@ -2864,8 +2941,10 @@ function renderTab(){
                 <option value="">Convive...</option>
                 ${["Sí convive","No convive","Parcialmente"].map(o=>`<option${m.convive===o?" selected":""}>${o}</option>`).join("")}
               </select>
-              <button onclick="delFamMiembro(${i})" style="padding:5px 10px;background:var(--rpl);border:1px solid var(--rose);border-radius:7px;font-size:11px;color:var(--danger);cursor:pointer">✕</button>
-            </div>`).join("")}
+              <button onclick="delFamMiembro(${i})" style="padding:5px 10px;background:var(--rpl);border:1px solid var(--rose);border-radius:7px;font-size:11px;color:var(--danger);cursor:pointer">🗑</button>
+            </div>
+            <div style="display:flex;gap:6px;align-items:center;margin-top:6px"><input value="${esc(m.hcVinculada||'')}" placeholder="HC vinculada (ej: HC-2026-004)" oninput="updFamMiembro(${i},'hcVinculada',this.value)" style="flex:1;padding:6px 9px;border:1px solid var(--border);border-radius:7px;font-size:11px"><button onclick="verHCVinculada('${esc(m.hcVinculada||'')}',this)" style="padding:5px 9px;background:var(--cobalt-light);border:1px solid var(--border);border-radius:6px;font-size:10px;color:var(--cobalt);white-space:nowrap">Ver HC</button></div>
+          </div>`).join("")}
           </div>`+
           `<button onclick="addFamMiembro()" class="btn-add" style="margin-top:6px">+ Agregar integrante</button>`
         )
@@ -2913,7 +2992,7 @@ function renderTab(){
   else if(activeTab==="fam_dinamica"){
     el.innerHTML=
       `<div style="margin-bottom:10px;padding:9px 13px;background:var(--apl);border-radius:9px;font-size:11px;color:var(--adk);font-weight:700">
-         🔥 Núcleo de toda la historia familiar. Aquí está la clave clínica: la dinámica mantiene el síntoma.
+          Núcleo de toda la historia familiar. Aquí está la clave clínica: la dinámica mantiene el síntoma.
       </div>`+
       sec(4,"Dinámica Familiar",
         g2(
@@ -2944,7 +3023,7 @@ function renderTab(){
   else if(activeTab==="fam_problema"){
     el.innerHTML=
       `<div style="margin-bottom:10px;padding:9px 13px;background:var(--cobalt-light);border-radius:9px;font-size:11px;color:var(--cobalt);font-weight:700">
-         💡 Aquí cambias el chip: no "el niño es el problema" → sino "la dinámica mantiene el síntoma".
+          Aquí cambias el chip: no "el niño es el problema" → sino "la dinámica mantiene el síntoma".
       </div>`+
       sec(6,"Problema Actual — Lectura Sistémica",
         fld("¿Cómo se manifiesta el problema en la familia?",ta("famManifestacion",p.famManifestacion,3,"¿Qué hacen, dicen, sienten los distintos miembros cuando aparece el problema?"))+
@@ -2973,7 +3052,7 @@ function renderTab(){
   else if(activeTab==="fam_fortalezas"){
     el.innerHTML=
       `<div style="margin-bottom:10px;padding:9px 13px;background:#E8F5E9;border-radius:9px;font-size:11px;color:#1B5E20;font-weight:700">
-         💡 Evaluar las fortalezas no es opcional — son la base del cambio. Una familia sin recursos percibidos necesita que el terapeuta los nombré primero.
+          Evaluar las fortalezas no es opcional — son la base del cambio. Una familia sin recursos percibidos necesita que el terapeuta los nombré primero.
       </div>`+
       sec(8,"Fortalezas Familiares",
         mchk("Recursos y fortalezas identificadas","famFortalezas",p.famFortalezas||[],[
@@ -3115,6 +3194,7 @@ function renderTab(){
         <div class="ibody">
           <div class="g2">
             <div class="fld"><label>Nombre o código</label><input value="${esc(pt.nombre)}" placeholder="Nombre o código de confidencialidad" oninput="updGrpPart(${i},'nombre',this.value)"></div>
+            <div class="fld"><label>HC vinculada (si tiene historia propia)</label><div style="display:flex;gap:7px;align-items:center"><input value="${esc(pt.hcVinculada||'')}" placeholder="Ej: HC-2026-004" oninput="updGrpPart(${i},'hcVinculada',this.value)" style="flex:1"><button onclick="verHCVinculada('${esc(pt.hcVinculada||'')}',this)" style="padding:5px 10px;background:var(--cobalt-light);border:1px solid var(--border);border-radius:7px;font-size:11px;color:var(--cobalt)">Ver HC</button></div></div>
             <div class="fld"><label>Edad</label><input type="number" value="${esc(pt.edad)}" oninput="updGrpPart(${i},'edad',this.value)"></div>
             <div class="fld"><label>Rol externo</label>
               <select onchange="updGrpPart(${i},'rolExterno',this.value)">
@@ -3159,7 +3239,7 @@ function renderTab(){
             </div>
           </div>
           <div class="fld"><label>Observación clínica</label><textarea rows="2" placeholder="Ej: Tiende a evitar la participación y mantiene bajo contacto visual con el grupo..." oninput="updGrpPart(${i},'obsClinica',this.value)">${esc(pt.obsClinica)}</textarea></div>
-          <button class="btn-del" onclick="delGrpPart(${i})">Eliminar participante</button>
+          <button class="btn-del" onclick="delGrpPart(${i})">🗑 Eliminar participante</button>
         </div>
       </div>`).join("");
     el.innerHTML=sec(4,"Participantes del Grupo",
@@ -3174,7 +3254,7 @@ function renderTab(){
   else if(activeTab==="grp_dinamica"){
     el.innerHTML=
       `<div style="margin-bottom:10px;padding:9px 13px;background:var(--apl);border-radius:9px;font-size:11px;color:var(--adk);font-weight:700">
-         🔥 La dinámica grupal es el corazón del proceso. No basta con observar a los individuos — el grupo como sistema tiene su propia vida.
+          La dinámica grupal es el corazón del proceso. No basta con observar a los individuos — el grupo como sistema tiene su propia vida.
       </div>`+
       sec(5,"Dinámica Grupal — Evaluación General",
         g2(
@@ -3253,7 +3333,7 @@ function renderTab(){
           <div class="fld"><label>Dinámica y proceso grupal observado</label><textarea rows="3" placeholder="Ej: El grupo mostró mayor apertura en comparación con sesiones anteriores, aunque algunos miembros mantienen evitación emocional..." oninput="updSes(${i},'observaciones',this.value)">${esc(s.observaciones)}</textarea></div>
           <div class="fld"><label>Avances observados</label><textarea rows="2" oninput="updSes(${i},'grpAvances',this.value)">${esc(s.grpAvances)}</textarea></div>
           <div class="fld"><label>Dificultades de la sesión</label><textarea rows="2" oninput="updSes(${i},'tareas',this.value)">${esc(s.tareas)}</textarea></div>
-          <button class="btn-del" onclick="delSes(${i})">Eliminar sesión</button>
+          <button class="btn-del" onclick="delSes(${i})">🗑 Eliminar sesión</button>
         </div>
       </div>`;
     }).join("");
@@ -3298,14 +3378,14 @@ function renderTab(){
           </div>
           <div class="fld"><label>Descripción de la situación</label><textarea rows="3" oninput="updGrpAlerta(${i},'descripcion',this.value)">${esc(a.descripcion)}</textarea></div>
           <div class="fld"><label>Seguimiento y resolución</label><textarea rows="2" oninput="updGrpAlerta(${i},'seguimiento',this.value)">${esc(a.seguimiento)}</textarea></div>
-          <button class="btn-del" onclick="delGrpAlerta(${i})">Eliminar alerta</button>
+          <button class="btn-del" onclick="delGrpAlerta(${i})">🗑 Eliminar alerta</button>
         </div>
       </div>`).join("");
     el.innerHTML=
       `<div style="margin-bottom:12px;padding:10px 14px;background:#FDECEA;border:2px solid var(--danger);border-radius:9px;font-size:11px;color:#7C1414;font-weight:700">
-        ⚠️ Registra aquí cualquier situación de riesgo individual surgida en el contexto grupal. Cada alerta requiere seguimiento.
+         Registra aquí cualquier situación de riesgo individual surgida en el contexto grupal. Cada alerta requiere seguimiento.
       </div>`+
-      sec("⚠️","Alertas y Situaciones de Riesgo",
+      sec("","Alertas y Situaciones de Riesgo",
         `<div style="display:flex;justify-content:flex-end;margin-bottom:10px">
           <button class="btn-add" onclick="addGrpAlerta()">+ Nueva alerta</button>
         </div>`+
@@ -3474,7 +3554,7 @@ function genInformeGrupal(p){
   (p.sesiones||[]).forEach((s,i)=>{r+="  "+(i+1)+". "+(s.titulo||"Sin título")+" — "+fmtDate(s.fecha)+nl;if(s.observaciones)r+="     "+s.observaciones+nl;});
   r+=nl;
   if((p.grpAlertas||[]).length){
-    r+="6. ALERTAS ⚠️"+nl+"─".repeat(40)+nl;
+    r+="6. ALERTAS "+nl+"─".repeat(40)+nl;
     p.grpAlertas.forEach((a,i)=>{r+="  "+(i+1)+". "+(a.participante||"?")+" — "+(a.tipoRiesgo||"Sin tipo")+" — Acción: "+(a.accion||"No especificada")+nl;});
     r+=nl;
   }
@@ -3999,13 +4079,501 @@ function copiarInforme(){
 }
 function exportarWord(){
   const p=getP();if(!p)return;
-  const txt=genInforme(p);
-  const html=`<html><head><meta charset="UTF-8"><style>body{font-family:Calibri,sans-serif;font-size:11pt;margin:2.5cm;}pre{font-family:Calibri,sans-serif;white-space:pre-wrap;}</style></head><body><pre>${txt}</pre></body></html>`;
-  const blob=new Blob([html],{type:"application/msword"});
-  const a=document.createElement("a");
+  const nl="\n";
+
+  // ── Helpers ──
+  function sec(n,title){return '<p style="margin:0;font-size:10pt;">&nbsp;</p><h2 style="font-family:Arial,sans-serif;font-size:12pt;font-weight:bold;margin-top:0;margin-bottom:6pt;border-bottom:1pt solid #333;padding-bottom:2pt;">'+n+'. '+title.toUpperCase()+'</h2><p style="margin:0;font-size:4pt;">&nbsp;</p>';}
+  function row(label,val){if(!val)return '';return '<p style="margin:3pt 0;font-family:Arial,sans-serif;font-size:12pt;text-align:justify;"><b>'+label+': </b>'+esc(val)+'</p>';}
+  function rowList(label,arr){if(!arr||!arr.length)return '';return '<p style="margin:2pt 0;font-family:Arial,sans-serif;font-size:12pt;text-align:justify;"><b>'+label+':</b>&nbsp;'+arr.map(esc).join(', ')+'.</p>';}
+  function para(text){if(!text)return '';return '<p style="margin:3pt 0 3pt 0;font-family:Arial,sans-serif;font-size:12pt;text-align:justify;line-height:1.5;">'+esc(text)+'</p>';}
+  function escs(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');}
+
+  // ── Header block ──
+  const profBlock='<table width="100%" style="margin-bottom:10pt;border-bottom:2pt solid #333;padding-bottom:6pt;"><tr>'+
+    '<td style="width:70%;font-family:Arial,sans-serif;font-size:12pt;">'+
+      '<b style="font-size:13pt;">'+(escs(profesional.nombre)||'MedHC — Historia Psicológica')+'</b><br>'+
+      (escs(profesional.titulo)||'')+(escs(profesional.titulo)?'<br>':'')+
+      [escs(profesional.cedula)?'C.I.: '+escs(profesional.cedula):'',escs(profesional.registro)||''].filter(Boolean).join(' | ')+'<br>'+
+      [escs(profesional.centro),escs(profesional.ciudad),escs(profesional.pais)].filter(Boolean).join(' · ')+
+    '</td>'+
+    '<td style="width:30%;text-align:right;font-family:Arial,sans-serif;font-size:10pt;color:#555;">'+
+      '<b>Historia Clínica</b><br>'+escs(p.hcCode)+(p.tipoHistoria?'<br>'+escs(p.tipoHistoria):'')+
+      '<br>Apertura: '+escs(fmtDate(p.fechaApertura))+'<br>Emitido: '+escs(informeFecha)+
+    '</td></tr></table>';
+
+  let body='';
+
+  // ── Dispatcher por tipo ──
+  const tipo=p.tipoHistoria||'';
+
+  if(tipo==='Adulto mayor (65+)'){body=bodyAdultoMayor(p,sec,row,rowList,para,esc,escs);}
+  else if(tipo==='Familia'){body=bodyFamilia(p,sec,row,rowList,para,esc,escs);}
+  else if(tipo==='Grupo terapéutico'){body=bodyGrupo(p,sec,row,rowList,para,esc,escs);}
+  else if(tipo==='Adulto'){body=bodyAdulto(p,sec,row,rowList,para,esc,escs);}
+  else if(tipo==='Adolescente (12-17 años)'){body=bodyAdolescente(p,sec,row,rowList,para,esc,escs);}
+  else if(tipo==='Pareja'){body=bodyPareja(p,sec,row,rowList,para,esc,escs);}
+  else{body=bodyInfantil(p,sec,row,rowList,para,esc,escs);}
+
+  // ── Evaluaciones aplicadas (todas las modalidades) ──
+  if((p.evaluaciones||[]).length){
+    body+= sec('EVAL','Evaluaciones Aplicadas');
+    p.evaluaciones.forEach((e,i)=>{
+      body+='<p style="margin:4pt 0 0 0;font-family:Arial,sans-serif;font-size:12pt;"><b>'+(i+1)+'. '+escs(e.nombre||'Sin nombre')+'</b> ['+escs(e.tipo||'—')+'] — '+escs(fmtDate(e.fecha))+'</p>';
+      body+='<p style="margin:1pt 0 1pt 16pt;font-family:Arial,sans-serif;font-size:12pt;">Informante: '+escs(e.informante||'—')+' | Puntaje: '+escs(e.puntaje||'—')+' | Percentil: '+escs(e.percentil||'—')+'</p>';
+      if(e.observaciones)body+='<p style="margin:1pt 0 1pt 16pt;font-family:Arial,sans-serif;font-size:12pt;text-align:justify;">'+esc(e.observaciones)+'</p>';
+      if(e.obsProyectivas)body+='<p style="margin:1pt 0 4pt 16pt;font-family:Arial,sans-serif;font-size:12pt;font-style:italic;text-align:justify;">'+esc(e.obsProyectivas)+'</p>';
+    });
+  }
+
+  // ── Derivaciones ──
+  if((p.derivaciones||[]).length){
+    body+=sec('DER','Derivaciones');
+    p.derivaciones.forEach((d,i)=>{
+      if(d.estado==='Pendiente'||d.estado==='Programada')return; // solo las realizadas
+      body+='<p style="margin:4pt 0 0 0;font-family:Arial,sans-serif;font-size:12pt;"><b>'+(i+1)+'. '+escs(d.especialidad||'—')+'</b>'+(d.profesional?' — '+escs(d.profesional):'')+' ['+escs(d.estado||'—')+']</p>';
+      if(d.motivo)body+='<p style="margin:1pt 0 1pt 16pt;font-family:Arial,sans-serif;font-size:12pt;">Motivo: '+escs(d.motivo)+'</p>';
+      if(d.resultado)body+='<p style="margin:1pt 0 4pt 16pt;font-family:Arial,sans-serif;font-size:12pt;">Resultado: '+esc(d.resultado)+'</p>';
+    });
+  }
+
+  // ── Diagnóstico DSM-5 marcado ──
+  const dxKeys=Object.keys(DX_ST||{});
+  const activeDx=dxKeys.filter(id=>{const s=DX_ST[id];return s&&(Object.keys(s.marks).length>0||Object.values(s.subs||{}).some(g=>Object.values(g).some(Boolean)));});
+  if(activeDx.length||((p.diagnostico||[]).length)||(p.diagnosticoAdulto||[]).length||(p.impresionDiagnostica||p.impresionDiagnosticaAdulto)){
+    body+=sec('DX','Diagnóstico');
+    // DSM module marked diagnoses
+    activeDx.forEach(id=>{
+      const dx=DX_DATA[id];const st=DX_ST[id];
+      if(!dx)return;
+      const code=Object.values(dx.codes)[0]||'';
+      body+='<p style="margin:4pt 0 0 0;font-family:Arial,sans-serif;font-size:12pt;"><b>'+escs(dx.title)+(code&&code!=='—'?' ('+escs(code)+')':'')+'</b></p>';
+      dx.criteria.forEach((c,ci)=>{
+        const mk=st.marks[ci];if(!mk)return;
+        const ML={p:'Presente',par:'Parcial',a:'Ausente',oc:'Ocasional',fr:'Frecuente',si:'Siempre',lv:'Leve',mo:'Moderado',ma:'Marcado'};
+        body+='<p style="margin:1pt 0 1pt 20pt;font-family:Arial,sans-serif;font-size:12pt;">'+escs(c.l)+'. '+escs(c.t.slice(0,80))+(c.t.length>80?'…':'')+'<i> — '+escs(ML[mk]||mk)+'</i></p>';
+        if(st.notes[ci])body+='<p style="margin:0 0 1pt 28pt;font-family:Arial,sans-serif;font-size:11pt;font-style:italic;color:#555;">Nota: '+esc(st.notes[ci])+'</p>';
+      });
+    });
+    // Simple checkbox diagnoses
+    const simpleDx=[...(p.diagnostico||[]),...(p.diagnosticoAdulto||[])];
+    if(simpleDx.length){body+='<p style="margin:4pt 0 2pt 0;font-family:Arial,sans-serif;font-size:12pt;">'+simpleDx.map(d=>'• '+escs(d)).join('<br>')+'</p>';}
+    const imp=p.impresionDiagnosticaAdulto||p.impresionDiagnostica;
+    if(imp){body+='<p style="margin:6pt 0 2pt 0;font-family:Arial,sans-serif;font-size:12pt;font-style:italic;text-align:justify;">'+esc(imp)+'</p>';}
+  }
+
+  // ── Firma ──
+  body+='<p style="margin-top:30pt;font-family:Arial,sans-serif;font-size:12pt;">_______________________________________________<br>Firma y sello — '+escs(profesional.nombre||'')+'<br>'+escs(profesional.titulo||'')+'<br>Fecha: '+escs(informeFecha)+'</p>';
+
+  const fullHtml='<html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">'+
+    '<head><meta charset="UTF-8">'+
+    '<style>'+
+      '@page{size:letter;margin:2.5cm 3cm 2.5cm 3cm;}'+
+      'body{font-family:Arial,sans-serif;font-size:12pt;color:#111;}'+
+    '</style>'+
+    '</head><body>'+profBlock+body+'</body></html>';
+
+  const blob=new Blob([fullHtml],{type:'application/msword'});
+  const a=document.createElement('a');
   a.href=URL.createObjectURL(blob);
-  a.download=`Informe_${p.nombre||p.hcCode}_${today()}.doc`;
+  a.download='Informe_'+(p.nombre||p.hcCode)+'_'+today()+'.doc';
   a.click();
+}
+
+// ── Cuerpos de informe por modalidad ──────────────────────────────────────────
+function bodyInfantil(p,sec,row,rowList,para,esc,escs){
+  let b='';
+  b+=sec(1,'Identificación');
+  b+=row('Nombre',p.nombre);b+=row('Fecha de nacimiento',p.fechaNac?fmtDate(p.fechaNac):null);
+  b+=row('Edad',p.edad?p.edad+' años':null);b+=row('Sexo',p.sexo);b+=row('Cédula',p.cedula);
+  b+=row('Grado escolar',p.gradoEscolar);b+=row('Institución',p.institucion);
+  b+=row('Representante',p.repNombre?(p.repNombre+(p.repParentesco?' ('+p.repParentesco+')':'')):null);
+  b+=row('Teléfono representante',p.repTelefono);b+=row('Dirección',p.direccion);
+
+  b+=sec(2,'Motivo de Consulta');b+=para(p.motivoConsulta);
+  b+=row('Informante',p.informante);b+=row('Fuente',p.fuenteInfo);
+
+  b+=sec(3,'Antecedentes Perinatales y de Desarrollo');
+  b+=row('Embarazo',p.embarazoPlaneado);b+=row('Salud materna',p.saludMadre);
+  b+=rowList('Complicaciones embarazo',p.complicacionesEmbarazo);
+  b+=row('Tipo de nacimiento',p.tipoNacimiento);b+=row('Tipo de parto',p.tipoParto);
+  b+=row('Semanas gestación',p.semanasEmbarazo);
+  b+=row('Peso al nacer',p.pesoNacer);b+=row('Talla al nacer',p.tallaNacer);
+  b+=rowList('Complicaciones al nacer',p.complicacionesNacimiento);
+  b+=row('Primera semana',p.primeraSemanaNac&&p.primeraSemanaNac.length?p.primeraSemanaNac.join(', '):null);
+  b+='<p style="margin:4pt 0 2pt 0;font-family:Arial,sans-serif;font-size:12pt;"><b>Hitos del desarrollo:</b></p>';
+  b+=row('Caminó',p.edadCamino?p.edadCamino+' meses':null);
+  b+=row('Primeras palabras',p.primerasPalabras);
+  b+=row('Control de esfínteres diurno',p.controlEsfinteresDiurno?p.controlEsfinteresDiurno+' m.':null);
+  b+=row('Control nocturno',p.controlEsfinteresNocturno?p.controlEsfinteresNocturno+' m.':null);
+  b+=row('Lenguaje actual',p.desarrolloLenguaje);
+  b+=para(p.preocupacionEtapaTemprana);
+
+  b+=sec(4,'Área Emocional y Conductual');
+  b+=rowList('Emociones frecuentes',p.emocionesFrecuentes);
+  b+=rowList('Miedos',p.miedosPersistentes);
+  b+=rowList('Síntomas de ansiedad',p.sintomasAnsiedad);
+  b+=para(p.pensamientosNegativos&&'Pensamientos negativos: '+p.pensamientosNegativos);
+  b+=rowList('Conductas en casa',p.conductasEnCasa);
+  b+=row('Reacción ante frustración',p.reaccionFrustracion);
+
+  b+=sec(5,'Área Escolar y Social');
+  b+=row('Asistencia escolar',p.asistenciaEscolar);b+=row('Bullying',p.bullying&&p.bullying!=='No'?p.bullying:null);
+  b+=row('Relación con compañeros',p.relacionCompaneros);b+=row('Relación con docentes',p.relacionDocentes);
+  b+=rowList('Comportamiento en clase',p.comportamientoClase);
+  b+=rowList('Dificultades académicas',p.dificultadesAcademicas);
+
+  b+=sec(6,'Hábitos y Dinámica Familiar');
+  b+=row('Hora de dormir',p.horaDormir);b+=row('Hora de despertar',p.horaDespertar);
+  b+=rowList('Hábitos de sueño',p.habSueno);
+  b+=rowList('Alimentación',p.habAlimentacion);b+=row('Alimento rechazado',p.alimentoRechazo);
+  b+=rowList('Autonomía',p.habAutonomia);
+  b+=row('Relación con padres',p.relacionPadres);b+=row('Respuesta a límites',p.respuestaLimites);
+  b+=rowList('Vínculos positivos',p.vinculosPositivos);
+  b+=row('Actividades extracurriculares',p.actividadesExtracurriculares);
+  b+=row('Uso de tecnología',p.usoTecnologia||p.tecnologiaUso);
+  b+=row('Horas diarias de pantalla',p.horasPantalla);
+
+  b+=sec(7,'Composición Familiar');
+  if((p.convivientes||[]).length){
+    p.convivientes.forEach(c=>{b+=row(escs(c.parentesco||'Familiar'),escs(c.nombre||'')+(c.edad?' ('+c.edad+' años)':'')+(c.ocupacion?', '+escs(c.ocupacion):''));});
+  }
+  b+=para(p.dinamicaFamiliar);b+=para(p.relacionesFamiliares);
+
+  b+=sec(8,'Antecedentes de Salud y Terapéuticos');
+  b+=row('Diagnóstico previo',p.diagnosticoPrevio);
+  b+=row('Medicación actual',p.medicacionActual==='Si'?'Sí'+(p.especialistaMedicacion?' — '+p.especialistaMedicacion:''):p.medicacionActual);
+  b+=rowList('Consultas previas',p.terapiasHistorial);
+  b+=row('Diagnóstico de especialista',p.diagnosticoEspecialista);
+  b+=row('Enfermedades médicas',p.diagnosticoPrevioMed);
+  b+=rowList('Intervenciones previas',p.intervencionesPrevias);
+
+  b+=sec(9,'Observación Clínica');
+  b+=row('Actitud',p.observacionActitud);b+=row('Interacción',p.observacionInteraccion);
+  b+=row('Lenguaje',p.observacionLenguaje);b+=row('Juego',p.observacionJuego);
+  b+=row('Estado emocional',p.observacionEstadoEmocional);
+  b+=row('Insight',p.observacionInsight);b+=row('Disposición terapéutica',p.observacionDisposicion);
+  b+=para(p.observacionNotas);
+  return b;
+}
+
+function bodyAdulto(p,sec,row,rowList,para,esc,escs){
+  let b='';
+  b+=sec(1,'Identificación');
+  b+=row('Nombre',p.nombre);b+=row('Fecha de nacimiento',p.fechaNac?fmtDate(p.fechaNac):null);
+  b+=row('Edad',p.edad?p.edad+' años':null);b+=row('Sexo',p.sexo);
+  b+=row('Estado civil',p.estadoCivil);b+=row('Nivel educativo',p.nivelEducativo);
+  b+=row('Ocupación',p.ocupacion);b+=row('Teléfono',p.telefono);b+=row('Dirección',p.direccion);
+
+  b+=sec(2,'Motivo de Consulta');b+=para(p.motivoConsultaAdulto||p.motivoConsulta);
+  b+=row('Fuente de información',p.fuenteInfo);b+=row('Confiabilidad',p.confiabilidadInfo);
+
+  b+=sec(3,'Historia de Vida');
+  b+=para(p.historiaInfancia&&'Infancia: '+p.historiaInfancia);
+  b+=para(p.historiaAdolescencia&&'Adolescencia: '+p.historiaAdolescencia);
+  b+=rowList('Eventos vitales significativos',p.eventosVitales);
+  b+=para(p.otrosEventosVitales);
+
+  b+=sec(4,'Contexto Familiar y Social');
+  b+=row('Composición familiar',p.composicionFamiliarA);
+  b+=row('Calidad de vínculos',p.calidadVinculosA);
+  b+=para(p.dinamicaFamiliarA);
+  b+=rowList('Antecedentes familiares de salud mental',p.ahfSaludMental);
+  b+=row('Red de apoyo',p.redApoyo);b+=row('Calidad de relaciones',p.calidadRelaciones);
+  b+=para(p.conflictosInterpersonales&&'Conflictos interpersonales: '+p.conflictosInterpersonales);
+
+  b+=sec(5,'Área de Pareja y Sexualidad');
+  b+=row('Estado de pareja',p.estadoPareja);b+=row('Orientación sexual',p.orientacionSexual);
+  b+=row('Satisfacción sexual',p.satisfaccionSexual);
+  b+=row('Calidad de la relación',p.calidadRelacionPareja);
+  b+=para(p.historiaRelaciones&&'Historia relacional: '+p.historiaRelaciones);
+  b+=para(p.dificultadesPareja&&'Dificultades: '+p.dificultadesPareja);
+
+  b+=sec(6,'Área Laboral y Funcional');
+  b+=row('Situación laboral',p.situacionLaboral);b+=row('Ocupación actual',p.ocupacionActual);
+  b+=row('Satisfacción laboral',p.satisfaccionLaboral);
+  b+=para(p.problemasLaborales&&'Problemas laborales: '+p.problemasLaborales);
+  b+=row('Autonomía en AVDB',p.autonomiaAVDB);b+=row('Rutina diaria',p.rutinaOrganizacion);
+
+  b+=sec(7,'Área Emocional y Síntomas');
+  b+=para(p.problemaActual||p.descripcionProblema);
+  b+=row('Inicio de los síntomas',p.inicioProblemaTiempo);
+  b+=row('Intensidad',p.intensidadSintomas);b+=row('Frecuencia',p.frecuenciaSintomas);
+  b+=rowList('Síntomas emocionales',p.sintomasEmocionales);
+  b+=rowList('Síntomas físicos',p.sintomasFisicos);
+  b+=rowList('Síntomas cognitivos',p.sintomasCognitivos);
+  b+=rowList('Síntomas conductuales',p.sintomasConductuales);
+  b+=para(p.factoresDesencadenantes&&'Factores desencadenantes: '+p.factoresDesencadenantes);
+  b+=para(p.factoresMantenedores&&'Factores mantenedores: '+p.factoresMantenedores);
+
+  b+=sec(8,'Antecedentes de Salud');
+  b+=row('Diagnóstico previo',p.diagnosticoPrevio);
+  b+=row('Enfermedades médicas',p.diagnosticoPrevioMed);
+  b+=row('Medicación actual',p.medicacionActual);
+  b+=rowList('Consultas previas',p.terapiasHistorial);
+  b+=row('Diagnóstico de especialista',p.diagnosticoEspecialista);
+
+  b+=sec(9,'Evaluación de Riesgo');
+  b+=row('Ideación suicida',p.ideacionSuicida);b+=row('Plan suicida',p.planSuicida);
+  b+=row('Autolesiones',p.autolesiones);b+=row('Riesgo heteroagresivo',p.riesgoHeteroagresivo);
+  b+=para(p.obsRiesgo);
+
+  b+=sec(10,'Observación Clínica');
+  b+=row('Presentación general',p.obsApariencia||p.observacionActitud);
+  b+=row('Actitud durante la entrevista',p.obsActitud);
+  b+=row('Lenguaje y pensamiento',p.obsLenguaje||p.observacionLenguaje);
+  b+=row('Estado de ánimo y afecto',p.obsEstadoAnimo);
+  b+=row('Insight',p.obsInsight||p.observacionInsight);
+  b+=row('Juicio',p.obsJuicio);
+  b+=para(p.obsClinicaNotas||p.observacionNotas);
+  return b;
+}
+
+function bodyAdolescente(p,sec,row,rowList,para,esc,escs){
+  let b='';
+  b+=sec(1,'Identificación');
+  b+=row('Nombre',p.nombre);b+=row('Edad',p.edad?p.edad+' años':null);
+  b+=row('Fecha de nacimiento',p.fechaNac?fmtDate(p.fechaNac):null);
+  b+=row('Sexo',p.sexo);b+=row('Grado escolar',p.gradoEscolar);
+  b+=row('Institución',p.institucion);b+=row('Representante',p.repNombre);
+  b+=row('Teléfono',p.repTelefono);
+
+  b+=sec(2,'Motivo de Consulta');b+=para(p.motivoConsulta);
+  b+=row('¿Quién consulta?',p.quienConsulta);b+=row('Actitud ante la consulta',p.actitudConsulta);
+
+  b+=sec(3,'Desarrollo y Antecedentes');
+  b+=para(p.antecedentesDesarrollo);
+  b+=row('Diagnóstico previo',p.diagnosticoPrevio);
+  b+=rowList('Terapias previas',p.terapiasHistorial);
+  b+=row('Enfermedades médicas',p.diagnosticoPrevioMed);
+  b+=row('Medicación',p.medicacionActual);
+
+  b+=sec(4,'Área Escolar');
+  b+=row('Institución',p.institucion);b+=row('Grado',p.gradoEscolar);
+  b+=row('Rendimiento académico',p.rendimientoAcademico);
+  b+=rowList('Dificultades académicas',p.dificultadesAcademicas);
+  b+=row('Relación con compañeros',p.relacionCompaneros);
+  b+=row('Bullying',p.bullying&&p.bullying!=='No'?p.bullying:null);
+  b+=row('Relación con docentes',p.relacionDocentes);
+  b+=row('Asistencia',p.asistenciaEscolar);
+
+  b+=sec(5,'Área Familiar');
+  b+=row('Composición familiar',p.composicionFamiliarA||p.composicionFamiliar);
+  b+=row('Calidad de vínculos',p.calidadVinculosA);
+  b+=para(p.dinamicaFamiliarA||p.dinamicaFamiliar);
+  b+=rowList('Antecedentes de salud mental familiar',p.ahfSaludMental);
+  b+=row('Relación con padres',p.relacionPadres);b+=row('Límites',p.respuestaLimites);
+
+  b+=sec(6,'Área Emocional y Conductual');
+  b+=para(p.problemaActual||p.descripcionProblema);
+  b+=rowList('Síntomas emocionales',p.sintomasEmocionales);
+  b+=rowList('Síntomas conductuales',p.sintomasConductuales);
+  b+=row('Inicio',p.inicioProblemaTiempo);
+  b+=row('Uso de tecnología',p.usoTecnologia||p.tecnologiaUso);
+  b+=row('Horas diarias de pantalla',p.horasPantalla);
+  b+=rowList('Actividades extracurriculares',p.actividadesExtracurriculares?[p.actividadesExtracurriculares]:null);
+
+  b+=sec(7,'Evaluación de Riesgo');
+  b+=row('Ideación suicida',p.ideacionSuicida);b+=row('Plan',p.planSuicida);
+  b+=row('Autolesiones',p.autolesiones);b+=para(p.obsRiesgo);
+
+  b+=sec(8,'Observación Clínica');
+  b+=row('Actitud',p.observacionActitud||p.obsActitud);
+  b+=row('Lenguaje',p.observacionLenguaje||p.obsLenguaje);
+  b+=row('Estado emocional',p.observacionEstadoEmocional||p.obsEstadoAnimo);
+  b+=row('Insight',p.observacionInsight||p.obsInsight);
+  b+=para(p.observacionNotas||p.obsClinicaNotas);
+  return b;
+}
+
+function bodyAdultoMayor(p,sec,row,rowList,para,esc,escs){
+  let b='';
+  b+=sec(1,'Identificación');
+  b+=row('Nombre',p.nombre);b+=row('Edad',p.edad?p.edad+' años':null);
+  b+=row('Fecha de nacimiento',p.fechaNac?fmtDate(p.fechaNac):null);
+  b+=row('Sexo',p.sexo);b+=row('Estado civil',p.estadoCivil);
+  b+=row('Nivel educativo',p.nivelEducativo);b+=row('Ocupación previa',p.ocupacion);
+
+  b+=sec(2,'Motivo de Consulta');b+=para(p.motivoConsultaAdulto||p.motivoConsulta);
+  b+=row('Versión familiar/cuidador',p.amMotivoFamiliar);
+  b+=row('Fuente',p.fuenteInfo);b+=row('Confiabilidad',p.confiabilidadInfo);
+
+  b+=sec(3,'Red de Apoyo');
+  b+=row('Vive con',p.amConQuienVive);b+=row('Cuidado principal por',p.amQuienCuida);
+  b+=row('Contacto social',p.amContactoSocial);b+=row('Soledad percibida',p.amSoledadPercibida);
+  b+=para(p.amObsRedApoyo);
+
+  b+=sec(4,'Área Funcional (ABVD / AIVD)');
+  const abvd=[['Baño/higiene',p.amAbvdBano],['Vestirse',p.amAbvdVestirse],['Alimentarse',p.amAbvdComer],['Movilidad',p.amAbvdMovilidad],['Medicación',p.amAbvdMedicacion]];
+  abvd.forEach(([l,v])=>{if(v)b+=row('ABVD — '+l,v);});
+  const aivd=[['Dinero',p.amAivdDinero],['Transporte',p.amAivdTransporte],['Compras',p.amAivdCompras],['Cocina',p.amAivdCocina],['Teléfono',p.amAivdTelefono]];
+  aivd.forEach(([l,v])=>{if(v)b+=row('AIVD — '+l,v);});
+  b+=para(p.amObsFuncional);
+
+  b+=sec(5,'Área Cognitiva');
+  b+=row('Orientación temporal',p.amOrientTiempo);b+=row('Orientación espacial',p.amOrientEspacio);
+  b+=row('Orientación personal',p.amOrientPersona);
+  b+=row('Memoria reciente',p.amMemoriaReciente);b+=row('Memoria remota',p.amMemoriaRemota);
+  b+=row('Atención',p.amAtencion);b+=row('Lenguaje',p.amLenguaje);
+  b+=row('Funciones ejecutivas',p.amFuncionesEjec);b+=row('Test aplicado',p.amTestCognitivo);
+  b+=para(p.amObsCognitiva);
+
+  b+=sec(6,'Área Emocional');
+  b+=para(p.problemaActual||p.descripcionProblema);
+  b+=row('Estado de ánimo',p.amEstadoAnimo);b+=row('Signos de depresión',p.amDepresion);
+  b+=row('Signos de ansiedad',p.amAnsiedad);b+=row('Sueño',p.amSueno);
+  b+=row('Apetito',p.amApetito);b+=para(p.amObsEmocional);
+
+  b+=sec(7,'Antecedentes de Salud');
+  b+=row('Enfermedades médicas',p.amEnfermedades||p.diagnosticoPrevioMed);
+  b+=row('Medicación actual',p.medicacionActual);b+=row('Diagnóstico previo',p.diagnosticoPrevio);
+  b+=rowList('Terapias previas',p.terapiasHistorial);
+
+  b+=sec(8,'Observación Clínica');
+  b+=row('Presentación',p.obsApariencia||p.observacionActitud);
+  b+=row('Actitud',p.obsActitud);b+=row('Insight',p.obsInsight||p.observacionInsight);
+  b+=para(p.obsClinicaNotas||p.observacionNotas);
+  return b;
+}
+
+function bodyPareja(p,sec,row,rowList,para,esc,escs){
+  const A=escs(p.nombreA||'Persona A');const B=escs(p.nombreB||'Persona B');
+  let b='';
+  b+=sec(1,'Identificación de la Pareja');
+  b+=row('Historia clínica',p.hcCode);
+  b+=row(A+' — Edad',p.edadA?p.edadA+' años':null);b+=row(A+' — Ocupación',p.ocupacionA);
+  b+=row(B+' — Edad',p.edadB?p.edadB+' años':null);b+=row(B+' — Ocupación',p.ocupacionB);
+  b+=row('Tiempo de relación',p.tiempoRelacion);b+=row('Tipo de relación',p.tipoRelacion);
+  b+=row('Hijos',p.tieneHijos);b+=row('Convivencia',p.convivencia);
+
+  // HCs vinculadas
+  if(p.hcVinculadaA||p.hcVinculadaB){
+    b+='<p style="margin:4pt 0;font-family:Arial,sans-serif;font-size:12pt;"><b>Historias vinculadas:</b> ';
+    if(p.hcVinculadaA)b+=A+': HC '+escs(p.hcVinculadaA)+' ';
+    if(p.hcVinculadaB)b+=B+': HC '+escs(p.hcVinculadaB);
+    b+='</p>';
+  }
+
+  b+=sec(2,'Motivo de Consulta');b+=para(p.motivoConsultaPareja||p.motivoConsulta);
+  b+=row('Quién propone la consulta',p.quienProponeTerapia);
+  b+=row('Motivación de '+A,p.motivacionA);b+=row('Motivación de '+B,p.motivacionB);
+
+  b+=sec(3,'Historia de la Relación');
+  b+=para(p.historiaRelacion);b+=row('Crisis previas',p.crisisPrevias);
+  b+=row('Intentos de solución',p.intentosSolucion);b+=row('Rupturas previas',p.rupturasPrevias);
+
+  b+=sec(4,'Dinámica Relacional');
+  b+=row('Tipo de dinámica',p.tipoDinamica);
+  b+=row('Apego '+A,p.apegoA);b+=row('Apego '+B,p.apegoB);
+  b+=para(p.patronesDisfuncionales&&'Patrones: '+p.patronesDisfuncionales);
+  b+=para(p.factoresMantenedoresPareja&&'Factores mantenedores: '+p.factoresMantenedoresPareja);
+
+  b+=sec(5,'Comunicación y Conflicto');
+  b+=row('Estilo de comunicación',p.estiloComPareja);
+  b+=row('Manejo del conflicto',p.manejoConflicto);
+  b+=row('Temas de conflicto frecuentes',p.temasConflicto);
+  b+=row('Violencia',p.violenciaRelacion&&p.violenciaRelacion!=='No hay indicadores'?p.violenciaRelacion:null);
+
+  b+=sec(6,'Área de Intimidad y Sexualidad');
+  b+=row('Satisfacción afectiva',p.satisfaccionAfectiva);b+=row('Satisfacción sexual',p.satisfaccionSexualPareja);
+  b+=para(p.dificultadesIntimidad&&'Dificultades: '+p.dificultadesIntimidad);
+
+  b+=sec(7,'Antecedentes Relevantes');
+  b+=row('Antecedentes de salud mental de '+A,p.saludMentalA);
+  b+=row('Antecedentes de salud mental de '+B,p.saludMentalB);
+  b+=row('Terapias previas',p.terapiasPrevias);
+
+  b+=sec(8,'Evaluación de Riesgo');
+  b+=row('Violencia activa',p.violenciaActiva);b+=row('Riesgo para hijos',p.riesgoHijos);
+  b+=para(p.obsRiesgoPareja);
+
+  b+=sec(9,'Observación Clínica');
+  b+=row('Interacción en sesión',p.interaccionSesion);
+  b+=row('Comunicación observada',p.comunicacionObservada);
+  b+=para(p.obsClinicaPareja);
+  return b;
+}
+
+function bodyFamilia(p,sec,row,rowList,para,esc,escs){
+  let b='';
+  b+=sec(1,'Identificación de la Familia');
+  b+=row('Apellido familiar',p.apellidoFamilia||p.nombre);
+  b+=row('Tipo de familia',p.tipoFamilia);b+=row('Etapa del ciclo vital',p.cicloPVital);
+
+  b+=sec(2,'Composición Familiar');
+  if((p.famMiembros||[]).length){
+    p.famMiembros.forEach(m=>{
+      b+=row(escs(m.parentesco||'Miembro'),escs(m.nombre||'')+(m.edad?' ('+m.edad+' años)':'')+(m.convive?', convive: '+escs(m.convive):''));
+      if(m.hcVinculada)b+='<p style="margin:0 0 2pt 16pt;font-family:Arial,sans-serif;font-size:11pt;color:#555;">HC vinculada: '+escs(m.hcVinculada)+'</p>';
+    });
+  }
+
+  b+=sec(3,'Motivo de Consulta');b+=para(p.motivoConsultaFam||p.motivoConsulta);
+  b+=row('Consultante',p.famConsultante);b+=row('Paciente identificado',p.famPacienteId);
+
+  b+=sec(4,'Dinámica Familiar');
+  b+=row('Tipo de dinámica',p.famTipoDinamica);
+  b+=row('Función del síntoma',p.famFuncionSistematica);
+  b+=para(p.famPatronesRepetitivos&&'Patrones repetitivos: '+p.famPatronesRepetitivos);
+
+  b+=sec(5,'Estructura y Comunicación');
+  b+=row('Calidad de la comunicación',p.famComunicacion);
+  b+=row('Tipo de límites',p.famLimites);b+=row('Jerarquía',p.famJerarquia);
+  b+=para(p.famDinamicaNarrativa||p.famObsDinamica);
+
+  b+=sec(6,'Historia Familiar');
+  b+=para(p.famHistoriaFamilia);
+  b+=row('Crisis actual',p.famCrisisActual);
+  b+=para(p.famEventosSignificativos&&'Eventos significativos: '+p.famEventosSignificativos);
+
+  b+=sec(7,'Evaluación de Riesgo');
+  b+=row('Riesgo para menores',p.famRiesgoMenores);
+  b+=row('Violencia intrafamiliar',p.famViolencia&&p.famViolencia!=='No hay indicadores'?p.famViolencia:null);
+  b+=para(p.obsRiesgoFam);
+
+  b+=sec(8,'Observación Clínica');
+  b+=row('Interacción en sesión',p.famInteraccionSesion);
+  b+=para(p.famObsClinica);
+  return b;
+}
+
+function bodyGrupo(p,sec,row,rowList,para,esc,escs){
+  let b='';
+  b+=sec(1,'Identificación del Grupo');
+  b+=row('Nombre del grupo',p.grpNombre||p.nombre);
+  b+=row('Tipo de grupo',p.grpTipo);b+=row('Modalidad',p.grpModalidad);
+  b+=row('Número de participantes',(p.grpParticipantes||[]).length||null);
+
+  b+=sec(2,'Objetivo del Grupo');b+=para(p.grpObjetivoGeneral);
+  b+=rowList('Objetivos específicos',p.grpObjetivosEspecificos);
+
+  if((p.grpParticipantes||[]).length){
+    b+=sec(3,'Participantes');
+    p.grpParticipantes.forEach((pt,i)=>{
+      b+='<p style="margin:3pt 0;font-family:Arial,sans-serif;font-size:12pt;"><b>'+(i+1)+'. '+escs(pt.nombre||'Participante')+'</b>'+(pt.edad?' ('+pt.edad+' años)':'')+'</p>';
+      b+=row('Rol en grupo',pt.rolGrupo);b+=row('Evolución',pt.evolucion);
+      if(pt.hcVinculada)b+='<p style="margin:0 0 2pt 16pt;font-family:Arial,sans-serif;font-size:11pt;color:#555;">HC vinculada: '+escs(pt.hcVinculada)+'</p>';
+    });
+  }
+
+  b+=sec(4,'Dinámica Grupal');
+  b+=row('Cohesión',p.grpCohesion);b+=row('Participación',p.grpParticipacion);
+  b+=row('Clima emocional',p.grpClimaEmocional);b+=row('Comunicación',p.grpComunicacionGrupal);
+  b+=para(p.grpSubgrupos&&'Subgrupos/alianzas: '+p.grpSubgrupos);
+  b+=para(p.grpNormas&&'Normas grupales: '+p.grpNormas);
+  b+=para(p.grpObsDinamica);
+
+  b+=sec(5,'Evaluación de Riesgo');
+  if((p.grpAlertas||[]).length){
+    p.grpAlertas.forEach((a,i)=>{
+      b+=row('Alerta '+(i+1),escs(a.participante||'')+(a.tipoRiesgo?' — '+escs(a.tipoRiesgo):''));
+      if(a.descripcion)b+=para(a.descripcion);
+    });
+  }else{b+=para('Sin alertas registradas.');}
+
+  b+=sec(6,'Observación Clínica');
+  b+=para(p.grpObsClinica||p.observacionNotas);
+  return b;
 }
 
 // ── DSM-5 info ────────────────────────────────────────────────────────────────
@@ -4163,29 +4731,256 @@ function delArchivo(i){const p=getP();p.informesPrevios=p.informesPrevios.filter
 function openSB(){document.getElementById("sidebar").classList.add("open");document.getElementById("overlay").classList.add("open");}
 function closeSB(){document.getElementById("sidebar").classList.remove("open");document.getElementById("overlay").classList.remove("open");}
 
-// ── Init ──────────────────────────────────────────────────────────────────────
-async function init(){loadProfesional();
-  try{
-    let m;
-    if(useLocal){m=await LocalMeta.get("yearCounter");if(m.exists&&m.data())yearCounter=m.data();}
-    else{m=await db.collection("meta").doc("yearCounter").get();if(m.exists)yearCounter=m.data();}
-  }catch(e){}
-  db.collection("pacientes").orderBy("createdAt","desc").onSnapshot(snap=>{
-    patients=snap.docs.map(d=>({...d.data(),id:d.id}));
-    renderList();
-    if(selectedId){
-      const p=getP();
-      if(p){document.getElementById("hdr-name").textContent=p.nombre||"Paciente sin nombre";}
-    }
+// ── HC Vinculada ──────────────────────────────────────────────────────────────
+function verHCVinculada(hcCode,btn){
+  if(!hcCode){alert("Ingresa primero el código de HC.");return;}
+  const hcNorm=hcCode.trim().toUpperCase();
+  const linked=patients.find(pt=>(pt.hcCode||'').toUpperCase()===hcNorm);
+  if(!linked){alert("No se encontró ninguna historia con el código: "+hcCode+"\n\nVerifica que el código sea exacto y que la historia esté registrada en esta aplicación.");return;}
+  const p2=linked;
+  const m=document.createElement('div');
+  m.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:3000;display:flex;align-items:center;justify-content:center;padding:20px';
+  const box=document.createElement('div');
+  box.style.cssText='background:#fff;border-radius:14px;max-width:540px;width:100%;padding:24px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25)';
+  let html2='<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px">';
+  html2+='<div><div style="font-size:10px;font-weight:800;color:var(--accent);letter-spacing:.12em">'+esc(p2.hcCode||'')+' · '+esc(p2.tipoHistoria||'')+'</div>';
+  html2+='<div style="font-size:16px;font-weight:800;color:var(--brown);margin-top:2px">'+esc(p2.nombre||'Sin nombre')+'</div>';
+  html2+='<div style="font-size:12px;color:var(--mid);margin-top:2px">'+(p2.edad?p2.edad+' años · ':'')+esc(p2.sexo||'')+' · '+esc(fmtDate(p2.fechaApertura)||'')+'</div></div>';
+  html2+='<button onclick="this.closest(\'div\').parentElement.remove()" style="padding:4px 10px;background:var(--rpl);color:var(--danger);border:none;border-radius:6px;font-size:12px;font-weight:700;flex-shrink:0">Cerrar</button></div>';
+  const mc=p2.motivoConsultaAdulto||p2.motivoConsulta||'';
+  if(mc){html2+='<div style="font-size:11px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Motivo de consulta</div>';html2+='<div style="font-size:12px;color:var(--brown);background:var(--alt);border-radius:7px;padding:10px;margin-bottom:12px;line-height:1.5">'+esc(mc)+'</div>';}
+  const dx=[...(p2.diagnostico||[]),...(p2.diagnosticoAdulto||[])];
+  if(dx.length){html2+='<div style="font-size:11px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">Diagnóstico</div>';html2+='<div style="font-size:12px;color:var(--brown);background:var(--alt);border-radius:7px;padding:10px;margin-bottom:12px">'+dx.map(function(d){return '• '+esc(d);}).join('<br>')+'</div>';}
+  const imp=p2.impresionDiagnosticaAdulto||p2.impresionDiagnostica||'';
+  if(imp){html2+='<div style="font-size:12px;font-style:italic;color:var(--mid);background:var(--alt);border-radius:7px;padding:10px;">'+esc(imp)+'</div>';}
+  box.innerHTML=html2;
+  m.appendChild(box);
+  m.addEventListener('click',function(e){if(e.target===m)m.remove();});
+  document.body.appendChild(m);
+}
+
+
+// ── Auth helpers ─────────────────────────────────────────────────────────────
+function loginWithGoogle(){
+  if(!auth){alert("Modo sin conexión — inicia sesión cuando tengas internet.");startAppLocal();return;}
+  const btn=document.getElementById("btn-google-login");
+  btn.textContent="Conectando...";btn.disabled=true;
+  const provider=new firebase.auth.GoogleAuthProvider();
+  auth.signInWithPopup(provider).catch(function(err){
+    const errEl=document.getElementById("login-error");
+    errEl.style.display="block";
+    errEl.textContent="Error al iniciar sesión: "+err.message;
+    btn.innerHTML='<svg width="20" height="20" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg> Continuar con Google';
+    btn.disabled=false;
   });
+}
+
+function logOut(){
+  if(!auth)return;
+  auth.signOut().then(function(){
+    currentUser=null;userPlan={plan:"free",modules:[],historyCount:0};patients=[];selectedId=null;
+    document.getElementById("app").style.display="none";
+    document.getElementById("login-screen").style.display="flex";
+  });
+}
+
+async function loadUserPlan(uid){
+  try{
+    const doc=await db.collection("users").doc(uid).get();
+    if(doc.exists){
+      const d=doc.data();
+      userPlan={
+        plan:d.plan||"free",
+        modules:d.modules||[],
+        historyCount:0
+      };
+    } else {
+      // First time — create user record
+      await db.collection("users").doc(uid).set({plan:"free",modules:[],createdAt:new Date().toISOString()});
+      userPlan={plan:"free",modules:[],historyCount:0};
+    }
+  }catch(e){userPlan={plan:"free",modules:[],historyCount:0};}
+}
+
+// ── Plan helpers ──────────────────────────────────────────────────────────────
+const PLAN_MODULES={
+  "infantil-adolescente":["infantil","adolescente"],
+  "adulto-mayor":["adulto","adulto-mayor"],
+  "pareja-familia-grupo":["pareja","familia","grupo"]
+};
+const MODULE_LABELS={
+  "infantil-adolescente":"Infantil + Adolescente — $12/mes",
+  "adulto-mayor":"Adulto + Adulto Mayor — $12/mes",
+  "pareja-familia-grupo":"Pareja + Familia + Grupo — $12/mes"
+};
+const TYPE_TO_MODULE={
+  "Infantil (0-11 años)":"infantil-adolescente",
+  "Adolescente (12-17 años)":"infantil-adolescente",
+  "Adulto":"adulto-mayor",
+  "Adulto mayor (65+)":"adulto-mayor",
+  "Pareja":"pareja-familia-grupo",
+  "Familia":"pareja-familia-grupo",
+  "Grupo terapéutico":"pareja-familia-grupo"
+};
+
+function canUseType(tipo){
+  if(userPlan.plan==="full")return true;
+  if(!tipo)return true;
+  const mod=TYPE_TO_MODULE[tipo];
+  if(!mod)return true;
+  return userPlan.modules.includes(mod)||userPlan.modules.includes("full");
+}
+
+function canCreateMore(){
+  if(userPlan.plan==="full")return true;
+  if(userPlan.modules.length>0)return true; // paid module = unlimited for that type
+  return patients.length<5;
+}
+
+function getLockedSections(tipo){
+  // Returns list of tab keys that are locked for this tipo/plan
+  if(userPlan.plan==="full")return [];
+  if(canUseType(tipo))return []; // paid module for this type = all unlocked
+  // Free plan: only identificacion and diagnostico unlocked
+  const ALL_TABS_FREE_LOCKED={
+    "Infantil (0-11 años)":["antecedentes","emocional","escolar","habitos","salud","observacion","hipotesis","diagnostico","derivaciones","sesiones","informe"],
+    "Adolescente (12-17 años)":["ado_desarrollo","ado_escolar","ado_familiar","ado_emocional","ado_riesgo","ado_observacion","hipotesis","diagnostico","derivaciones","sesiones","informe"],
+    "Adulto":["ad_historia","ad_familiar","ad_pareja","ad_laboral","ad_emocional","ad_riesgo","ad_salud","ad_observacion","hipotesis","diagnostico","derivaciones","sesiones","informe"],
+    "Adulto mayor (65+)":["am_apoyo","am_funcional","am_cognitivo","am_emocional","am_riesgo","am_salud","am_observacion","hipotesis","diagnostico","derivaciones","sesiones","informe"],
+    "Pareja":["par_motivo","par_historia","par_dinamica","par_comunicacion","par_intimidad","par_riesgo","par_salud","par_hipotesis","par_evolucion","par_cierre","sesiones","informe"],
+    "Familia":["fam_motivo","fam_miembros","fam_dinamica","fam_estructura","fam_historia","fam_riesgo","fam_hipotesis","fam_evolucion","fam_cierre","sesiones","informe"],
+    "Grupo terapéutico":["grp_objetivo","grp_criterios","grp_participantes","grp_dinamica","grp_plan","grp_sesiones","grp_alertas","grp_evolucion","grp_cierre","informe"]
+  };
+  return ALL_TABS_FREE_LOCKED[tipo]||[];
+}
+
+function isTabLocked(tabKey,tipo){
+  // identificacion and diagnostico always free
+  if(tabKey==="identificacion"||tabKey==="diagnostico"||tabKey==="par_identificacion"||tabKey==="fam_identificacion"||tabKey==="grp_identificacion")return false;
+  return getLockedSections(tipo).includes(tabKey);
+}
+
+// ── Plan modal ────────────────────────────────────────────────────────────────
+function showPlanModal(){
+  const existing=document.getElementById("plan-modal");
+  if(existing)existing.remove();
+  const m=document.createElement("div");
+  m.id="plan-modal";
+  m.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:2000;display:flex;align-items:center;justify-content:center;padding:16px;overflow-y:auto";
+  const isFull=userPlan.plan==="full";
+  const mods=userPlan.modules||[];
+  m.innerHTML=`
+  <div style="background:#fff;border-radius:18px;max-width:520px;width:100%;padding:28px 24px;box-shadow:0 24px 64px rgba(0,0,0,.25)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <div style="font-size:18px;font-weight:800;color:#1A3A6E">Plan actual</div>
+      <button onclick="document.getElementById('plan-modal').remove()" style="padding:4px 10px;background:#FEF2F2;color:#DC2626;border:none;border-radius:6px;font-size:12px;font-weight:700">Cerrar</button>
+    </div>
+    <div style="font-size:12px;color:#64748B;margin-bottom:20px">Conectado como <b>${currentUser?currentUser.email:''}</b></div>
+    
+    <div style="background:${isFull?'#ECFDF5':'#F0F4F8'};border-radius:12px;padding:14px 16px;margin-bottom:16px;border:2px solid ${isFull?'#10B981':'#CBD5E1'}">
+      <div style="font-size:13px;font-weight:800;color:${isFull?'#065F46':'#1E293B'}">Plan actual: ${isFull?'Completo':'Gratuito'}</div>
+      <div style="font-size:11px;color:#64748B;margin-top:3px">${isFull?'Acceso total sin restricciones':'5 historias · Solo identificación y diagnóstico'}</div>
+      ${mods.length&&!isFull?'<div style="font-size:11px;color:#0891B2;margin-top:4px;font-weight:600">Módulos activos: '+mods.map(function(k){return MODULE_LABELS[k]||k;}).join(', ')+'</div>':''}
+    </div>
+
+    <div style="font-size:12px;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px">Módulos disponibles</div>
+    ${Object.entries(MODULE_LABELS).map(function([k,l]){
+      const active=mods.includes(k)||isFull;
+      return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:'+( active?'#F0FDF4':'#F8FAFC')+';border-radius:10px;margin-bottom:7px;border:1.5px solid '+(active?'#86EFAC':'#E2E8F0')+'">'
+        +'<div><div style="font-size:13px;font-weight:600;color:#1E293B">'+l+'</div></div>'
+        +'<div style="font-size:11px;font-weight:700;color:'+(active?'#16A34A':'#0891B2')+'">'+(active?'Activo':'Desbloquear')+'</div>'
+        +'</div>';
+    }).join('')}
+    
+    <div style="background:linear-gradient(135deg,#1A3A6E,#0891B2);border-radius:12px;padding:16px;margin-top:8px;text-align:center">
+      <div style="font-size:16px;font-weight:800;color:#fff">Plan Completo — $25/mes</div>
+      <div style="font-size:12px;color:rgba(255,255,255,.8);margin-top:3px">Todos los módulos · Historias ilimitadas</div>
+    </div>
+
+    <div style="margin-top:18px;padding:14px;background:#F0F9FF;border-radius:10px;border:1px solid #BAE6FD">
+      <div style="font-size:12px;font-weight:700;color:#0369A1;margin-bottom:6px">Para activar o actualizar tu plan:</div>
+      <div style="font-size:12px;color:#0C4A6E;line-height:1.6">Contáctanos por WhatsApp o correo indicando tu email de Google (<b>${currentUser?currentUser.email:''}</b>) y el plan que deseas. Te activamos en minutos.</div>
+      <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap">
+        <a href="https://wa.me/?text=Hola, quiero activar un plan en MedHC. Mi correo es ${currentUser?currentUser.email:''}" target="_blank" style="padding:7px 14px;background:#25D366;color:#fff;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none">WhatsApp</a>
+        <a href="mailto:?subject=Activar plan MedHC&body=Hola, quiero activar un plan. Mi correo es ${currentUser?currentUser.email:''}" style="padding:7px 14px;background:#0891B2;color:#fff;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none">Correo</a>
+      </div>
+    </div>
+  </div>`;
+  m.addEventListener("click",function(e){if(e.target===m)m.remove();});
+  document.body.appendChild(m);
+}
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+function startAppLocal(){
+  // Modo sin internet — usa localStorage sin autenticación
+  document.getElementById("login-screen").style.display="none";
   document.getElementById("loading").style.display="none";
   document.getElementById("app").style.display="flex";
-  if(useLocal){
-    const b=document.getElementById("mode-badge");
-    if(b)b.style.display="block";
-    const s=document.getElementById("save-st");
-    if(s){s.textContent="Guardado localmente";s.style.color="var(--mid)";}
+  loadProfesional();
+  userPlan={plan:"free",modules:[],historyCount:0};
+  db.collection("pacientes").orderBy("createdAt","desc").onSnapshot(function(snap){
+    patients=snap.docs.map(function(d){return{...d.data(),id:d.id};});
+    renderList();
+  });
+  const b=document.getElementById("mode-badge");if(b)b.style.display="block";
+  const s=document.getElementById("save-st");if(s){s.textContent="Sin conexión — local";s.style.color="var(--mid)";}
+}
+
+async function init(){
+  // Si no hay auth (Firebase no cargó), ir a modo local directamente
+  if(!auth||useLocal){
+    startAppLocal();
+    return;
   }
+  // Mostrar login si no hay sesión activa
+  document.getElementById("loading").style.display="none";
+  // Escuchar cambios de autenticación
+  auth.onAuthStateChanged(async function(user){
+    if(user){
+      // Usuario autenticado — cargar app
+      currentUser=user;
+      document.getElementById("login-screen").style.display="none";
+      document.getElementById("app").style.display="flex";
+      loadProfesional();
+      await loadUserPlan(user.uid);
+      // Escuchar solo las historias de ESTE usuario
+      try{
+        let m;
+        m=await db.collection("meta").doc("yearCounter_"+user.uid).get();
+        if(m.exists)yearCounter=m.data();
+      }catch(e){}
+      db.collection("users").doc(user.uid).collection("pacientes")
+        .orderBy("createdAt","desc")
+        .onSnapshot(function(snap){
+          patients=snap.docs.map(function(d){return{...d.data(),id:d.id};});
+          renderList();
+          if(selectedId){
+            const p=getP();
+            if(p)document.getElementById("hdr-name").textContent=p.nombre||"Paciente sin nombre";
+          }
+        });
+      // Update plan display in sidebar
+      updatePlanBadge();
+    } else {
+      // No hay sesión — mostrar login
+      currentUser=null;
+      document.getElementById("app").style.display="none";
+      document.getElementById("login-screen").style.display="flex";
+    }
+  });
+}
+
+function updatePlanBadge(){
+  const badge=document.getElementById("plan-badge");
+  if(badge){
+    const p=userPlan.plan;
+    const mods=userPlan.modules||[];
+    let txt=p==="full"?"Plan Completo ✓":mods.length?(mods.length+" módulo"+(mods.length>1?"s":"")+" activo"):"Plan Gratuito";
+    badge.textContent=txt;
+    badge.style.color=p==="full"?"#16A34A":mods.length?"#0891B2":"var(--mid)";
+  }
+  const emailEl=document.getElementById("user-email-display");
+  if(emailEl&&currentUser)emailEl.textContent=currentUser.email;
 }
 
 // ═══════════════════════════════════════════
@@ -4221,7 +5016,7 @@ function dxModuleHTML(segKey){
       </div>
       <div class="dx-sp" id="dx-sp">
         <div class="dx-sp-hd">
-          <h3>📋 Resumen clínico <span class="dx-dest-tag" id="dx-destTag">${destLabel}</span></h3>
+          <h3> Resumen clínico <span class="dx-dest-tag" id="dx-destTag">${destLabel}</span></h3>
         </div>
         <div class="dx-sp-empty" id="dx-spEmpty">Aún no hay hallazgos marcados. Abre un diagnóstico con ℹ y marca los criterios presentes.</div>
         <div class="dx-sp-list" id="dx-spList"></div>
@@ -4237,7 +5032,7 @@ function dxSetFilter(btn,fl){
 }
 
 const DX_AC={adulto:'#2d6a4f',infantil:'#5e3fa3',adolescente:'#b84a14','adulto-mayor':'#1a5080',parejas:'#8b2050',familias:'#9a6e0a',grupo:'#1e6b6b'};
-const DX_SL={adulto:'🧑 Adulto',infantil:'🧒 Infantil',adolescente:'🧑‍🎓 Adolescente','adulto-mayor':'👴 Adulto Mayor',parejas:'💑 Parejas',familias:'👨‍👩‍👧 Familias',grupo:'👥 Grupo'};
+const DX_SL={adulto:' Adulto',infantil:' Infantil',adolescente:'‍ Adolescente','adulto-mayor':' Adulto Mayor',parejas:' Parejas',familias:'‍‍ Familias',grupo:' Grupo'};
 const DX_DEST={adulto:'→ Diagnóstico',infantil:'→ Diagnóstico',adolescente:'→ Diagnóstico','adulto-mayor':'→ Diagnóstico',parejas:'→ Hipótesis clínica',familias:'→ Hipótesis y plan',grupo:'→ Dinámica grupal'};
 const DX_MT={adulto:'dsm',infantil:'dsm',adolescente:'dsm','adulto-mayor':'dsm',parejas:'freq',familias:'freq',grupo:'intens'};
 const DX_MO={
@@ -9042,7 +9837,7 @@ function dxOpenModal(id,ev){
   document.body.style.overflow='hidden';
 }
 function buildTabs(dx){
-  const tabs=[{k:'cr',lbl:'📋 Criterios'},{k:'sv',lbl:'📊 Severidad'},{k:'df',lbl:'🔀 Diferencial'}];
+  const tabs=[{k:'cr',lbl:' Criterios'},{k:'sv',lbl:' Severidad'},{k:'df',lbl:' Diferencial'}];
   document.getElementById('dx-mtabs').innerHTML=tabs.map((t,i)=>`<button class="dx-mtab${i===0?' active':''}" onclick="dxSwTab('${t.k}',this)">${t.lbl}</button>`).join('');
   document.getElementById('dx-mbody').innerHTML=tabs.map(t=>`<div class="dx-tp${t.k==='cr'?' active':''}" id="dx-tp-${t.k}"></div>`).join('');
   dxBuildCrit(dx);dxBuildSev(dx);dxBuildDiff(dx);
@@ -9076,7 +9871,7 @@ function dxBuildCrit(dx){
     </div>`;
   });
   const sn=dx.sn?.[dxSeg];
-  if(sn)h+=`<div class="dx-snote"><strong>📌 ${DX_SL[dxSeg]}</strong>${sn}</div>`;
+  if(sn)h+=`<div class="dx-snote"><strong> ${DX_SL[dxSeg]}</strong>${sn}</div>`;
   el.innerHTML=h;
 }
 function setMark(id,ci,key,btn){
@@ -9137,7 +9932,7 @@ function dxBuildDiff(dx){
   document.getElementById('dx-tp-df').innerHTML=dx.diff.map(d=>`
     <div class="dx-dc" onclick="this.classList.toggle('open')">
       <div class="dx-dh"><div class="dx-dn">${d.n}</div><div class="dx-dcode">${d.c}</div><div class="dx-dchev">▼</div></div>
-      <div class="dx-db"><p>${d.d}</p><div class="dx-ddist"><strong>🔍 Cómo distinguirlo</strong>${d.dist}</div></div>
+      <div class="dx-db"><p>${d.d}</p><div class="dx-ddist"><strong> Cómo distinguirlo</strong>${d.dist}</div></div>
     </div>`).join('');
 }
 function dxSwTab(k,btn){
@@ -9180,8 +9975,8 @@ function dxRenderSummary(){
         <div class="dx-ilbl">
           <strong>${c.l}.</strong> ${c.t.length>75?c.t.slice(0,75)+'…':c.t}
           ${mkl?`<span class="dx-imk ${mkc}">${mkl}</span>`:''}
-          ${note?`<div class="dx-inote">📝 ${note}</div>`:''}
-          ${subTxt?`<div class="dx-inote">✓ ${subTxt}</div>`:''}
+          ${note?`<div class="dx-inote"> ${note}</div>`:''}
+          ${subTxt?`<div class="dx-inote"> ${subTxt}</div>`:''}
         </div>
       </div>`;
     });
@@ -9191,12 +9986,12 @@ function dxRenderSummary(){
       <div class="dx-sblk-hd">
         <div class="dx-sblk-title">${name}</div>
         ${code&&code!=='—'?`<div class="dx-sblk-code">${code}</div>`:''}
-        <button class="dx-sblk-rm" onclick="dxRmBlk('${id}')" title="Eliminar">✕</button>
+        <button class="dx-sblk-rm" onclick="dxRmBlk('${id}')" title="Eliminar"></button>
       </div>
       <div class="dx-sblk-body">${rows}</div>
       <div class="dx-sblk-act">
-        <button class="dx-btn-cp" onclick="dxCpBlk('${id}',this)">📋 Copiar texto</button>
-        <button class="dx-btn-cf" onclick="dxCfBlk('${id}',this)">✓ Confirmar en ${destShort}</button>
+        <button class="dx-btn-cp" onclick="dxCpBlk('${id}',this)"> Copiar texto</button>
+        <button class="dx-btn-cf" onclick="dxCfBlk('${id}',this)"> Confirmar en ${destShort}</button>
       </div>
     </div>`;
   }).join('');
@@ -9216,10 +10011,10 @@ function dxCpBlk(id,btn){
     txt+=`  ${c.l}. ${c.t.slice(0,75)}${mk?' — '+DX_ML[mk]:''}\n`;
     if(note)txt+=`     Nota: ${note}\n`;
   });
-  navigator.clipboard.writeText(txt).then(()=>{btn.textContent='✓ Copiado';setTimeout(()=>btn.textContent='📋 Copiar texto',2200);});
+  navigator.clipboard.writeText(txt).then(()=>{btn.textContent=' Copiado';setTimeout(()=>btn.textContent=' Copiar texto',2200);});
 }
 function dxCfBlk(id,btn){
-  btn.textContent='✓ Confirmado';btn.classList.add('done');btn.disabled=true;
+  btn.textContent=' Confirmado';btn.classList.add('done');btn.disabled=true;
   dxShowToast('Diagnóstico confirmado → '+DX_DEST[dxSeg].replace('→ ',''));
 }
 function dxShowToast(msg){
