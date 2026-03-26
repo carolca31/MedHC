@@ -487,11 +487,11 @@ function updateTypeComunidadSection(){
       <button onclick="logOut()" title="Cerrar sesión" style="padding:4px 8px;background:var(--rpl);color:var(--danger);border:none;border-radius:6px;font-size:11px;font-weight:700;flex-shrink:0;margin-left:6px">Salir</button>
     </div>
   </div>
-  <button id="btn-comunidad" onclick="openComunidad()" style="display:none;width:calc(100% - 16px);margin:4px 8px;padding:9px 12px;background:linear-gradient(135deg,#4C1D95,#7C3AED);color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;align-items:center;gap:8px;text-align:left">
+  <button id="btn-comunidad" onclick="openComunidad()" style="width:calc(100% - 16px);margin:4px 8px;padding:9px 12px;background:linear-gradient(135deg,#4C1D95,#7C3AED);color:#fff;border:none;border-radius:10px;font-size:12px;font-weight:700;cursor:pointer;align-items:center;gap:8px;text-align:left">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
     Programas y Comunidades
   </button>
-  <button id="btn-comunidad-locked" onclick="showPlanModal()" style="width:calc(100% - 16px);margin:4px 8px;padding:9px 12px;background:var(--alt);color:var(--mid);border:1.5px dashed var(--border);border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between">
+  <button id="btn-comunidad-locked" onclick="showPlanModal()" style="width:calc(100% - 16px);margin:4px 8px;padding:9px 12px;background:var(--alt);color:var(--mid);border:1.5px dashed var(--border);border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;align-items:center;justify-content:space-between">
     <span style="display:flex;align-items:center;gap:8px">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
       Programas y Comunidades
@@ -5405,6 +5405,7 @@ async function init(){
       document.getElementById("app").style.display="flex";
       loadProfesional();
       await loadUserPlan(user.uid);
+      updateComunidadBtn();
       // Ensure email is saved
       try{await db.collection("users").doc(user.uid).set({email:user.email.toLowerCase()},{merge:true});}catch(e){}
       const profDone=await checkProfileComplete();
@@ -10549,19 +10550,28 @@ const comEsc=s=>String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace
 const comFmt=d=>d?new Date(d+"T00:00:00").toLocaleDateString("es-VE",{day:"2-digit",month:"long",year:"numeric"}):"—";
 
 function openComunidad(){
-  const hasCom=userPlan.modules&&userPlan.modules.includes("comunidad")||userPlan.plan==="full";
+  const hasCom=!!(userPlan&&(
+    (userPlan.modules&&userPlan.modules.includes("comunidad"))||
+    userPlan.plan==="full"
+  ));
+  console.log("[MedHC] openComunidad hasCom="+hasCom+" plan="+JSON.stringify(userPlan));
   if(!hasCom){showPlanModal();return;}
-  document.getElementById("comunidad-overlay").style.display="flex";
+  const overlay=document.getElementById("comunidad-overlay");
+  if(overlay){overlay.style.display="flex";overlay.style.flexDirection="column";}
   comRenderLista();
 }
 function closeComunidad(){document.getElementById("comunidad-overlay").style.display="none";}
 
 function updateComunidadBtn(){
-  const hasCom=userPlan&&(userPlan.modules&&userPlan.modules.includes("comunidad")||userPlan.plan==="full");
+  const hasCom=!!(userPlan&&(
+    (userPlan.modules&&userPlan.modules.includes("comunidad"))||
+    userPlan.plan==="full"
+  ));
   const btn=document.getElementById("btn-comunidad");
   const locked=document.getElementById("btn-comunidad-locked");
-  if(btn)btn.style.display=hasCom?"flex":"none";
-  if(locked)locked.style.display=hasCom?"none":"flex";
+  if(btn){btn.style.display=hasCom?"flex":"none";}
+  if(locked){locked.style.display=hasCom?"none":"flex";}
+  console.log("[MedHC] updateComunidadBtn hasCom="+hasCom+" plan="+JSON.stringify(userPlan));
 }
 
 function comRenderLista(){
