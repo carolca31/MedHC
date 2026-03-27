@@ -10589,35 +10589,33 @@ function showGlobalBanner(message, title){
   if(existing)existing.remove();
   const banner=document.createElement("div");
   banner.id="global-banner";
-  banner.style.cssText="margin:16px;border-radius:14px;background:#fff;border:2px solid #BAE6FD;box-shadow:0 2px 16px rgba(8,145,178,.1);padding:16px 20px;position:relative;";
-  const inner=document.createElement("div");
-  inner.style.cssText="padding-right:28px";
+  // Fixed position bottom-right, max 300px wide, max 220px tall with scroll
+  banner.style.cssText="position:fixed;bottom:24px;right:24px;z-index:700;width:300px;max-height:220px;border-radius:14px;background:#fff;border:2px solid #BAE6FD;box-shadow:0 4px 24px rgba(8,145,178,.18);display:flex;flex-direction:column;overflow:hidden;";
+  // Header
+  const hdr=document.createElement("div");
+  hdr.style.cssText="padding:12px 36px 8px 16px;flex-shrink:0;position:relative;border-bottom:1px solid #E0F2FE;";
   if(title){
     const t=document.createElement("div");
-    t.style.cssText="font-size:19px;font-weight:800;color:#0891B2;margin-bottom:6px;letter-spacing:-.02em;line-height:1.2";
+    t.style.cssText="font-size:15px;font-weight:800;color:#0891B2;letter-spacing:-.01em;line-height:1.2";
     t.textContent=title;
-    inner.appendChild(t);
+    hdr.appendChild(t);
   }
-  const m=document.createElement("div");
-  m.style.cssText="font-size:14px;font-weight:600;color:#1A3A6E;line-height:1.6";
-  m.innerHTML=message.split("\n").join("<br>");
-  inner.appendChild(m);
   // Close button
   const x=document.createElement("button");
   x.innerHTML="&times;";
-  x.style.cssText="position:absolute;top:10px;right:12px;background:none;border:none;font-size:18px;color:#94A3B8;cursor:pointer;line-height:1;padding:0";
+  x.style.cssText="position:absolute;top:8px;right:10px;background:none;border:none;font-size:20px;color:#94A3B8;cursor:pointer;line-height:1;padding:0";
   x.onclick=()=>banner.remove();
-  banner.appendChild(inner);
-  banner.appendChild(x);
-  // Insert at top of main content (right panel), not sidebar
-  const main=document.getElementById("main")||document.getElementById("welcome")||document.getElementById("content");
-  if(main){
-    main.parentNode.insertBefore(banner,main);
-  } else {
-    // Fallback: insert after sidebar
-    const sidebar=document.getElementById("sidebar");
-    if(sidebar&&sidebar.nextSibling){sidebar.parentNode.insertBefore(banner,sidebar.nextSibling);}
-  }
+  hdr.appendChild(x);
+  banner.appendChild(hdr);
+  // Scrollable body
+  const body=document.createElement("div");
+  body.style.cssText="padding:10px 16px 14px;overflow-y:auto;flex:1;";
+  const m=document.createElement("div");
+  m.style.cssText="font-size:12px;font-weight:500;color:#1A3A6E;line-height:1.6";
+  m.innerHTML=message.split("\n").join("<br>");
+  body.appendChild(m);
+  banner.appendChild(body);
+  document.body.appendChild(banner);
 }
 
 function showMessageModal(type,message,title){
