@@ -353,7 +353,7 @@ pre{background:var(--alt);border:1px solid var(--border);border-radius:9px;paddi
     <div class="fld"><label>Teléfono / contacto</label><input id="s-telefono" placeholder="Ej: +XX XXX XXX XXXX"></div>
     <button onclick="saveSettings()" style="width:100%;padding:10px;background:linear-gradient(135deg,var(--accent),var(--adk));color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;margin-top:6px">Guardar cambios</button>
     <div id="settings-ok" style="display:none;text-align:center;margin-top:10px;font-size:12px;color:var(--accent);font-weight:700">Datos guardados correctamente</div>
-    <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)"><button onclick="confirmDeleteOwnAccount()" style="width:100%;padding:10px;background:#FEF2F2;color:#DC2626;border:1.5px solid #FECACA;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">Eliminar mi cuenta</button></div>
+    <div id="delete-own-account-section" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)"><button onclick="confirmDeleteOwnAccount()" style="width:100%;padding:10px;background:#FEF2F2;color:#DC2626;border:1.5px solid #FECACA;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">Eliminar mi cuenta</button></div>
   </div>
 </div>
 
@@ -4830,6 +4830,7 @@ function loginWithGoogle(){
 
 function logOut(){
   if(!auth)return;
+  auth.window._intentionalSignOut=true;
   auth.signOut().then(function(){
     currentUser=null;userPlan={plan:"free",modules:[],historyCount:0};patients=[];selectedId=null;
     document.getElementById("app").style.display="none";
@@ -4936,7 +4937,7 @@ function adminUserCard(u){
         <div style="font-size:10px;color:#64748B">${em||""}</div>
         <div style="font-size:10px;color:#94A3B8">${u.cedula?"ID: "+u.cedula:""}${u.pais?" · "+u.pais:""} · ${u.createdAt?u.createdAt.slice(0,10):"—"}</div>
       </div>
-      <div style="flex-shrink:0;font-size:11px;font-weight:700;color:${planColor};background:${planColor}18;padding:3px 9px;border-radius:20px;white-space:nowrap">${planLabel}</div>
+      <div style="flex-shrink:0;font-size:11px;font-weight:700;color:${u.blocked?"#DC2626":planColor};background:${u.blocked?"#FEF2F2":planColor+"18"};padding:3px 9px;border-radius:20px;white-space:nowrap">${u.blocked?"BLOQUEADO":planLabel}</div>
     </div>
     <div style="display:flex;gap:6px;flex-wrap:wrap">
       ${btn(plan==="free"&&!mods.length,"#64748B","Gratuito",`'${uid}','${em}','free',[]`)}
@@ -4944,6 +4945,23 @@ function adminUserCard(u){
       ${btn(mods.includes("adulto-mayor")&&!isFull,"#0891B2","Adulto+AM",`'${uid}','${em}','modules',['adulto-mayor']`)}
       ${btn(mods.includes("pareja-familia-grupo")&&!isFull,"#0891B2","Pareja+Fam+Grp",`'${uid}','${em}','modules',['pareja-familia-grupo']`)}
       ${btn(isFull,"#16A34A","Completo $22",`'${uid}','${em}','full',[]`)}
+    </div>
+    <div style="margin-top:8px;padding-top:8px;border-top:1px dashed #EDE9FE;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+      <span style="font-size:9px;font-weight:700;color:#7C3AED;text-transform:uppercase;width:100%">Programas y Comunidades</span>
+      <button onclick="adminActivate('${uid}','${em}','modules',['comunidad'])" style="padding:6px 10px;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer;border:1.5px solid ${mods.includes('comunidad')?'#7C3AED':'#DDD6FE'};background:${mods.includes('comunidad')?'#7C3AED':'#F5F3FF'};color:${mods.includes('comunidad')?'#fff':'#7C3AED'}">${mods.includes('comunidad')?"Activado ✓":"Activar acceso"}</button>
+    </div>
+    <div style="margin-top:8px;padding-top:8px;border-top:1px solid #E2E8F0">
+      <div style="font-size:9px;font-weight:700;color:#374151;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">Mensaje personal</div>
+      <input id="pmsg-title-${uid}" type="text" placeholder="Título del mensaje" value="${u.personalMessageTitle||''}" style="width:100%;box-sizing:border-box;padding:6px 8px;border:1.5px solid #E2E8F0;border-radius:6px;font-size:11px;outline:none;margin-bottom:4px">
+      <textarea id="pmsg-${uid}" rows="2" placeholder="Escribe un mensaje para este usuario..." style="width:100%;box-sizing:border-box;padding:6px 8px;border:1.5px solid #E2E8F0;border-radius:6px;font-size:11px;outline:none;resize:vertical;font-family:inherit">${u.personalMessage||''}</textarea>
+      <div style="display:flex;gap:6px;margin-top:5px">
+        <button onclick="adminSavePersonalMsg('${uid}')" style="flex:1;padding:6px;background:#1A3A6E;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">Guardar</button>
+        <button onclick="adminClearPersonalMsg('${uid}')" style="padding:6px 10px;background:#FEF2F2;color:#DC2626;border:1.5px solid #FECACA;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">Borrar</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;margin-top:8px">
+      <button onclick="adminConfirmDelete('${uid}','${em}')" style="flex:1;padding:7px;background:#FEF2F2;color:#DC2626;border:1.5px solid #FECACA;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">Eliminar cuenta</button>
+      <button onclick="adminConfirmBlock('${uid}','${em}')" style="flex:1;padding:7px;background:#FFF7ED;color:#D97706;border:1.5px solid #FDE68A;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">Bloquear</button>
     </div>
   </div>`;
 }
@@ -5366,8 +5384,12 @@ function startAppLocal(){
 }
 
 async function init(){
-  window.addEventListener("beforeunload",function(){
-    if(auth&&currentUser){try{auth.signOut();}catch(e){}}
+  // Only sign out on real tab/browser close, not on internal navigation
+  window.addEventListener("pagehide",function(e){
+    if(e.persisted) return; // page going into bfcache, don't sign out
+    if(auth&&currentUser&&!window._intentionalSignOut){
+      try{auth.signOut();}catch(err){}
+    }
   });
   // Si no hay auth (Firebase no cargó), ir a modo local directamente
   if(!auth||useLocal){
@@ -5386,6 +5408,17 @@ async function init(){
       loadProfesional();
       await loadUserPlan(user.uid);
       // Ensure email is saved
+      // Check if blocked
+      try{
+        const uDoc=await db.collection("users").doc(user.uid).get();
+        if(uDoc.exists&&uDoc.data().blocked){
+          await auth.signOut();
+          document.getElementById("login-screen").style.display="flex";
+          document.getElementById("app").style.display="none";
+          alert("Tu cuenta ha sido suspendida. Contacta a medhc31@gmail.com para más información.");
+          return;
+        }
+      }catch(e){}
       try{await db.collection("users").doc(user.uid).set({email:user.email.toLowerCase(),lastLogin:new Date().toISOString()},{merge:true});}catch(e){}
       const profDone=await checkProfileComplete();
       if(!profDone){document.getElementById("profile-setup").style.display="flex";}
@@ -10524,40 +10557,54 @@ async function saveProfileSetup(){
 // ── MESSAGES ──────────────────────────────────────────────────────────────────
 async function showLoginMessages(){
   try{
+    // Global message → banner at top of app (non-blocking)
     const gDoc=await db.collection("config").doc("globalMessage").get();
-    if(gDoc.exists&&gDoc.data().message&&gDoc.data().message.trim()){
-      await showMessageModal("global",gDoc.data().message.trim(),gDoc.data().title||"Mensaje de MedHC");
+    if(gDoc.exists&&gDoc.data()&&gDoc.data().message&&gDoc.data().message.trim()){
+      showGlobalBanner(gDoc.data().message.trim(), gDoc.data().title||"");
     }
+    // Personal message → blocking modal
     const pDoc=await db.collection("users").doc(currentUser.uid).get();
     if(pDoc.exists&&pDoc.data()&&pDoc.data().personalMessage&&pDoc.data().personalMessage.trim()){
-      await showMessageModal("personal",pDoc.data().personalMessage.trim(),pDoc.data().personalMessageTitle||"Mensaje para ti");
+      showMessageModal("personal",pDoc.data().personalMessage.trim(),pDoc.data().personalMessageTitle||"Mensaje para ti");
     }
   }catch(e){}
 }
 
+function showGlobalBanner(message, title){
+  // Remove existing banner if any
+  const existing=document.getElementById("global-banner");
+  if(existing)existing.remove();
+  // Find the main content area to prepend banner
+  const main=document.getElementById("main")||document.getElementById("content")||document.body;
+  const banner=document.createElement("div");
+  banner.id="global-banner";
+  banner.style.cssText="background:linear-gradient(135deg,#0F172A,#1A3A6E);color:#fff;padding:10px 16px;font-size:12px;line-height:1.5;position:relative;flex-shrink:0;";
+  banner.innerHTML=(title?"<span style='font-weight:800;margin-right:6px'>"+title+"</span>":"")+message.split("\n").join(" ");
+  // Insert at top of app content
+  const appEl=document.getElementById("app");
+  if(appEl){appEl.insertBefore(banner,appEl.firstChild);}
+}
+
 function showMessageModal(type,message,title){
-  return new Promise(resolve=>{
-    const w=document.createElement("div");
-    w.style.cssText="position:fixed;inset:0;background:rgba(10,20,40,.8);z-index:9500;display:flex;align-items:center;justify-content:center;padding:20px";
-    const isPersonal=type==="personal";
-    const box=document.createElement("div");
-    box.style.cssText="background:#fff;border-radius:20px;max-width:400px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.3)";
-    const hdr=document.createElement("div");
-    hdr.style.cssText="background:"+(isPersonal?"linear-gradient(135deg,#1A3A6E,#0891B2)":"linear-gradient(135deg,#0F172A,#1A3A6E)")+";padding:20px 22px";
-    hdr.innerHTML="<div style='font-size:10px;font-weight:800;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px'>"+(isPersonal?"Mensaje personal":"Aviso general")+"</div><div style='font-size:16px;font-weight:800;color:#fff'>"+title+"</div>";
-    const body=document.createElement("div");
-    body.style.cssText="padding:22px";
-    const msgDiv=document.createElement("div");
-    msgDiv.style.cssText="font-size:13px;color:#374151;line-height:1.7;margin-bottom:20px";
-    msgDiv.innerHTML=message.split("\n").join("<br>");
-    const btn=document.createElement("button");
-    btn.textContent="Entendido";
-    btn.style.cssText="width:100%;padding:11px;background:linear-gradient(135deg,#1A3A6E,#0891B2);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer";
-    btn.addEventListener("click",()=>{w.remove();resolve();});
-    body.appendChild(msgDiv);body.appendChild(btn);
-    box.appendChild(hdr);box.appendChild(body);
-    w.appendChild(box);document.body.appendChild(w);
-  });
+  const w=document.createElement("div");
+  w.style.cssText="position:fixed;inset:0;background:rgba(10,20,40,.8);z-index:9500;display:flex;align-items:center;justify-content:center;padding:20px";
+  const box=document.createElement("div");
+  box.style.cssText="background:#fff;border-radius:20px;max-width:400px;width:100%;overflow:hidden;box-shadow:0 32px 80px rgba(0,0,0,.3)";
+  const hdr=document.createElement("div");
+  hdr.style.cssText="background:linear-gradient(135deg,#1A3A6E,#0891B2);padding:20px 22px";
+  hdr.innerHTML="<div style='font-size:10px;font-weight:800;color:rgba(255,255,255,.6);text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px'>Mensaje personal</div><div style='font-size:16px;font-weight:800;color:#fff'>"+title+"</div>";
+  const body=document.createElement("div");
+  body.style.cssText="padding:22px";
+  const msgDiv=document.createElement("div");
+  msgDiv.style.cssText="font-size:13px;color:#374151;line-height:1.7;margin-bottom:20px";
+  msgDiv.innerHTML=message.split("\n").join("<br>");
+  const btn=document.createElement("button");
+  btn.textContent="Entendido";
+  btn.style.cssText="width:100%;padding:11px;background:linear-gradient(135deg,#1A3A6E,#0891B2);color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer";
+  btn.addEventListener("click",()=>w.remove());
+  body.appendChild(msgDiv);body.appendChild(btn);
+  box.appendChild(hdr);box.appendChild(body);
+  w.appendChild(box);document.body.appendChild(w);
 }
 
 // ── ADMIN MESSAGES ─────────────────────────────────────────────────────────────
@@ -10740,6 +10787,29 @@ function comRenderFlujo(){
 }
 function comPaso1Next(){const nombre=(document.getElementById("cn-nombre")||{}).value||"";if(!nombre.trim()){alert("El nombre es obligatorio");return;}comNuevo={id:comUid(),nombre:nombre.trim(),tipo:(document.getElementById("cn-tipo")||{}).value||"",modalidad:(document.getElementById("cn-modalidad")||{}).value||"",institucion:(document.getElementById("cn-inst")||{}).value||"",responsable:(document.getElementById("cn-resp")||{}).value||"",sesiones:[],adjSeguimiento:[]};comPaso=2;comRenderFlujo();}
 function comPaso2Next(){comNuevo.objGeneral=(document.getElementById("cn-obj")||{}).value||"";comNuevo.nSesiones=(document.getElementById("cn-nses")||{}).value||0;comNuevo.frecuencia=(document.getElementById("cn-frec")||{}).value||"";comNuevo.participantes=parseInt((document.getElementById("cn-part")||{}).value)||0;comunidadIntervenciones.unshift(comNuevo);comSelId=comNuevo.id;comTabActual="resumen";comRenderDetalle();}
+
+function adminConfirmBlock(uid, email){
+  const w=document.createElement("div");
+  w.style.cssText="position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px";
+  const box=document.createElement("div");
+  box.style.cssText="background:#fff;border-radius:16px;padding:28px;max-width:340px;width:100%;text-align:center";
+  box.innerHTML="<div style='font-size:16px;font-weight:800;color:#1E293B;margin-bottom:6px'>¿Bloquear esta cuenta?</div><div style='font-size:12px;color:#64748B;margin-bottom:4px'>"+email+"</div><div style='font-size:12px;color:#D97706;margin-bottom:20px;line-height:1.5'>El usuario no podrá iniciar sesión. Puedes desbloquearlo después.</div>";
+  const btns=document.createElement("div");btns.style.cssText="display:flex;gap:10px";
+  const c=document.createElement("button");c.textContent="Cancelar";c.style.cssText="flex:1;padding:10px;background:#F0F4F8;color:#475569;border:none;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer";c.onclick=()=>w.remove();
+  const d=document.createElement("button");d.textContent="Bloquear";d.style.cssText="flex:1;padding:10px;background:#D97706;color:#fff;border:none;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer";d.onclick=()=>adminExecuteBlock(uid,email,w);
+  btns.appendChild(c);btns.appendChild(d);box.appendChild(btns);w.appendChild(box);document.body.appendChild(w);
+}
+
+async function adminExecuteBlock(uid, email, overlay){
+  try{
+    await db.collection("users").doc(uid).set({
+      blocked:true, blockedAt:new Date().toISOString(), blockedBy:currentUser.email
+    },{merge:true});
+    if(overlay)overlay.remove();
+    showToastMsg("Cuenta bloqueada");
+    await adminLoadUsers();
+  }catch(e){alert("Error: "+e.message);}
+}
 
 init();
 </script>
