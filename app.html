@@ -1146,9 +1146,13 @@ async function deletePatient(id){
   renderList();
 }
 function selectP(id){
-  // Si cambiamos de historia, limpiar diagnósticos DSM marcados
-  if(selectedId && selectedId !== id) resetDxState();
+  // Guardar estado DSM del paciente actual antes de cambiar
+  if(selectedId && selectedId !== id){
+    dxSaveToCache(selectedId);
+  }
   selectedId=id;
+  // Restaurar estado DSM del nuevo paciente (o vaciar si es la primera vez)
+  dxRestoreFromCache(id);
   const p=getP();if(!p)return;
   // Parche: asegurar campos de pareja en registros antiguos
   if(p.tipoHistoria==="pareja"){
@@ -1251,14 +1255,12 @@ function renderList(){
     {label:"Programas y Comunidades",tipos:["Programas y Comunidades"]},
   ];
   function cardHTML(p){
-    const dx=p.diagnosticoAdulto||p.diagnostico||[];
     return `<div class="pcard" onclick="selectP('${p.id}')">
       <button class="pc-del" onclick="event.stopPropagation();deletePatient('${p.id}')">🗑</button>
       <div class="pc-hc">${p.hcCode}</div>
       <div class="pc-name">${esc(getPDisplayName(p))||"Sin nombre"}</div>
       <div class="pc-sub">${p.edad?p.edad+" años":"Edad no registrada"}${p.gradoEscolar?" · "+p.gradoEscolar:""}</div>
       <div class="pc-date">Apertura: ${fmtDate(p.fechaApertura)} · ${(p.sesiones||[]).length} sesiones</div>
-      ${dx.length?`<div class="pc-tags">${dx.slice(0,2).map(d=>`<span class="pc-tag">${d}</span>`).join("")}</div>`:""}
     </div>`;
   }
   let out="";
@@ -5614,7 +5616,7 @@ function logOut(){
   if(!auth)return;
   window._intentionalSignOut=true;
   // Limpiar estado clínico antes de cerrar sesión
-  resetDxState();
+  resetDxAll();
   auth.signOut().then(function(){
     currentUser=null;userPlan={plan:"free",modules:[],historyCount:0};patients=[];selectedId=null;
     // Ocultar todo y regresar al landing/login
@@ -6458,7 +6460,7 @@ function showPlanModal(){
 // ── Init ──────────────────────────────────────────────────────────────────────
 function startAppLocal(){
   // Modo sin internet — usa localStorage sin autenticación
-  resetDxState();
+  resetDxAll();
   document.getElementById("login-screen").style.display="none";
   document.getElementById("loading").style.display="none";
   document.getElementById("app").style.display="flex";
@@ -6491,7 +6493,7 @@ async function init(){
   auth.onAuthStateChanged(async function(user){
     if(user){
       // Usuario autenticado — limpiar estado previo y cargar app
-      resetDxState();
+      resetDxAll();
       currentUser=user;
       document.getElementById("login-screen").style.display="none";
       document.getElementById("app").style.display="flex";
@@ -6632,12 +6634,35 @@ const DX_ML={p:'Presente',par:'Parcial',a:'Ausente',oc:'Ocasional',fr:'Frecuente
 
 let dxSeg='adulto', dxFl='all';
 const DX_ST={};
+// Almacén por paciente: { [patientId]: { [diagId]: {marks,notes,subs} } }
+const DX_ST_CACHE={};
+
 function dxGst(id){if(!DX_ST[id])DX_ST[id]={marks:{},notes:{},subs:{}};return DX_ST[id];}
+
+// ── Guardar el estado DX del paciente actual en cache ─────────────────────────
+function dxSaveToCache(patientId){
+  if(!patientId)return;
+  DX_ST_CACHE[patientId]=JSON.parse(JSON.stringify(DX_ST));
+}
+
+// ── Restaurar el estado DX del paciente desde cache (o vaciar si es nuevo) ────
+function dxRestoreFromCache(patientId){
+  resetDxState();
+  if(patientId&&DX_ST_CACHE[patientId]){
+    const saved=DX_ST_CACHE[patientId];
+    Object.keys(saved).forEach(k=>{DX_ST[k]=saved[k];});
+  }
+}
 
 // ── Limpia TODOS los diagnósticos DSM marcados en memoria ─────────────────────
 function resetDxState(){
-  // Borrar todas las claves de DX_ST sin perder la referencia al objeto
   Object.keys(DX_ST).forEach(k=>delete DX_ST[k]);
+}
+
+// ── Limpia también el cache completo (al cerrar sesión) ───────────────────────
+function resetDxAll(){
+  resetDxState();
+  Object.keys(DX_ST_CACHE).forEach(k=>delete DX_ST_CACHE[k]);
 }
 function dxSa(a){document.documentElement.style.setProperty('--dx-a',a);}
 dxSa(DX_AC[dxSeg]);
@@ -11480,6 +11505,7 @@ function setMark(id,ci,key,btn){
     if(mk){const opt=opts.find(o=>o.k===mk);if(opt)btn.classList.add(opt.c);}
     row.className='dx-crow'+(mk==='p'||mk==='oc'||mk==='lv'?' mp1':mk==='par'||mk==='fr'||mk==='mo'?' mpar':mk==='a'?' mabs':'');
   }
+  dxSaveToCache(selectedId);
   dxUpdChip(id);dxRenderSummary();
 }
 function dxTogSub(id,ci,si,el){
@@ -11487,11 +11513,13 @@ function dxTogSub(id,ci,si,el){
   if(!st.subs[ci])st.subs[ci]={};
   st.subs[ci][si]=!st.subs[ci][si];
   el.classList.toggle('on',st.subs[ci][si]);
+  dxSaveToCache(selectedId);
   dxRenderSummary();
 }
 function saveNote(id,ci,val){
   const st=dxGst(id);
   if(val.trim())st.notes[ci]=val.trim();else delete st.notes[ci];
+  dxSaveToCache(selectedId);
   dxRenderSummary();
 }
 function dxTogNote(btn){
@@ -11595,7 +11623,7 @@ function dxRenderSummary(){
 function dxChipName(id){
   for(const g of(DX_SEGS[dxSeg]||[])){const c=g.chips.find(c=>c.id===id);if(c)return c.n;}return id;
 }
-function dxRmBlk(id){if(DX_ST[id]){DX_ST[id]={marks:{},notes:{},subs:{}}}dxUpdChip(id);dxRenderSummary();}
+function dxRmBlk(id){if(DX_ST[id]){DX_ST[id]={marks:{},notes:{},subs:{}}}dxSaveToCache(selectedId);dxUpdChip(id);dxRenderSummary();}
 function dxCpBlk(id,btn){
   const dx=DX_DATA[id];const st=DX_ST[id];
   const name=dx?dx.title:dxChipName(id);
@@ -11611,27 +11639,14 @@ function dxCpBlk(id,btn){
 }
 function dxCfBlk(id,btn){
   const p=getP();if(!p){dxShowToast('No hay historia activa');return;}
-  const dx=DX_DATA[id];
-  const name=dx?dx.title:dxChipName(id);
-  const code=dx?Object.values(dx.codes)[0]:'';
-  const label=code&&code!=='—'?name+' ('+code+')':name;
-  // Determinar campo destino según segmento
-  const isAdultoSeg=['adulto','adolescente','adulto-mayor'].includes(dxSeg);
-  const isParejaFamGrp=['parejas','familias','grupo'].includes(dxSeg);
-  if(isAdultoSeg||p.tipoHistoria==='Adulto'||p.tipoHistoria==='Adulto mayor (65+)'||p.tipoHistoria==='Adolescente (12-17 años)'){
-    const arr=[...(p.diagnosticoAdulto||[])];
-    if(!arr.includes(label)){arr.push(label);p.diagnosticoAdulto=arr;saveP({...p});}
-  } else if(isParejaFamGrp||p.tipoHistoria==='Pareja'||p.tipoHistoria==='Familia'||p.tipoHistoria==='Grupo terapéutico'){
-    // Para pareja/familia/grupo → hipótesis clínica
-    const prev=p.hipotesisClinica||'';
-    if(!prev.includes(label)){p.hipotesisClinica=(prev?prev+'\n':'')+label;saveP({...p});}
-  } else {
-    // Infantil y otros → diagnostico
-    const arr=[...(p.diagnostico||[])];
-    if(!arr.includes(label)){arr.push(label);p.diagnostico=arr;saveP({...p});}
-  }
+  // Solo marcar como confirmado en DX_ST — NO escribir en diagnostico/diagnosticoAdulto
+  // El informe ya lee de DX_ST vía getDxSummaryText()
+  const st=dxGst(id);
+  st._confirmed=true;
+  // Guardar en cache del paciente actual
+  dxSaveToCache(selectedId);
   btn.textContent=' Guardado ✓';btn.classList.add('done');btn.disabled=true;
-  dxShowToast('Diagnóstico guardado → '+DX_DEST[dxSeg].replace('→ ',''));
+  dxShowToast('Diagnóstico confirmado en resumen clínico ✓');
 }
 function dxShowToast(msg){
   const t=document.getElementById('dx-toast');
@@ -11642,6 +11657,12 @@ function dxShowToast(msg){
 /* ── dxInit: llamado desde renderTab() con la clave de segmento correcta ── */
 function dxInit(segKey){
   dxSeg=segKey;
+  // Restaurar estado del paciente actual si existe en cache
+  if(selectedId&&DX_ST_CACHE[selectedId]){
+    const saved=DX_ST_CACHE[selectedId];
+    Object.keys(DX_ST).forEach(k=>delete DX_ST[k]);
+    Object.keys(saved).forEach(k=>{DX_ST[k]=saved[k];});
+  }
   dxSa(DX_AC[dxSeg]||'#0891B2');
   document.getElementById('dx-destTag').textContent=DX_DEST[dxSeg]||'→ Diagnóstico';
   // Mostrar/ocultar filtros según modalidad
