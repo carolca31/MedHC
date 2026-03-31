@@ -917,6 +917,21 @@ const nowDate=()=>new Date().toLocaleDateString("es-VE",{day:"2-digit",month:"lo
 const fmtDate=d=>d?new Date(d+"T00:00:00").toLocaleDateString("es-VE",{day:"2-digit",month:"long",year:"numeric"}):"—";
 const esc=s=>String(s||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
 
+// ── Nombre para mostrar según tipo de historia ────────────────────────────────
+function getPDisplayName(p){
+  if(!p)return "Sin nombre";
+  if(p.tipoHistoria==="Pareja"){
+    const a=p.nombreA||"";const b=p.nombreB||"";
+    if(a&&b)return a+" & "+b;
+    if(a)return a+" & (B sin nombre)";
+    if(b)return "(A sin nombre) & "+b;
+    return "Pareja sin nombres";
+  }
+  if(p.tipoHistoria==="Familia") return p.nombre?("Familia "+p.nombre):("Familia sin apellido");
+  if(p.tipoHistoria==="Grupo terapéutico") return p.nombre||"Grupo sin nombre";
+  return p.nombre||"Paciente sin nombre";
+}
+
 // ── Empty patient ─────────────────────────────────────────────────────────────
 function emptyP(){
   return{
@@ -1107,6 +1122,11 @@ function updLabel(f,v){
   const lb=p.nombreB||"Persona B";
   document.querySelectorAll("[data-label-a]").forEach(el=>el.textContent=la);
   document.querySelectorAll("[data-label-b]").forEach(el=>el.textContent=lb);
+  // Actualizar nombre en header y lobby
+  const hdrName=document.getElementById("hdr-name");
+  if(hdrName)hdrName.textContent=getPDisplayName(p);
+  const lobbyNombre=document.getElementById("lobby-nombre");
+  if(lobbyNombre)lobbyNombre.textContent=getPDisplayName(p);
 }
 
 // ── Create / Delete ───────────────────────────────────────────────────────────
@@ -1154,7 +1174,7 @@ function showLobby(p){
     const sesiones=(p.sesiones||[]).length;
     const ultimaSes=sesiones>0?(p.sesiones[p.sesiones.length-1].fecha||""):"";
     document.getElementById("lobby-tipo").textContent=p.tipoHistoria||"Historia";
-    document.getElementById("lobby-nombre").textContent=p.nombre||"Paciente sin nombre";
+  document.getElementById("lobby-nombre").textContent=getPDisplayName(p);
     document.getElementById("lobby-hc").textContent=p.hcCode||"";
     document.getElementById("lobby-sesiones").textContent=sesiones+" sesi"+(sesiones===1?"ón":"ones");
     document.getElementById("lobby-ultima").textContent=ultimaSes?fmtDate(ultimaSes):"Sin sesiones";
@@ -1171,7 +1191,7 @@ function showLobby(p){
   }
   // Update header
   document.getElementById("hdr-hc").textContent=p.hcCode;
-  document.getElementById("hdr-name").textContent=p.nombre||"Paciente sin nombre";
+  document.getElementById("hdr-name").textContent=getPDisplayName(p);
   document.getElementById("hdr-date").textContent="Apertura: "+fmtDate(p.fechaApertura);
 }
 
@@ -1212,7 +1232,7 @@ function showWelcome(){
 // ── List ──────────────────────────────────────────────────────────────────────
 function renderList(){
   const q=(document.getElementById("srch").value||"").toLowerCase();
-  const f=patients.filter(p=>!q||(p.nombre||"").toLowerCase().includes(q)||(p.hcCode||"").toLowerCase().includes(q)||(p.cedula||"").includes(q));
+  const f=patients.filter(p=>!q||(p.nombre||"").toLowerCase().includes(q)||(p.hcCode||"").toLowerCase().includes(q)||(p.cedula||"").includes(q)||(p.nombreA||"").toLowerCase().includes(q)||(p.nombreB||"").toLowerCase().includes(q));
   if(f.length===0){
     document.getElementById("plist").innerHTML=`<div style="text-align:center;padding:28px 0;color:var(--light);font-size:12px">${patients.length===0?"Crea la primera historia clínica":"Sin resultados."}</div>`;
     document.getElementById("sfoot").textContent=`${patients.length} historia${patients.length!==1?"s":""} clínica${patients.length!==1?"s":""}`;
@@ -1233,7 +1253,7 @@ function renderList(){
     return `<div class="pcard" onclick="selectP('${p.id}')">
       <button class="pc-del" onclick="event.stopPropagation();deletePatient('${p.id}')">🗑</button>
       <div class="pc-hc">${p.hcCode}</div>
-      <div class="pc-name">${esc(p.nombre)||"Sin nombre"}</div>
+      <div class="pc-name">${esc(getPDisplayName(p))||"Sin nombre"}</div>
       <div class="pc-sub">${p.edad?p.edad+" años":"Edad no registrada"}${p.gradoEscolar?" · "+p.gradoEscolar:""}</div>
       <div class="pc-date">Apertura: ${fmtDate(p.fechaApertura)} · ${(p.sesiones||[]).length} sesiones</div>
       ${dx.length?`<div class="pc-tags">${dx.slice(0,2).map(d=>`<span class="pc-tag">${d}</span>`).join("")}</div>`:""}
@@ -3303,7 +3323,6 @@ function renderTab(){
   else if(activeTab==="fam_identificacion"){
     el.innerHTML=
       `<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 16px;background:var(--ypl);border-radius:10px;border-left:4px solid var(--yellow)">
-        <span style="font-size:22px">👨‍👩‍👧‍👦</span>
         <div>
           <div style="font-size:12px;font-weight:800;color:#92400E">Terapia Familiar</div>
           <div style="font-size:10px;color:var(--mid)">El síntoma siempre tiene una función dentro de la dinámica familiar</div>
@@ -3880,6 +3899,41 @@ function updateFechaInforme(){
   renderTab();
 }
 
+// ── Helper: genera texto del resumen DSM-5 marcado para incluir en el informe ──
+function getDxSummaryText(nl){
+  nl=nl||"\n";
+  const allIds=[];
+  Object.keys(DX_SEGS||{}).forEach(seg=>(DX_SEGS[seg]||[]).forEach(g=>g.chips.forEach(c=>allIds.push(c.id))));
+  // deduplicar
+  const uniq=[...new Set(allIds)];
+  const active=uniq.filter(id=>{
+    const s=DX_ST[id];
+    return s&&(Object.keys(s.marks).length>0||Object.values(s.subs||{}).some(g=>Object.values(g).some(Boolean)));
+  });
+  if(!active.length)return "";
+  let out=nl+"■ DIAGNÓSTICO DSM-5 / CIE-11 (criterios marcados)"+nl;
+  active.forEach(id=>{
+    const dx=DX_DATA[id];const st=DX_ST[id];
+    if(!dx)return;
+    const code=Object.values(dx.codes)[0]||"";
+    out+="  "+dx.title+(code&&code!=="—"?" ("+code+")":"")+nl;
+    (dx.criteria||[]).forEach((c,ci)=>{
+      const mk=st.marks[ci];
+      const anySub=st.subs[ci]&&Object.values(st.subs[ci]).some(Boolean);
+      if(!mk&&!anySub)return;
+      const ML={p:"Presente",par:"Parcial",a:"Ausente",oc:"Ocasional",fr:"Frecuente",si:"Siempre",lv:"Leve",mo:"Moderado",ma:"Marcado"};
+      out+="    "+c.l+". "+c.t.slice(0,80)+(c.t.length>80?"…":"")+(mk?" — "+ML[mk]:"")+ nl;
+      if(st.notes[ci])out+="       Nota: "+st.notes[ci]+nl;
+      if(anySub){
+        Object.entries(st.subs[ci]||{}).filter(([,v])=>v).forEach(([si])=>{
+          if(c.s&&c.s[si])out+="       · "+c.s[si].slice(0,70)+nl;
+        });
+      }
+    });
+  });
+  return out;
+}
+
 function genInformeAdultoMayor(p){
   const nl="\n";const sep="═".repeat(55)+nl;
   let r="";
@@ -3947,6 +4001,7 @@ function genInformeAdultoMayor(p){
   r+="10. DIAGNÓSTICO"+nl+"─".repeat(40)+nl;
   ((p.diagnosticoAdulto||p.diagnostico)||[]).forEach(d=>{r+="  · "+d+nl;});
   r+=(p.impresionDiagnosticaAdulto||p.impresionDiagnostica?(p.impresionDiagnosticaAdulto||p.impresionDiagnostica)+nl:"");
+  r+=getDxSummaryText(nl);
   r+=nl;
   r+="11. PLAN DE INTERVENCIÓN"+nl+"─".repeat(40)+nl;
   r+=(p.tipoTerapia?"Modalidad: "+p.tipoTerapia+nl:"");
@@ -4001,6 +4056,7 @@ function genInformeGrupal(p){
   r+=(p.grpEvolParticipacion?"Participación: "+p.grpEvolParticipacion+nl:"");
   r+=(p.grpEvolObjetivos?"Logro de objetivos: "+p.grpEvolObjetivos+nl:"");
   r+=(p.grpCambiosDinamica?p.grpCambiosDinamica+nl:"");
+  r+=getDxSummaryText(nl);
   r+=nl+sep;
   r+="Generado por MedHC · "+new Date().toLocaleDateString("es-ES")+nl;
   return r;
@@ -4048,6 +4104,7 @@ function genInformeFamilia(p){
   r+=(p.famTipoDinamica?"Dinámica: "+p.famTipoDinamica+nl:"");
   r+=(p.famFuncionSistematica?"Función: "+p.famFuncionSistematica+nl:"");
   r+=(p.hipotesisClinica?p.hipotesisClinica+nl:"");
+  r+=getDxSummaryText(nl);
   r+=nl;
   r+="7. PLAN DE INTERVENCIÓN"+nl+"─".repeat(40)+nl;
   r+=(p.tipoTerapia?"Modalidad: "+p.tipoTerapia+nl:"");
@@ -4164,6 +4221,7 @@ function genInforme(p){
   r+=nl+"■ XII. DIAGNÓSTICO"+nl;
   r+=((p.diagnostico||[]).length?"• "+p.diagnostico.join("\n• "):"Sin diagnostico registrado.")+nl;
   r+=(p.impresionDiagnostica?nl+p.impresionDiagnostica+nl:"");
+  r+=getDxSummaryText(nl);
   r+=nl+SEP+nl;
   
   // Sesiones summary
@@ -4256,6 +4314,8 @@ function genInformePareja(p){
   r+=(p.apegoA?"Apego "+nameA+": "+p.apegoA+nl:"");
   r+=(p.apegoB?"Apego "+nameB+": "+p.apegoB+nl:"");
   r+=(p.patronesDisfuncionales?"Patrones: "+p.patronesDisfuncionales+nl:"");
+  r+=(p.hipotesisClinica?"Hipotesis: "+p.hipotesisClinica+nl:"");
+  r+=getDxSummaryText(nl);
   r+=(p.tipoTerapiaPareja?"Terapia: "+p.tipoTerapiaPareja+nl:"");
   r+=(p.frecuenciaSesionesPareja?"Frecuencia: "+p.frecuenciaSesionesPareja+nl:"");
   r+=(p.objetivosTerapeuticosPareja?"Objetivos: "+p.objetivosTerapeuticosPareja+nl:"")+nl;
@@ -4365,6 +4425,7 @@ function genInformeAdolescente(p){
   r+=(p.hipotesisClinica?"Hipotesis: "+p.hipotesisClinica+nl:"");
   r+=((p.diagnostico||[]).length?"Diagnostico: "+p.diagnostico.join(", ")+"."+nl:"Sin diagnostico registrado."+nl);
   r+=(p.impresionDiagnostica?nl+p.impresionDiagnostica+nl:"");
+  r+=getDxSummaryText(nl);
   r+=nl+sep+nl+"XVI. PLAN DE INTERVENCION"+nl;
   r+=(p.tipoTerapia?"Terapia: "+p.tipoTerapia+nl:"");
   r+=(p.frecuenciaSesiones?"Frecuencia: "+p.frecuenciaSesiones+nl:"");
@@ -4489,6 +4550,7 @@ function genInformeAdulto(p){
   r+=(dx.length?"• "+dx.join("\n• "):"Sin diagnostico registrado.")+nl;
   const imp=p.impresionDiagnosticaAdulto||p.impresionDiagnostica||"";
   r+=(imp?nl+imp+nl:"");
+  r+=getDxSummaryText(nl);
   r+=nl;
   r+=nl+"■ XVI. PLAN DE INTERVENCION"+nl;
   r+=(p.tipoTerapia?"Tipo de terapia: "+p.tipoTerapia+nl:"");
@@ -11469,6 +11531,8 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape')dxCloseModal();});
 function dxRenderSummary(){
   const list=document.getElementById('dx-spList');
   const empty=document.getElementById('dx-spEmpty');
+  // Si los elementos no están en el DOM (tab cerrado), guardar estado y salir sin error
+  if(!list||!empty) return;
   const allIds=[];
   (DX_SEGS[dxSeg]||[]).forEach(g=>g.chips.forEach(c=>allIds.push(c.id)));
   const active=allIds.filter(id=>{
