@@ -2505,8 +2505,12 @@ function renderTab(){
     const labelA=p.nombreA||"Persona A";
     const labelB=p.nombreB||"Persona B";
     el.innerHTML=
-      `<div style="margin-bottom:14px;padding:10px 16px;background:var(--cobalt-light);border-radius:10px;border-left:4px solid var(--cobalt);font-size:11px;color:var(--cobalt)">
-        Historia Clínica de Pareja — la unidad de análisis es el vínculo, no el individuo. Los nombres registrados aquí se usarán como guía en toda la historia.
+      `<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 16px;background:var(--rpl);border-radius:10px;border-left:4px solid var(--rose)">
+        <span style="font-size:22px">💑</span>
+        <div>
+          <div style="font-size:12px;font-weight:800;color:var(--rose)">Terapia de Pareja</div>
+          <div style="font-size:10px;color:var(--mid)">La unidad de análisis es el vínculo — no el individuo</div>
+        </div>
       </div>`+
       sec(1,"Identificación de la Pareja",
         `<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
@@ -2516,7 +2520,7 @@ function renderTab(){
             <div class="fld"><label>Edad</label><input type="number" value="${esc(p.edadA)}" oninput="upd('edadA',this.value)"></div>
             <div class="fld"><label>Cédula / DNI</label><input type="text" value="${esc(p.cedulaA)}" oninput="upd('cedulaA',this.value)"></div>
             <div class="fld"><label>Ocupación</label><input type="text" value="${esc(p.ocupacionA||'')}" placeholder="Ej: Docente..." oninput="upd('ocupacionA',this.value)"></div>
-            <div class="fld"><label>HC vinculada</label><div style="display:flex;gap:6px;align-items:center"><input type="text" value="${esc(p.hcVinculadaA||'')}" placeholder="Ej: HC-2026-004" oninput="upd('hcVinculadaA',this.value)" style="flex:1"><button onclick="verHCVinculada('${esc(p.hcVinculadaA||'')}',this)" style="padding:4px 9px;background:var(--cobalt-light);border:1px solid var(--border);border-radius:6px;font-size:10px;color:var(--cobalt);white-space:nowrap">Ver HC</button></div></div>
+            <div class="fld"><label>HC vinculada</label>${hcSearchWidget('hcVinculadaA','hc-search-a','hc-drop-a','hc-label-a')}</div>
           </div>
           <div style="padding:12px 16px;background:var(--rpl);border-radius:10px;border:1.5px solid var(--rose)">
             <div style="font-size:10px;font-weight:800;color:var(--rose);text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px">Persona B</div>
@@ -2524,7 +2528,7 @@ function renderTab(){
             <div class="fld"><label>Edad</label><input type="number" value="${esc(p.edadB)}" oninput="upd('edadB',this.value)"></div>
             <div class="fld"><label>Cédula / DNI</label><input type="text" value="${esc(p.cedulaB)}" oninput="upd('cedulaB',this.value)"></div>
             <div class="fld"><label>Ocupación</label><input type="text" value="${esc(p.ocupacionB||'')}" placeholder="Ej: Ingeniero..." oninput="upd('ocupacionB',this.value)"></div>
-            <div class="fld"><label>HC vinculada</label><div style="display:flex;gap:6px;align-items:center"><input type="text" value="${esc(p.hcVinculadaB||'')}" placeholder="Ej: HC-2026-004" oninput="upd('hcVinculadaB',this.value)" style="flex:1"><button onclick="verHCVinculada('${esc(p.hcVinculadaB||'')}',this)" style="padding:4px 9px;background:var(--cobalt-light);border:1px solid var(--border);border-radius:6px;font-size:10px;color:var(--cobalt);white-space:nowrap">Ver HC</button></div></div>
+            <div class="fld"><label>HC vinculada</label>${hcSearchWidget('hcVinculadaB','hc-search-b','hc-drop-b','hc-label-b')}</div>
           </div>
         </div>`+
         g2(
@@ -3298,8 +3302,12 @@ function renderTab(){
 
   else if(activeTab==="fam_identificacion"){
     el.innerHTML=
-      `<div style="margin-bottom:10px;padding:9px 13px;background:var(--cobalt-light);border-radius:9px;font-size:11px;color:var(--cobalt);font-weight:700">
-         La unidad de análisis es la familia como sistema — no el individuo. El síntoma siempre tiene una función dentro de la dinámica.
+      `<div style="display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:10px 16px;background:var(--ypl);border-radius:10px;border-left:4px solid var(--yellow)">
+        <span style="font-size:22px">👨‍👩‍👧‍👦</span>
+        <div>
+          <div style="font-size:12px;font-weight:800;color:#92400E">Terapia Familiar</div>
+          <div style="font-size:10px;color:var(--mid)">El síntoma siempre tiene una función dentro de la dinámica familiar</div>
+        </div>
       </div>`+
       sec(1,"Integrantes de la Familia",
         fld("Integrantes",
@@ -3317,7 +3325,17 @@ function renderTab(){
               </select>
               <button onclick="delFamMiembro(${i})" style="padding:5px 10px;background:var(--rpl);border:1px solid var(--rose);border-radius:7px;font-size:11px;color:var(--danger);cursor:pointer">🗑</button>
             </div>
-            <div style="display:flex;gap:6px;align-items:center;margin-top:6px"><input value="${esc(m.hcVinculada||'')}" placeholder="HC vinculada (ej: HC-2026-004)" oninput="updFamMiembro(${i},'hcVinculada',this.value)" style="flex:1;padding:6px 9px;border:1px solid var(--border);border-radius:7px;font-size:11px"><button onclick="verHCVinculada('${esc(m.hcVinculada||'')}',this)" style="padding:5px 9px;background:var(--cobalt-light);border:1px solid var(--border);border-radius:6px;font-size:10px;color:var(--cobalt);white-space:nowrap">Ver HC</button></div>
+            <div style="display:flex;gap:6px;align-items:center;margin-top:6px">
+              <div style="position:relative;flex:1">
+                <input id="hc-fam-${i}" value="${esc(m.hcVinculada||'')}" placeholder="HC vinculada — escribe HC-... o nombre" autocomplete="off"
+                  oninput="updFamMiembro(${i},'hcVinculada',this.value);hcSearchFilterFam(${i})"
+                  onfocus="hcSearchFilterFam(${i})"
+                  onblur="setTimeout(()=>{const d=document.getElementById('hc-fam-drop-${i}');if(d)d.style.display='none';},200)"
+                  style="width:100%;padding:6px 9px;border:1px solid var(--border);border-radius:7px;font-size:11px">
+                <div id="hc-fam-drop-${i}" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--accent);border-radius:9px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:500;max-height:180px;overflow-y:auto;margin-top:2px"></div>
+              </div>
+              <button onclick="verHCVinculada(document.getElementById('hc-fam-${i}').value,this)" style="padding:5px 9px;background:var(--cobalt-light);border:1px solid var(--border);border-radius:6px;font-size:10px;color:var(--cobalt);white-space:nowrap;cursor:pointer">Ver HC</button>
+            </div>
           </div>`).join("")}
           </div>`+
           `<button onclick="addFamMiembro()" class="btn-add" style="margin-top:6px">+ Agregar integrante</button>`
@@ -5378,6 +5396,35 @@ async function subirArchivo(input){
 }
 function delArchivo(i){const p=getP();p.informesPrevios=p.informesPrevios.filter((_,x)=>x!==i);saveP({...p});renderTab();}
 
+function hcSearchFilterFam(idx){
+  const input=document.getElementById('hc-fam-'+idx);
+  const drop=document.getElementById('hc-fam-drop-'+idx);
+  if(!input||!drop)return;
+  const q=(input.value||'').toLowerCase().trim();
+  const matches=patients.filter(pt=>{
+    if(pt.id===selectedId)return false;
+    if(!q)return true;
+    return (pt.hcCode||'').toLowerCase().includes(q)||(pt.nombre||'').toLowerCase().includes(q)||(pt.cedula||'').includes(q);
+  }).slice(0,6);
+  if(!matches.length){drop.style.display='none';return;}
+  drop.innerHTML=matches.map(pt=>`
+    <div onclick="hcFamSelect(${idx},'${pt.hcCode}','${esc(pt.nombre||'Sin nombre')}')"
+      style="padding:8px 11px;cursor:pointer;border-bottom:1px solid var(--border)"
+      onmouseover="this.style.background='var(--apl)'" onmouseout="this.style.background='#fff'">
+      <div style="font-size:10px;font-weight:800;color:var(--accent)">${pt.hcCode}</div>
+      <div style="font-size:12px;font-weight:700;color:var(--brown)">${esc(pt.nombre||'Sin nombre')}</div>
+    </div>`).join('');
+  drop.style.display='block';
+}
+
+function hcFamSelect(idx,hcCode,nombre){
+  const input=document.getElementById('hc-fam-'+idx);
+  const drop=document.getElementById('hc-fam-drop-'+idx);
+  if(input){input.value=hcCode;}
+  if(drop)drop.style.display='none';
+  updFamMiembro(idx,'hcVinculada',hcCode);
+}
+
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 function openSB(){document.getElementById("sidebar").classList.add("open");document.getElementById("overlay").classList.add("open");}
 function closeSB(){document.getElementById("sidebar").classList.remove("open");document.getElementById("overlay").classList.remove("open");}
@@ -5410,6 +5457,75 @@ function verHCVinculada(hcCode,btn){
   document.body.appendChild(m);
 }
 
+// ── HC Vinculada — buscador con autocomplete ──────────────────────────────────
+function hcSearchWidget(fieldKey, inputId, dropdownId, labelId){
+  // Construir HTML del widget de búsqueda de HC
+  return `<div style="position:relative">
+    <div style="display:flex;gap:6px;align-items:center">
+      <div style="position:relative;flex:1">
+        <input id="${inputId}" type="text" value="" placeholder="Escribe HC-... o nombre del paciente"
+          autocomplete="off"
+          oninput="hcSearchFilter('${inputId}','${dropdownId}','${fieldKey}')"
+          onfocus="hcSearchFilter('${inputId}','${dropdownId}','${fieldKey}')"
+          onblur="setTimeout(()=>{const d=document.getElementById('${dropdownId}');if(d)d.style.display='none';},200)"
+          style="width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;outline:none">
+        <div id="${dropdownId}" style="display:none;position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--accent);border-radius:9px;box-shadow:0 8px 24px rgba(0,0,0,.15);z-index:500;max-height:220px;overflow-y:auto;margin-top:2px"></div>
+      </div>
+      <button onclick="hcSearchVerSelected('${inputId}','${labelId}')" style="padding:7px 11px;background:var(--cobalt-light);border:1.5px solid var(--border);border-radius:7px;font-size:11px;color:var(--cobalt);white-space:nowrap;cursor:pointer">Ver HC</button>
+    </div>
+    <div id="${labelId}" style="display:none;margin-top:5px;padding:6px 10px;background:var(--apl);border-radius:7px;font-size:11px;color:var(--adk);font-weight:700"></div>
+  </div>`;
+}
+
+function hcSearchFilter(inputId, dropdownId, fieldKey){
+  const input=document.getElementById(inputId);
+  const drop=document.getElementById(dropdownId);
+  if(!input||!drop)return;
+  const q=(input.value||'').toLowerCase().trim();
+  const curId=selectedId;
+  const matches=patients.filter(pt=>{
+    if(pt.id===curId)return false; // no mostrar la historia actual
+    if(!q)return true;
+    return (pt.hcCode||'').toLowerCase().includes(q)||
+           (pt.nombre||'').toLowerCase().includes(q)||
+           (pt.cedula||'').includes(q);
+  }).slice(0,8);
+  if(!matches.length){drop.style.display='none';return;}
+  drop.innerHTML=matches.map(pt=>{
+    const tipo=pt.tipoHistoria||'';
+    const edad=pt.edad?pt.edad+' años':'';
+    return `<div onclick="hcSearchSelect('${inputId}','${dropdownId}','${fieldKey}','${pt.hcCode}','${esc(pt.nombre||'Sin nombre')}')"
+      style="padding:9px 12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .1s"
+      onmouseover="this.style.background='var(--apl)'" onmouseout="this.style.background='#fff'">
+      <div style="font-size:11px;font-weight:800;color:var(--accent);letter-spacing:.08em">${pt.hcCode} <span style="font-weight:400;color:var(--mid);text-transform:none">${tipo}</span></div>
+      <div style="font-size:13px;font-weight:700;color:var(--brown)">${esc(pt.nombre||'Sin nombre')}</div>
+      ${edad?`<div style="font-size:10px;color:var(--light)">${edad}</div>`:''}
+    </div>`;
+  }).join('');
+  drop.style.display='block';
+}
+
+function hcSearchSelect(inputId, dropdownId, fieldKey, hcCode, nombre){
+  const input=document.getElementById(inputId);
+  const drop=document.getElementById(dropdownId);
+  if(input)input.value=hcCode;
+  if(drop)drop.style.display='none';
+  // Guardar en el campo correspondiente
+  upd(fieldKey, hcCode);
+  // Mostrar label con nombre
+  const labelEl=document.getElementById(inputId+'-label');
+  if(labelEl){
+    labelEl.style.display='block';
+    labelEl.textContent='✓ '+hcCode+' — '+nombre;
+  }
+}
+
+function hcSearchVerSelected(inputId, labelId){
+  const input=document.getElementById(inputId);
+  const hcCode=(input&&input.value)||'';
+  if(!hcCode.trim()){return;}
+  verHCVinculada(hcCode, null);
+}
 
 // ── Auth helpers ─────────────────────────────────────────────────────────────
 function loginWithGoogle(){
@@ -11418,8 +11534,28 @@ function dxCpBlk(id,btn){
   navigator.clipboard.writeText(txt).then(()=>{btn.textContent=' Copiado';setTimeout(()=>btn.textContent=' Copiar texto',2200);});
 }
 function dxCfBlk(id,btn){
-  btn.textContent=' Confirmado';btn.classList.add('done');btn.disabled=true;
-  dxShowToast('Diagnóstico confirmado → '+DX_DEST[dxSeg].replace('→ ',''));
+  const p=getP();if(!p){dxShowToast('No hay historia activa');return;}
+  const dx=DX_DATA[id];
+  const name=dx?dx.title:dxChipName(id);
+  const code=dx?Object.values(dx.codes)[0]:'';
+  const label=code&&code!=='—'?name+' ('+code+')':name;
+  // Determinar campo destino según segmento
+  const isAdultoSeg=['adulto','adolescente','adulto-mayor'].includes(dxSeg);
+  const isParejaFamGrp=['parejas','familias','grupo'].includes(dxSeg);
+  if(isAdultoSeg||p.tipoHistoria==='Adulto'||p.tipoHistoria==='Adulto mayor (65+)'||p.tipoHistoria==='Adolescente (12-17 años)'){
+    const arr=[...(p.diagnosticoAdulto||[])];
+    if(!arr.includes(label)){arr.push(label);p.diagnosticoAdulto=arr;saveP({...p});}
+  } else if(isParejaFamGrp||p.tipoHistoria==='Pareja'||p.tipoHistoria==='Familia'||p.tipoHistoria==='Grupo terapéutico'){
+    // Para pareja/familia/grupo → hipótesis clínica
+    const prev=p.hipotesisClinica||'';
+    if(!prev.includes(label)){p.hipotesisClinica=(prev?prev+'\n':'')+label;saveP({...p});}
+  } else {
+    // Infantil y otros → diagnostico
+    const arr=[...(p.diagnostico||[])];
+    if(!arr.includes(label)){arr.push(label);p.diagnostico=arr;saveP({...p});}
+  }
+  btn.textContent=' Guardado ✓';btn.classList.add('done');btn.disabled=true;
+  dxShowToast('Diagnóstico guardado → '+DX_DEST[dxSeg].replace('→ ',''));
 }
 function dxShowToast(msg){
   const t=document.getElementById('dx-toast');
