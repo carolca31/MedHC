@@ -1263,6 +1263,8 @@ async function deletePatient(id){
   renderList();
 }
 function selectP(id){
+  // Close agenda overlay when opening a patient
+  if(document.getElementById("agenda-overlay")&&document.getElementById("agenda-overlay").style.display!=="none")closeAgenda();
   // Guardar estado DSM del paciente actual antes de cambiar
   if(selectedId && selectedId !== id){
     dxSaveToCache(selectedId);
@@ -6589,6 +6591,7 @@ function startAppLocal(){
   document.getElementById("loading").style.display="none";
   document.getElementById("app").style.display="flex";
   loadProfesional();
+  setTimeout(function(){if(window.openAgenda)openAgenda();},150);
   userPlan={plan:"free",modules:[],historyCount:0};
   db.collection("pacientes").orderBy("createdAt","desc").onSnapshot(function(snap){
     patients=snap.docs.map(function(d){return{...d.data(),id:d.id};});
@@ -6622,6 +6625,7 @@ async function init(){
       document.getElementById("login-screen").style.display="none";
       document.getElementById("app").style.display="flex";
       loadProfesional();
+  setTimeout(function(){if(window.openAgenda)openAgenda();},150);
       await loadUserPlan(user.uid);
       // Ensure email is saved
       // Check if blocked
@@ -12159,8 +12163,9 @@ function lobbyVolverLista(){
   selectedId=null;
   document.getElementById("patient-lobby").style.display="none";
   document.getElementById("pview").style.display="none";
-  document.getElementById("welcome").style.display="flex";
+  // (agenda is home)
   if(window.renderDashboard)renderDashboard();
+  openAgenda();
 }
 
 function imprimirInforme(){
@@ -12380,10 +12385,10 @@ init();
 <!-- ══ AGENDA Y DASHBOARD OVERLAY ══ -->
 <div id="agenda-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:800;overflow-y:auto;">
   <style>
-  #agenda-overlay .ag-topbar{background:var(--cobalt);padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:0 2px 16px rgba(26,58,110,.18);}
+  #agenda-overlay .ag-topbar{background:linear-gradient(135deg,var(--accent),var(--adk));padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:0 2px 16px rgba(26,58,110,.18);}
   #agenda-overlay .ag-tb-left{display:flex;align-items:center;gap:10px;}
   #agenda-overlay .ag-tb-name{font-size:14px;font-weight:800;color:#fff;letter-spacing:-.02em;}
-  #agenda-overlay .ag-banner{background:var(--cobalt);border-radius:14px;padding:20px 24px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 4px 18px rgba(26,58,110,.15);}
+  #agenda-overlay .ag-banner{background:linear-gradient(135deg,#0a5f7a,var(--accent));border-radius:14px;padding:20px 24px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 4px 18px rgba(26,58,110,.15);}
   #agenda-overlay .ag-greeting{font-size:18px;font-weight:800;color:#fff;margin-bottom:3px;letter-spacing:-.02em;}
   #agenda-overlay .ag-fecha{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:14px;font-weight:500;}
   #agenda-overlay .ag-bstats{display:flex;gap:10px;flex-wrap:wrap;}
@@ -12441,7 +12446,7 @@ init();
   #agenda-overlay .ag-hoy-sub{font-size:10px;color:var(--light);margin-top:1px;}
   #agenda-overlay .ag-hoy-item.ghost-item{opacity:.45;}
   #agenda-overlay .ag-hoy-item.ghost-item .ag-hoy-nombre{text-decoration:line-through;}
-  #agenda-overlay .ag-est-sel{padding:3px 5px;border-radius:6px;font-size:10px;font-weight:700;border:1.5px solid var(--border);background:var(--bg);color:var(--mid);cursor:pointer;font-family:inherit;outline:none;}
+  #agenda-overlay .ag-est-sel{padding:3px 5px;border-radius:6px;font-size:10px;font-weight:700;border:1.5px solid var(--border);background:var(--bg);color:var(--mid);cursor:pointer;font-family:inherit;outline:none;}max-width:82px;min-width:70px;
   #agenda-overlay .ag-est-sel.asistio{border-color:#16A34A;background:#DCFCE7;color:#16A34A;}
   #agenda-overlay .ag-est-sel.no-asistio{border-color:var(--danger);background:var(--rpl);color:var(--danger);}
   #agenda-overlay .ag-est-sel.aplazada{border-color:var(--yellow);background:var(--ypl);color:#92400E;}
@@ -12496,9 +12501,9 @@ init();
         <circle cx="27" cy="40" r="4" fill="rgba(255,255,255,0.3)"/>
         <circle cx="27" cy="40" r="2" fill="#fff"/>
       </svg>
-      <span class="ag-tb-name">MedHC — Agenda y Dashboard</span>
+      <span class="ag-tb-name">MedHC — Agenda</span>
     </div>
-    <button onclick="closeAgenda()" style="padding:6px 13px;background:rgba(255,255,255,.1);color:#fff;border:1px solid rgba(255,255,255,.25);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer">✕ Cerrar</button>
+    <button onclick="closeAgenda();openSB()" style="padding:6px 14px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"/><polyline points="9 18 3 12 9 6"/></svg>Ver historias</button>
   </div>
 
   <!-- Contenido -->
@@ -12513,6 +12518,8 @@ init();
           <div class="ag-bstat"><div class="ag-bstat-num" id="ag-st-total">0</div><div class="ag-bstat-lbl">Historias</div></div>
           <div class="ag-bstat"><div class="ag-bstat-num" id="ag-st-hoy">0</div><div class="ag-bstat-lbl">Consultas hoy</div></div>
           <div class="ag-bstat"><div class="ag-bstat-num" id="ag-st-semana">0</div><div class="ag-bstat-lbl">Esta semana</div></div>
+          <div class="ag-bstat"><div class="ag-bstat-num" id="ag-st-tasa">—</div><div class="ag-bstat-lbl">Asistencia</div></div>
+          <div class="ag-bstat"><div class="ag-bstat-num" id="ag-st-pend2">0</div><div class="ag-bstat-lbl">Sin confirmar</div></div>
         </div>
       </div>
       <div style="opacity:.1;flex-shrink:0;">
@@ -12687,6 +12694,12 @@ init();
     let semCount=0;
     for(let dk in agAgenda){const f=new Date(dk+"T00:00:00");if(f>=lunes&&f<=fin)semCount+=(agAgenda[dk]||[]).length;}
     document.getElementById('ag-st-semana').textContent=semCount;
+    // Tasa asistencia global
+    let _tot=0,_asi=0;for(let _dk in agAgenda){(agAgenda[_dk]||[]).forEach(c=>{if(c.estado==='asistio'||c.estado==='no-asistio'){_tot++;if(c.estado==='asistio')_asi++;}});}
+    const tasaEl=document.getElementById('ag-st-tasa');if(tasaEl)tasaEl.textContent=_tot>0?Math.round(_asi/_tot*100)+'%':'—';
+    // Pendientes hoy
+    const _pend=(agAgenda[agHk()]||[]).filter(c=>!c.estado||c.estado==='').length;
+    const pendEl=document.getElementById('ag-st-pend2');if(pendEl)pendEl.textContent=_pend;
   }
 
   function agActualizarStatHoy(){
