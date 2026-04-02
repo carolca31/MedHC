@@ -137,7 +137,7 @@ button{cursor:pointer;}
   position:fixed;bottom:1.6rem;right:1.6rem;z-index:9999;
   display:flex;align-items:center;gap:0;
   border:none;cursor:pointer;padding:0;background:none;
-  opacity:.18;
+  opacity:.32;
   transition:opacity .3s ease,transform .15s ease;
   filter:drop-shadow(0 4px 14px rgba(8,145,178,.35));
 }
@@ -502,6 +502,10 @@ pre{background:var(--alt);border:1px solid var(--border);border-radius:9px;paddi
 .dash-search-name{font-size:13px;font-weight:700;color:var(--brown);}
 .dash-search-tipo{font-size:11px;color:var(--mid);}
 .dash-empty{text-align:center;padding:28px 16px;color:var(--light);font-size:12px;line-height:1.7;}
+
+/* ── Agenda embedded in #main ── */
+#agenda-overlay{min-width:0;}
+#agenda-overlay .ag-topbar{background:linear-gradient(135deg,var(--accent),var(--adk));padding:0 16px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:0 2px 12px rgba(8,145,178,.2);flex-shrink:0;}
 </style>
 </head>
 <body>
@@ -768,90 +772,8 @@ pre{background:var(--alt);border:1px solid var(--border);border-radius:9px;paddi
   </div>
 </div>
 
-<div id="welcome">
-  <!-- ══ DASHBOARD BANNER ══ -->
-  <div id="dash-banner">
-    <div id="dash-banner-left">
-      <div id="dash-logo-wrap">
-        <img id="dash-logo-img" src="" alt="" style="width:54px;height:54px;object-fit:contain;">
-      </div>
-      <div>
-        <div id="dash-greeting"></div>
-        <div id="dash-prof-name"></div>
-        <div id="dash-fecha"></div>
-      </div>
-    </div>
-    <div id="dash-stats-row">
-      <div class="dash-stat">
-        <div class="dash-stat-num" id="dash-st-total">0</div>
-        <div class="dash-stat-lbl">Historias clínicas</div>
-      </div>
-      <div class="dash-stat-sep"></div>
-      <div class="dash-stat">
-        <div class="dash-stat-num" id="dash-st-hoy">0</div>
-        <div class="dash-stat-lbl">Consultas hoy</div>
-      </div>
-      <div class="dash-stat-sep"></div>
-      <div class="dash-stat">
-        <div class="dash-stat-num" id="dash-st-sem">0</div>
-        <div class="dash-stat-lbl">Esta semana</div>
-      </div>
-      <div class="dash-stat-sep"></div>
-      <div class="dash-stat">
-        <div class="dash-stat-num" id="dash-st-asist">—</div>
-        <div class="dash-stat-lbl">Tasa asistencia</div>
-      </div>
-      <div class="dash-stat-sep"></div>
-      <div class="dash-stat">
-        <div class="dash-stat-num" id="dash-st-pend">0</div>
-        <div class="dash-stat-lbl">Sin confirmar hoy</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ══ DASHBOARD GRID ══ -->
-  <div id="dash-grid">
-
-    <!-- Consultas de hoy -->
-    <div class="dash-card">
-      <div class="dash-card-hdr">
-        <div class="dash-card-title">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-          Consultas de hoy
-        </div>
-        <button class="dash-card-btn" onclick="openAgenda()">Ver agenda →</button>
-      </div>
-      <div class="dash-card-body" id="dash-hoy-lista"></div>
-    </div>
-
-    <!-- Acciones rapidas -->
-    <div class="dash-card">
-      <div class="dash-card-hdr">
-        <div class="dash-card-title">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          Acciones rapidas
-        </div>
-      </div>
-      <div class="dash-card-body" style="padding:14px 15px;">
-        <button class="dash-btn-new" onclick="createPatient()">+ Nueva Historia Clinica</button>
-        <div style="margin-top:14px;">
-          <div style="font-size:10px;font-weight:800;color:var(--mid);margin-bottom:6px;text-transform:uppercase;letter-spacing:.07em;">Buscar historia por nombre</div>
-          <input type="text" id="dash-search-inp" placeholder="Escribe el nombre del paciente..."
-            oninput="dashBuscar(this.value)" autocomplete="off"
-            style="width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:8px;font-size:13px;box-sizing:border-box;outline:none;">
-          <div id="dash-search-res" style="margin-top:6px;"></div>
-        </div>
-        <div style="margin-top:14px;padding:9px 12px;background:var(--apl);border:1px solid var(--accent);border-radius:8px;font-size:11px;color:var(--mid);text-align:center;">
-          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.5" style="vertical-align:middle;margin-right:4px;"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
-          Datos guardados en la nube
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <div id="welcome-prof" style="display:none"></div>
-</div>
+<div id="welcome" style="display:none"></div>
+<div id="welcome-prof" style="display:none"></div>
 
   <div id="pview">
     <div id="phdr">
@@ -870,6 +792,234 @@ pre{background:var(--alt);border:1px solid var(--border);border-radius:9px;paddi
 </div>
     <div id="tcontent"></div>
   </div>
+<div id="agenda-overlay" style="display:none;flex:1;flex-direction:column;overflow-y:auto;background:var(--bg);">
+  <style>
+  #agenda-overlay .ag-topbar{background:linear-gradient(135deg,var(--accent),var(--adk));padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:0 2px 16px rgba(26,58,110,.18);}
+  #agenda-overlay .ag-tb-left{display:flex;align-items:center;gap:10px;}
+  #agenda-overlay .ag-tb-name{font-size:14px;font-weight:800;color:#fff;letter-spacing:-.02em;}
+  #agenda-overlay .ag-banner{background:linear-gradient(135deg,#0a5f7a,var(--accent));border-radius:14px;padding:20px 24px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 4px 18px rgba(26,58,110,.15);}
+  #agenda-overlay .ag-greeting{font-size:18px;font-weight:800;color:#fff;margin-bottom:3px;letter-spacing:-.02em;}
+  #agenda-overlay .ag-fecha{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:14px;font-weight:500;}
+  #agenda-overlay .ag-bstats{display:flex;gap:10px;flex-wrap:wrap;}
+  #agenda-overlay .ag-bstat{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 14px;min-width:80px;}
+  #agenda-overlay .ag-bstat-num{font-size:20px;font-weight:800;color:#fff;line-height:1;}
+  #agenda-overlay .ag-bstat-lbl{font-size:10px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-top:3px;}
+  #agenda-overlay .ag-main-grid{display:grid;grid-template-columns:1fr 300px;gap:14px;margin-bottom:14px;}
+  @media(max-width:720px){#agenda-overlay .ag-main-grid{grid-template-columns:1fr;}}
+  #agenda-overlay .ag-card{background:var(--surface);border-radius:13px;border:1.5px solid var(--border);overflow:hidden;}
+  #agenda-overlay .ag-card-hdr{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+  #agenda-overlay .ag-card-title{font-size:11px;font-weight:800;color:var(--cobalt);text-transform:uppercase;letter-spacing:.08em;}
+  #agenda-overlay .ag-card-body{padding:12px 16px;}
+  #agenda-overlay .ag-card-action{padding:4px 10px;background:var(--apl);color:var(--accent);border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;}
+  #agenda-overlay .ag-card-action:hover{background:var(--accent);color:#fff;}
+  #agenda-overlay .ag-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  #agenda-overlay .ag-dur-sel{padding:5px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:11px;font-weight:700;color:var(--cobalt);background:#fff;cursor:pointer;outline:none;font-family:inherit;}
+  #agenda-overlay .ag-week-nav{display:flex;align-items:center;gap:4px;}
+  #agenda-overlay .ag-week-nav button{padding:4px 8px;background:var(--bg);border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;color:var(--mid);font-family:inherit;}
+  #agenda-overlay .ag-week-nav button:hover{border-color:var(--accent);color:var(--accent);}
+  #agenda-overlay #ag-semana-lbl{font-size:11px;font-weight:700;color:var(--mid);min-width:108px;text-align:center;}
+  #agenda-overlay #ag-days-wrap{overflow-x:auto;}
+  #agenda-overlay #ag-days-grid{display:grid;grid-template-columns:repeat(6,1fr);min-width:520px;}
+  #agenda-overlay .ag-day-col{border-right:1px solid var(--border);}
+  #agenda-overlay .ag-day-col:last-child{border-right:none;}
+  #agenda-overlay .ag-day-hdr{padding:7px 4px;text-align:center;border-bottom:1px solid var(--border);background:var(--bg);}
+  #agenda-overlay .ag-day-hdr-name{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--light);}
+  #agenda-overlay .ag-day-hdr-num{font-size:15px;font-weight:800;color:var(--cobalt);line-height:1.3;}
+  #agenda-overlay .ag-day-col.is-today .ag-day-hdr{background:var(--apl);}
+  #agenda-overlay .ag-day-col.is-today .ag-day-hdr-name,#agenda-overlay .ag-day-col.is-today .ag-day-hdr-num{color:var(--accent);}
+  #agenda-overlay .ag-day-slots{padding:4px 3px;min-height:90px;}
+  #agenda-overlay .ag-slot{border-radius:6px;margin-bottom:3px;padding:4px 5px;font-size:10px;cursor:pointer;border:1.5px dashed var(--border);color:var(--light);transition:all .12s;display:flex;align-items:center;gap:3px;min-height:22px;}
+  #agenda-overlay .ag-slot:hover{border-color:var(--accent);color:var(--accent);background:var(--apl);}
+  #agenda-overlay .ag-slot.occ{border-style:solid;border-color:var(--accent);background:var(--apl);color:var(--adk);cursor:default;}
+  #agenda-overlay .ag-slot.occ.ghost{border-style:dashed;border-color:var(--border);background:transparent;opacity:.4;cursor:default;}
+  #agenda-overlay .ag-slot.occ.ghost .ag-slot-t{color:var(--light);}
+  #agenda-overlay .ag-slot.occ.ghost .ag-slot-n{text-decoration:line-through;color:var(--light);}
+  #agenda-overlay .ag-slot.occ.ghost .ag-slot-x{display:none;}
+  #agenda-overlay .ag-slot.conflict{border-color:var(--danger)!important;background:var(--rpl)!important;color:var(--danger)!important;}
+  #agenda-overlay .ag-slot-t{font-size:9px;font-weight:800;color:var(--light);flex-shrink:0;min-width:24px;}
+  #agenda-overlay .ag-slot.occ .ag-slot-t{color:var(--adk);}
+  #agenda-overlay .ag-slot-n{font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #agenda-overlay .ag-slot-x{background:none;border:none;cursor:pointer;color:transparent;font-size:10px;padding:0;flex-shrink:0;}
+  #agenda-overlay .ag-slot.occ:hover .ag-slot-x{color:var(--danger);}
+  #agenda-overlay .ag-foot{padding:7px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg);}
+  #agenda-overlay .ag-foot-txt{font-size:11px;color:var(--light);}
+  #agenda-overlay #ag-total-hoy-lbl{font-size:11px;font-weight:700;color:var(--cobalt);}
+  /* Hoy lista */
+  #agenda-overlay .ag-hoy-item{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);}
+  #agenda-overlay .ag-hoy-item:last-child{border-bottom:none;}
+  #agenda-overlay .ag-hoy-hora{font-size:11px;font-weight:800;color:var(--accent);width:38px;flex-shrink:0;text-align:center;background:var(--apl);border-radius:6px;padding:2px 3px;}
+  #agenda-overlay .ag-hoy-hora.aplazada-hora{background:var(--ypl);color:#92400E;}
+  #agenda-overlay .ag-hoy-hora.cancelada-hora{background:var(--bg);color:var(--light);}
+  #agenda-overlay .ag-hoy-info{flex:1;min-width:0;}
+  #agenda-overlay .ag-hoy-nombre{font-size:12px;font-weight:700;color:var(--brown);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+  #agenda-overlay .ag-hoy-sub{font-size:10px;color:var(--light);margin-top:1px;}
+  #agenda-overlay .ag-hoy-item.ghost-item{opacity:.45;}
+  #agenda-overlay .ag-hoy-item.ghost-item .ag-hoy-nombre{text-decoration:line-through;}
+  #agenda-overlay .ag-est-sel{padding:3px 5px;border-radius:6px;font-size:10px;font-weight:700;border:1.5px solid var(--border);background:var(--bg);color:var(--mid);cursor:pointer;font-family:inherit;outline:none;}max-width:82px;min-width:70px;
+  #agenda-overlay .ag-est-sel.asistio{border-color:#16A34A;background:#DCFCE7;color:#16A34A;}
+  #agenda-overlay .ag-est-sel.no-asistio{border-color:var(--danger);background:var(--rpl);color:var(--danger);}
+  #agenda-overlay .ag-est-sel.aplazada{border-color:var(--yellow);background:var(--ypl);color:#92400E;}
+  #agenda-overlay .ag-est-sel.cancelada{border-color:var(--light);background:var(--bg);color:var(--light);}
+  #agenda-overlay .ag-hoy-del{background:none;border:none;cursor:pointer;color:var(--light);font-size:12px;padding:0 2px;display:flex;align-items:center;}
+  #agenda-overlay .ag-hoy-del:hover{color:var(--danger);}
+  #agenda-overlay .ag-empty-hoy{text-align:center;padding:24px 0;color:var(--light);font-size:12px;font-weight:500;}
+  /* Stats */
+  #agenda-overlay .ag-stats-card{background:var(--surface);border-radius:13px;border:1.5px solid var(--border);overflow:hidden;margin-bottom:14px;}
+  #agenda-overlay #ag-stats-body{padding:14px 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  @media(max-width:560px){#agenda-overlay #ag-stats-body{grid-template-columns:repeat(2,1fr);}}
+  #agenda-overlay .ag-stat-block{text-align:center;}
+  #agenda-overlay .ag-stat-bar-wrap{height:4px;background:var(--border);border-radius:3px;margin:6px 0 3px;overflow:hidden;}
+  #agenda-overlay .ag-stat-bar{height:4px;border-radius:3px;transition:width .7s ease;}
+  #agenda-overlay .ag-stat-num{font-size:22px;font-weight:800;line-height:1;}
+  #agenda-overlay .ag-stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
+  #agenda-overlay .ag-stat-pct{font-size:10px;font-weight:600;color:var(--light);}
+  /* Modal */
+  #ag-modal-wrap{display:none;position:fixed;inset:0;background:rgba(10,20,40,.45);z-index:900;align-items:center;justify-content:center;padding:20px;}
+  #ag-modal-wrap.open{display:flex;}
+  #ag-modal-box{background:#fff;border-radius:16px;padding:22px;width:100%;max-width:360px;box-shadow:0 24px 60px rgba(0,0,0,.2);}
+  #ag-modal-box h3{font-size:14px;font-weight:800;color:var(--cobalt);margin-bottom:2px;}
+  #ag-modal-sub{font-size:12px;color:var(--mid);margin-bottom:14px;font-weight:500;}
+  .ag-mf{margin-bottom:11px;position:relative;}
+  .ag-mf label{display:block;font-size:10px;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
+  .ag-mf input,.ag-mf select{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;outline:none;font-family:inherit;color:var(--brown);background:#fff;}
+  .ag-mf input:focus,.ag-mf select:focus{border-color:var(--accent);}
+  #ag-pac-sugeridos{display:none;position:absolute;left:0;right:0;top:100%;border:1.5px solid var(--accent);border-radius:9px;background:#fff;max-height:140px;overflow-y:auto;z-index:50;box-shadow:0 4px 16px rgba(0,0,0,.1);}
+  .ag-pac-sug{padding:7px 11px;cursor:pointer;font-size:12px;font-weight:600;color:var(--brown);border-bottom:1px solid var(--border);}
+  .ag-pac-sug:last-child{border-bottom:none;}
+  .ag-pac-sug:hover{background:var(--apl);color:var(--accent);}
+  .ag-pac-sug-hc{font-size:10px;color:var(--light);font-weight:500;}
+  #ag-modal-conflict{display:none;background:var(--rpl);color:var(--danger);font-size:12px;padding:7px 11px;border-radius:8px;margin-bottom:9px;font-weight:600;}
+  #ag-aplazar-panel{display:none;background:var(--bg);border-radius:9px;padding:11px;margin-bottom:11px;border:1px solid var(--border);}
+  #ag-aplazar-panel label{font-size:10px;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px;}
+  .ag-aplazar-row{display:flex;gap:6px;align-items:center;}
+  .ag-aplazar-row input,.ag-aplazar-row select{flex:1;padding:6px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;font-family:inherit;outline:none;color:var(--brown);background:#fff;}
+  .ag-aplazar-row input:focus,.ag-aplazar-row select:focus{border-color:var(--accent);}
+  .ag-btn-apl-ok{padding:6px 11px;background:var(--yellow);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .ag-modal-actions{display:flex;gap:8px;margin-top:4px;}
+  .ag-btn-cancel{flex:0;padding:9px 13px;background:var(--bg);color:var(--mid);border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .ag-btn-confirm{flex:1;padding:9px;background:linear-gradient(135deg,var(--cobalt),var(--accent));color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
+  .ag-btn-confirm:hover{opacity:.9;}
+  </style>
+
+  <!-- Top bar de agenda -->
+  <div class="ag-topbar">
+    <div class="ag-tb-left">
+      <svg viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg" width="30" height="30">
+        <rect width="54" height="54" rx="12" fill="#0891B2"/>
+        <path d="M10 27 L18 14 L24 27 L30 10 L36 27 L42 20" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+        <circle cx="27" cy="40" r="4" fill="rgba(255,255,255,0.3)"/>
+        <circle cx="27" cy="40" r="2" fill="#fff"/>
+      </svg>
+      <span class="ag-tb-name">MedHC</span>
+    </div>
+    <button onclick="openSB()" style="padding:6px 14px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg> Mis historias</button>
+  </div>
+
+  <!-- Contenido -->
+  <div style="max-width:1100px;margin:0 auto;padding:18px 18px 48px;">
+
+    <!-- Banner -->
+    <div class="ag-banner">
+      <div>
+        <div class="ag-greeting" id="ag-greeting"></div>
+        <div class="ag-fecha" id="ag-fecha"></div>
+        <div class="ag-bstats">
+          <div class="ag-bstat"><div class="ag-bstat-num" id="ag-st-total">0</div><div class="ag-bstat-lbl">Historias</div></div>
+          <div class="ag-bstat"><div class="ag-bstat-num" id="ag-st-hoy">0</div><div class="ag-bstat-lbl">Consultas hoy</div></div>
+          <div class="ag-bstat"><div class="ag-bstat-num" id="ag-st-semana">0</div><div class="ag-bstat-lbl">Esta semana</div></div>
+          <div class="ag-bstat"><div class="ag-bstat-num" id="ag-st-tasa">—</div><div class="ag-bstat-lbl">Asistencia</div></div>
+          <div class="ag-bstat"><div class="ag-bstat-num" id="ag-st-pend2">0</div><div class="ag-bstat-lbl">Sin confirmar</div></div>
+        </div>
+      </div>
+      <div style="flex-shrink:0;opacity:.22;">
+        <img id="ag-banner-logo" src="" alt="" style="width:64px;height:64px;object-fit:contain;">
+      </div>
+    </div>
+
+    <!-- Grid principal -->
+    <div class="ag-main-grid">
+
+      <!-- Agenda semanal -->
+      <div class="ag-card">
+        <div class="ag-card-hdr">
+          <div class="ag-card-title">Agenda semanal</div>
+          <div class="ag-controls">
+            <div style="display:flex;align-items:center;gap:5px">
+              <span style="font-size:11px;color:var(--mid);font-weight:600">Duración:</span>
+              <select class="ag-dur-sel" onchange="agCambiarDuracion(this.value)">
+                <option value="30">30 min</option><option value="45">45 min</option>
+                <option value="60" selected>60 min</option><option value="90">90 min</option>
+                <option value="120">120 min</option>
+              </select>
+            </div>
+            <div class="ag-week-nav">
+              <button onclick="agCambiarSemana(-1)">‹</button>
+              <span id="ag-semana-lbl"></span>
+              <button onclick="agCambiarSemana(1)">›</button>
+              <button onclick="agIrHoy()" style="font-size:10px;padding:3px 6px">Hoy</button>
+            </div>
+          </div>
+        </div>
+        <div id="ag-days-wrap"><div id="ag-days-grid"></div></div>
+        <div class="ag-foot">
+          <span class="ag-foot-txt">Selecciona un horario libre para agendar</span>
+          <span id="ag-total-hoy-lbl"></span>
+        </div>
+      </div>
+
+      <!-- Consultas de hoy -->
+      <div class="ag-card">
+        <div class="ag-card-hdr">
+          <div class="ag-card-title">Consultas de hoy</div>
+          <button class="ag-card-action" onclick="agAbrirModal(null,null,true)">+ Imprevisto</button>
+        </div>
+        <div class="ag-card-body" id="ag-hoy-lista"></div>
+      </div>
+
+    </div>
+
+    <!-- Estadísticas de asistencia -->
+    <div class="ag-stats-card">
+      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
+        <div class="ag-card-title">Estadísticas de asistencia</div>
+        <select id="ag-stats-periodo" onchange="agRenderStats()" style="padding:4px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:11px;font-weight:700;color:var(--cobalt);background:#fff;cursor:pointer;outline:none;font-family:inherit;">
+          <option value="7">Últimos 7 días</option>
+          <option value="30" selected>Últimos 30 días</option>
+          <option value="90">Últimos 90 días</option>
+          <option value="365">Este año</option>
+          <option value="0">Todo el tiempo</option>
+        </select>
+      </div>
+      <div id="ag-stats-body">
+        <div class="ag-stat-block">
+          <div class="ag-stat-num" id="ag-s-total" style="color:var(--cobalt)">—</div>
+          <div class="ag-stat-lbl" style="color:var(--cobalt)">Total</div>
+          <div class="ag-stat-bar-wrap"><div class="ag-stat-bar" id="ag-sb-total" style="background:var(--cobalt);width:100%"></div></div>
+          <div class="ag-stat-pct" id="ag-sp-total">consultas</div>
+        </div>
+        <div class="ag-stat-block">
+          <div class="ag-stat-num" id="ag-s-asistio" style="color:#16A34A">—</div>
+          <div class="ag-stat-lbl" style="color:#16A34A">Asistió</div>
+          <div class="ag-stat-bar-wrap"><div class="ag-stat-bar" id="ag-sb-asistio" style="background:#16A34A"></div></div>
+          <div class="ag-stat-pct" id="ag-sp-asistio">—</div>
+        </div>
+        <div class="ag-stat-block">
+          <div class="ag-stat-num" id="ag-s-noasistio" style="color:var(--danger)">—</div>
+          <div class="ag-stat-lbl" style="color:var(--danger)">No asistió</div>
+          <div class="ag-stat-bar-wrap"><div class="ag-stat-bar" id="ag-sb-noasistio" style="background:var(--danger)"></div></div>
+          <div class="ag-stat-pct" id="ag-sp-noasistio">—</div>
+        </div>
+        <div class="ag-stat-block">
+          <div class="ag-stat-num" id="ag-s-aplazada" style="color:var(--yellow)">—</div>
+          <div class="ag-stat-lbl" style="color:#92400E">Aplazada</div>
+          <div class="ag-stat-bar-wrap"><div class="ag-stat-bar" id="ag-sb-aplazada" style="background:var(--yellow)"></div></div>
+          <div class="ag-stat-pct" id="ag-sp-aplazada">—</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /inner -->
+</div><!-- /agenda-overlay -->
 </div>
 </div>
 
@@ -1349,10 +1499,7 @@ function lobbyVerResumen(){
   renderTabs();renderTab();
 }
 function showWelcome(){
-  selectedId=null;
-  document.getElementById("welcome").style.display="flex";
-  document.getElementById("pview").style.display="none";
-  if(window.renderDashboard)renderDashboard();
+  openAgenda();
 }
 
 // ── List ──────────────────────────────────────────────────────────────────────
@@ -12383,234 +12530,6 @@ init();
 </div>
 
 <!-- ══ AGENDA Y DASHBOARD OVERLAY ══ -->
-<div id="agenda-overlay" style="display:none;position:fixed;inset:0;background:var(--bg);z-index:800;overflow-y:auto;">
-  <style>
-  #agenda-overlay .ag-topbar{background:linear-gradient(135deg,var(--accent),var(--adk));padding:0 20px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:0 2px 16px rgba(26,58,110,.18);}
-  #agenda-overlay .ag-tb-left{display:flex;align-items:center;gap:10px;}
-  #agenda-overlay .ag-tb-name{font-size:14px;font-weight:800;color:#fff;letter-spacing:-.02em;}
-  #agenda-overlay .ag-banner{background:linear-gradient(135deg,#0a5f7a,var(--accent));border-radius:14px;padding:20px 24px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 4px 18px rgba(26,58,110,.15);}
-  #agenda-overlay .ag-greeting{font-size:18px;font-weight:800;color:#fff;margin-bottom:3px;letter-spacing:-.02em;}
-  #agenda-overlay .ag-fecha{font-size:11px;color:rgba(255,255,255,.5);margin-bottom:14px;font-weight:500;}
-  #agenda-overlay .ag-bstats{display:flex;gap:10px;flex-wrap:wrap;}
-  #agenda-overlay .ag-bstat{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);border-radius:10px;padding:8px 14px;min-width:80px;}
-  #agenda-overlay .ag-bstat-num{font-size:20px;font-weight:800;color:#fff;line-height:1;}
-  #agenda-overlay .ag-bstat-lbl{font-size:10px;color:rgba(255,255,255,.5);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-top:3px;}
-  #agenda-overlay .ag-main-grid{display:grid;grid-template-columns:1fr 300px;gap:14px;margin-bottom:14px;}
-  @media(max-width:720px){#agenda-overlay .ag-main-grid{grid-template-columns:1fr;}}
-  #agenda-overlay .ag-card{background:var(--surface);border-radius:13px;border:1.5px solid var(--border);overflow:hidden;}
-  #agenda-overlay .ag-card-hdr{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
-  #agenda-overlay .ag-card-title{font-size:11px;font-weight:800;color:var(--cobalt);text-transform:uppercase;letter-spacing:.08em;}
-  #agenda-overlay .ag-card-body{padding:12px 16px;}
-  #agenda-overlay .ag-card-action{padding:4px 10px;background:var(--apl);color:var(--accent);border:none;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;}
-  #agenda-overlay .ag-card-action:hover{background:var(--accent);color:#fff;}
-  #agenda-overlay .ag-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-  #agenda-overlay .ag-dur-sel{padding:5px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:11px;font-weight:700;color:var(--cobalt);background:#fff;cursor:pointer;outline:none;font-family:inherit;}
-  #agenda-overlay .ag-week-nav{display:flex;align-items:center;gap:4px;}
-  #agenda-overlay .ag-week-nav button{padding:4px 8px;background:var(--bg);border:1.5px solid var(--border);border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;color:var(--mid);font-family:inherit;}
-  #agenda-overlay .ag-week-nav button:hover{border-color:var(--accent);color:var(--accent);}
-  #agenda-overlay #ag-semana-lbl{font-size:11px;font-weight:700;color:var(--mid);min-width:108px;text-align:center;}
-  #agenda-overlay #ag-days-wrap{overflow-x:auto;}
-  #agenda-overlay #ag-days-grid{display:grid;grid-template-columns:repeat(6,1fr);min-width:520px;}
-  #agenda-overlay .ag-day-col{border-right:1px solid var(--border);}
-  #agenda-overlay .ag-day-col:last-child{border-right:none;}
-  #agenda-overlay .ag-day-hdr{padding:7px 4px;text-align:center;border-bottom:1px solid var(--border);background:var(--bg);}
-  #agenda-overlay .ag-day-hdr-name{font-size:9px;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--light);}
-  #agenda-overlay .ag-day-hdr-num{font-size:15px;font-weight:800;color:var(--cobalt);line-height:1.3;}
-  #agenda-overlay .ag-day-col.is-today .ag-day-hdr{background:var(--apl);}
-  #agenda-overlay .ag-day-col.is-today .ag-day-hdr-name,#agenda-overlay .ag-day-col.is-today .ag-day-hdr-num{color:var(--accent);}
-  #agenda-overlay .ag-day-slots{padding:4px 3px;min-height:90px;}
-  #agenda-overlay .ag-slot{border-radius:6px;margin-bottom:3px;padding:4px 5px;font-size:10px;cursor:pointer;border:1.5px dashed var(--border);color:var(--light);transition:all .12s;display:flex;align-items:center;gap:3px;min-height:22px;}
-  #agenda-overlay .ag-slot:hover{border-color:var(--accent);color:var(--accent);background:var(--apl);}
-  #agenda-overlay .ag-slot.occ{border-style:solid;border-color:var(--accent);background:var(--apl);color:var(--adk);cursor:default;}
-  #agenda-overlay .ag-slot.occ.ghost{border-style:dashed;border-color:var(--border);background:transparent;opacity:.4;cursor:default;}
-  #agenda-overlay .ag-slot.occ.ghost .ag-slot-t{color:var(--light);}
-  #agenda-overlay .ag-slot.occ.ghost .ag-slot-n{text-decoration:line-through;color:var(--light);}
-  #agenda-overlay .ag-slot.occ.ghost .ag-slot-x{display:none;}
-  #agenda-overlay .ag-slot.conflict{border-color:var(--danger)!important;background:var(--rpl)!important;color:var(--danger)!important;}
-  #agenda-overlay .ag-slot-t{font-size:9px;font-weight:800;color:var(--light);flex-shrink:0;min-width:24px;}
-  #agenda-overlay .ag-slot.occ .ag-slot-t{color:var(--adk);}
-  #agenda-overlay .ag-slot-n{font-weight:700;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  #agenda-overlay .ag-slot-x{background:none;border:none;cursor:pointer;color:transparent;font-size:10px;padding:0;flex-shrink:0;}
-  #agenda-overlay .ag-slot.occ:hover .ag-slot-x{color:var(--danger);}
-  #agenda-overlay .ag-foot{padding:7px 16px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;background:var(--bg);}
-  #agenda-overlay .ag-foot-txt{font-size:11px;color:var(--light);}
-  #agenda-overlay #ag-total-hoy-lbl{font-size:11px;font-weight:700;color:var(--cobalt);}
-  /* Hoy lista */
-  #agenda-overlay .ag-hoy-item{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--border);}
-  #agenda-overlay .ag-hoy-item:last-child{border-bottom:none;}
-  #agenda-overlay .ag-hoy-hora{font-size:11px;font-weight:800;color:var(--accent);width:38px;flex-shrink:0;text-align:center;background:var(--apl);border-radius:6px;padding:2px 3px;}
-  #agenda-overlay .ag-hoy-hora.aplazada-hora{background:var(--ypl);color:#92400E;}
-  #agenda-overlay .ag-hoy-hora.cancelada-hora{background:var(--bg);color:var(--light);}
-  #agenda-overlay .ag-hoy-info{flex:1;min-width:0;}
-  #agenda-overlay .ag-hoy-nombre{font-size:12px;font-weight:700;color:var(--brown);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-  #agenda-overlay .ag-hoy-sub{font-size:10px;color:var(--light);margin-top:1px;}
-  #agenda-overlay .ag-hoy-item.ghost-item{opacity:.45;}
-  #agenda-overlay .ag-hoy-item.ghost-item .ag-hoy-nombre{text-decoration:line-through;}
-  #agenda-overlay .ag-est-sel{padding:3px 5px;border-radius:6px;font-size:10px;font-weight:700;border:1.5px solid var(--border);background:var(--bg);color:var(--mid);cursor:pointer;font-family:inherit;outline:none;}max-width:82px;min-width:70px;
-  #agenda-overlay .ag-est-sel.asistio{border-color:#16A34A;background:#DCFCE7;color:#16A34A;}
-  #agenda-overlay .ag-est-sel.no-asistio{border-color:var(--danger);background:var(--rpl);color:var(--danger);}
-  #agenda-overlay .ag-est-sel.aplazada{border-color:var(--yellow);background:var(--ypl);color:#92400E;}
-  #agenda-overlay .ag-est-sel.cancelada{border-color:var(--light);background:var(--bg);color:var(--light);}
-  #agenda-overlay .ag-hoy-del{background:none;border:none;cursor:pointer;color:var(--light);font-size:12px;padding:0 2px;display:flex;align-items:center;}
-  #agenda-overlay .ag-hoy-del:hover{color:var(--danger);}
-  #agenda-overlay .ag-empty-hoy{text-align:center;padding:24px 0;color:var(--light);font-size:12px;font-weight:500;}
-  /* Stats */
-  #agenda-overlay .ag-stats-card{background:var(--surface);border-radius:13px;border:1.5px solid var(--border);overflow:hidden;margin-bottom:14px;}
-  #agenda-overlay #ag-stats-body{padding:14px 18px;display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
-  @media(max-width:560px){#agenda-overlay #ag-stats-body{grid-template-columns:repeat(2,1fr);}}
-  #agenda-overlay .ag-stat-block{text-align:center;}
-  #agenda-overlay .ag-stat-bar-wrap{height:4px;background:var(--border);border-radius:3px;margin:6px 0 3px;overflow:hidden;}
-  #agenda-overlay .ag-stat-bar{height:4px;border-radius:3px;transition:width .7s ease;}
-  #agenda-overlay .ag-stat-num{font-size:22px;font-weight:800;line-height:1;}
-  #agenda-overlay .ag-stat-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;margin-top:2px;}
-  #agenda-overlay .ag-stat-pct{font-size:10px;font-weight:600;color:var(--light);}
-  /* Modal */
-  #ag-modal-wrap{display:none;position:fixed;inset:0;background:rgba(10,20,40,.45);z-index:900;align-items:center;justify-content:center;padding:20px;}
-  #ag-modal-wrap.open{display:flex;}
-  #ag-modal-box{background:#fff;border-radius:16px;padding:22px;width:100%;max-width:360px;box-shadow:0 24px 60px rgba(0,0,0,.2);}
-  #ag-modal-box h3{font-size:14px;font-weight:800;color:var(--cobalt);margin-bottom:2px;}
-  #ag-modal-sub{font-size:12px;color:var(--mid);margin-bottom:14px;font-weight:500;}
-  .ag-mf{margin-bottom:11px;position:relative;}
-  .ag-mf label{display:block;font-size:10px;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px;}
-  .ag-mf input,.ag-mf select{width:100%;padding:8px 11px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;outline:none;font-family:inherit;color:var(--brown);background:#fff;}
-  .ag-mf input:focus,.ag-mf select:focus{border-color:var(--accent);}
-  #ag-pac-sugeridos{display:none;position:absolute;left:0;right:0;top:100%;border:1.5px solid var(--accent);border-radius:9px;background:#fff;max-height:140px;overflow-y:auto;z-index:50;box-shadow:0 4px 16px rgba(0,0,0,.1);}
-  .ag-pac-sug{padding:7px 11px;cursor:pointer;font-size:12px;font-weight:600;color:var(--brown);border-bottom:1px solid var(--border);}
-  .ag-pac-sug:last-child{border-bottom:none;}
-  .ag-pac-sug:hover{background:var(--apl);color:var(--accent);}
-  .ag-pac-sug-hc{font-size:10px;color:var(--light);font-weight:500;}
-  #ag-modal-conflict{display:none;background:var(--rpl);color:var(--danger);font-size:12px;padding:7px 11px;border-radius:8px;margin-bottom:9px;font-weight:600;}
-  #ag-aplazar-panel{display:none;background:var(--bg);border-radius:9px;padding:11px;margin-bottom:11px;border:1px solid var(--border);}
-  #ag-aplazar-panel label{font-size:10px;font-weight:800;color:var(--mid);text-transform:uppercase;letter-spacing:.06em;display:block;margin-bottom:5px;}
-  .ag-aplazar-row{display:flex;gap:6px;align-items:center;}
-  .ag-aplazar-row input,.ag-aplazar-row select{flex:1;padding:6px 9px;border:1.5px solid var(--border);border-radius:7px;font-size:12px;font-family:inherit;outline:none;color:var(--brown);background:#fff;}
-  .ag-aplazar-row input:focus,.ag-aplazar-row select:focus{border-color:var(--accent);}
-  .ag-btn-apl-ok{padding:6px 11px;background:var(--yellow);color:#fff;border:none;border-radius:7px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;white-space:nowrap;}
-  .ag-modal-actions{display:flex;gap:8px;margin-top:4px;}
-  .ag-btn-cancel{flex:0;padding:9px 13px;background:var(--bg);color:var(--mid);border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
-  .ag-btn-confirm{flex:1;padding:9px;background:linear-gradient(135deg,var(--cobalt),var(--accent));color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;}
-  .ag-btn-confirm:hover{opacity:.9;}
-  </style>
-
-  <!-- Top bar de agenda -->
-  <div class="ag-topbar">
-    <div class="ag-tb-left">
-      <svg viewBox="0 0 54 54" fill="none" xmlns="http://www.w3.org/2000/svg" width="30" height="30">
-        <rect width="54" height="54" rx="12" fill="#0891B2"/>
-        <path d="M10 27 L18 14 L24 27 L30 10 L36 27 L42 20" stroke="#fff" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-        <circle cx="27" cy="40" r="4" fill="rgba(255,255,255,0.3)"/>
-        <circle cx="27" cy="40" r="2" fill="#fff"/>
-      </svg>
-      <span class="ag-tb-name">MedHC — Agenda</span>
-    </div>
-    <button onclick="closeAgenda();openSB()" style="padding:6px 14px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="12" x2="21" y2="12"/><polyline points="9 18 3 12 9 6"/></svg>Ver historias</button>
-  </div>
-
-  <!-- Contenido -->
-  <div style="max-width:1100px;margin:0 auto;padding:18px 18px 48px;">
-
-    <!-- Banner -->
-    <div class="ag-banner">
-      <div>
-        <div class="ag-greeting" id="ag-greeting"></div>
-        <div class="ag-fecha" id="ag-fecha"></div>
-        <div class="ag-bstats">
-          <div class="ag-bstat"><div class="ag-bstat-num" id="ag-st-total">0</div><div class="ag-bstat-lbl">Historias</div></div>
-          <div class="ag-bstat"><div class="ag-bstat-num" id="ag-st-hoy">0</div><div class="ag-bstat-lbl">Consultas hoy</div></div>
-          <div class="ag-bstat"><div class="ag-bstat-num" id="ag-st-semana">0</div><div class="ag-bstat-lbl">Esta semana</div></div>
-          <div class="ag-bstat"><div class="ag-bstat-num" id="ag-st-tasa">—</div><div class="ag-bstat-lbl">Asistencia</div></div>
-          <div class="ag-bstat"><div class="ag-bstat-num" id="ag-st-pend2">0</div><div class="ag-bstat-lbl">Sin confirmar</div></div>
-        </div>
-      </div>
-      <div style="opacity:.1;flex-shrink:0;">
-        <svg width="68" height="68" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      </div>
-    </div>
-
-    <!-- Grid principal -->
-    <div class="ag-main-grid">
-
-      <!-- Agenda semanal -->
-      <div class="ag-card">
-        <div class="ag-card-hdr">
-          <div class="ag-card-title">Agenda semanal</div>
-          <div class="ag-controls">
-            <div style="display:flex;align-items:center;gap:5px">
-              <span style="font-size:11px;color:var(--mid);font-weight:600">Duración:</span>
-              <select class="ag-dur-sel" onchange="agCambiarDuracion(this.value)">
-                <option value="30">30 min</option><option value="45">45 min</option>
-                <option value="60" selected>60 min</option><option value="90">90 min</option>
-                <option value="120">120 min</option>
-              </select>
-            </div>
-            <div class="ag-week-nav">
-              <button onclick="agCambiarSemana(-1)">‹</button>
-              <span id="ag-semana-lbl"></span>
-              <button onclick="agCambiarSemana(1)">›</button>
-              <button onclick="agIrHoy()" style="font-size:10px;padding:3px 6px">Hoy</button>
-            </div>
-          </div>
-        </div>
-        <div id="ag-days-wrap"><div id="ag-days-grid"></div></div>
-        <div class="ag-foot">
-          <span class="ag-foot-txt">Selecciona un horario libre para agendar</span>
-          <span id="ag-total-hoy-lbl"></span>
-        </div>
-      </div>
-
-      <!-- Consultas de hoy -->
-      <div class="ag-card">
-        <div class="ag-card-hdr">
-          <div class="ag-card-title">Consultas de hoy</div>
-          <button class="ag-card-action" onclick="agAbrirModal(null,null,true)">+ Imprevisto</button>
-        </div>
-        <div class="ag-card-body" id="ag-hoy-lista"></div>
-      </div>
-
-    </div>
-
-    <!-- Estadísticas de asistencia -->
-    <div class="ag-stats-card">
-      <div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;">
-        <div class="ag-card-title">Estadísticas de asistencia</div>
-        <select id="ag-stats-periodo" onchange="agRenderStats()" style="padding:4px 8px;border:1.5px solid var(--border);border-radius:7px;font-size:11px;font-weight:700;color:var(--cobalt);background:#fff;cursor:pointer;outline:none;font-family:inherit;">
-          <option value="7">Últimos 7 días</option>
-          <option value="30" selected>Últimos 30 días</option>
-          <option value="90">Últimos 90 días</option>
-          <option value="365">Este año</option>
-          <option value="0">Todo el tiempo</option>
-        </select>
-      </div>
-      <div id="ag-stats-body">
-        <div class="ag-stat-block">
-          <div class="ag-stat-num" id="ag-s-total" style="color:var(--cobalt)">—</div>
-          <div class="ag-stat-lbl" style="color:var(--cobalt)">Total</div>
-          <div class="ag-stat-bar-wrap"><div class="ag-stat-bar" id="ag-sb-total" style="background:var(--cobalt);width:100%"></div></div>
-          <div class="ag-stat-pct" id="ag-sp-total">consultas</div>
-        </div>
-        <div class="ag-stat-block">
-          <div class="ag-stat-num" id="ag-s-asistio" style="color:#16A34A">—</div>
-          <div class="ag-stat-lbl" style="color:#16A34A">Asistió</div>
-          <div class="ag-stat-bar-wrap"><div class="ag-stat-bar" id="ag-sb-asistio" style="background:#16A34A"></div></div>
-          <div class="ag-stat-pct" id="ag-sp-asistio">—</div>
-        </div>
-        <div class="ag-stat-block">
-          <div class="ag-stat-num" id="ag-s-noasistio" style="color:var(--danger)">—</div>
-          <div class="ag-stat-lbl" style="color:var(--danger)">No asistió</div>
-          <div class="ag-stat-bar-wrap"><div class="ag-stat-bar" id="ag-sb-noasistio" style="background:var(--danger)"></div></div>
-          <div class="ag-stat-pct" id="ag-sp-noasistio">—</div>
-        </div>
-        <div class="ag-stat-block">
-          <div class="ag-stat-num" id="ag-s-aplazada" style="color:var(--yellow)">—</div>
-          <div class="ag-stat-lbl" style="color:#92400E">Aplazada</div>
-          <div class="ag-stat-bar-wrap"><div class="ag-stat-bar" id="ag-sb-aplazada" style="background:var(--yellow)"></div></div>
-          <div class="ag-stat-pct" id="ag-sp-aplazada">—</div>
-        </div>
-      </div>
-    </div>
-
-  </div><!-- /inner -->
-</div><!-- /agenda-overlay -->
 
 <!-- Modal de agenda -->
 <div id="ag-modal-wrap">
@@ -12670,7 +12589,11 @@ init();
   window.openAgenda=function(){
     agCargar();
     const overlay=document.getElementById('agenda-overlay');
-    overlay.style.display='block';
+    overlay.style.display='flex';
+    // Hide other main views
+    var _w=document.getElementById('welcome');if(_w)_w.style.display='none';
+    var _pv=document.getElementById('pview');if(_pv)_pv.style.display='none';
+    var _pl=document.getElementById('patient-lobby');if(_pl)_pl.style.display='none';
     agInitBanner();
     agRenderAgenda();
     agRenderStats();
@@ -12678,13 +12601,14 @@ init();
   };
   window.closeAgenda=function(){
     document.getElementById('agenda-overlay').style.display='none';
-    if(window.renderDashboard)renderDashboard();
+    // agenda is home — no fallback screen needed
   };
 
   function agInitBanner(){
     const a=new Date(),h=a.getHours();
     const sal=h<12?"Buenos días":h<18?"Buenas tardes":"Buenas noches";
-    document.getElementById('ag-greeting').textContent=sal+" — MedHC";
+    try{var _p=JSON.parse(localStorage.getItem('medhc_prof')||'{}');var _n=(_p.nombre||'').trim();document.getElementById('ag-greeting').textContent=sal+(_n?' — '+_n:' — MedHC');}catch(e){document.getElementById('ag-greeting').textContent=sal+' — MedHC';}
+    try{var _li=document.querySelector('#logo-icon img');var _bl=document.getElementById('ag-banner-logo');if(_li&&_bl)_bl.src=_li.src;}catch(e){}
     document.getElementById('ag-fecha').textContent=a.toLocaleDateString("es-ES",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
     const pacs=agGetPacs();
     document.getElementById('ag-st-total').textContent=pacs.length;
