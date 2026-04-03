@@ -1195,7 +1195,10 @@ async function selectType(tipo){
   }catch(e){}
   const p=emptyP();p.hcCode=`HC-${yr}-${String(nx).padStart(3,"0")}`;p.tipoHistoria=tipo;
   patients.unshift(p);
-  await db.collection("pacientes").doc(p.id).set(p);
+  const _pacCol=currentUser
+    ? db.collection("users").doc(currentUser.uid).collection("pacientes")
+    : db.collection("pacientes");
+  await _pacCol.doc(p.id).set(p);
   selectP(p.id);renderList();closeSB();
 }
 const uid=()=>Math.random().toString(36).slice(2,9);
@@ -6103,8 +6106,9 @@ function enterAppByRole(){
     // Abrir directamente el panel admin
     if(typeof openAdmin==="function")openAdmin();
   } else {
-    // Usuario normal → mostrar app
+    // Usuario normal → mostrar app y abrir agenda
     document.getElementById("app").style.display="flex";
+    if(typeof openAgenda==="function") openAgenda();
   }
 }
 
@@ -6841,6 +6845,22 @@ async function init(){
             if(p)document.getElementById("hdr-name").textContent=p.nombre||"Paciente sin nombre";
           }
         });
+      // Migración one-time: mover pacientes de colección global a usuario
+      (async function migrarPacientes(uid){
+        try{
+          const destSnap=await db.collection("users").doc(uid).collection("pacientes").limit(1).get();
+          if(!destSnap.empty) return; // Ya hay datos en la ruta correcta, no migrar
+          const srcSnap=await db.collection("pacientes").get();
+          if(srcSnap.empty) return;
+          const batch=db.batch();
+          srcSnap.docs.forEach(function(d){
+            const ref=db.collection("users").doc(uid).collection("pacientes").doc(d.id);
+            batch.set(ref,d.data());
+            batch.delete(d.ref);
+          });
+          await batch.commit();
+        }catch(e){console.warn("Migración de historias fallida:",e);}
+      })(user.uid);
       // Update plan display in sidebar
       updatePlanBadge();
     } else {
