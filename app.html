@@ -507,34 +507,6 @@ pre{background:var(--alt);border:1px solid var(--border);border-radius:9px;paddi
 #agenda-overlay{min-width:0;}
 #agenda-overlay .ag-topbar{background:linear-gradient(135deg,var(--accent),var(--adk));padding:0 16px;height:52px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:10;box-shadow:0 2px 12px rgba(8,145,178,.2);flex-shrink:0;}
 </style>
-<link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#0891B2">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="MedHC">
-<script>
-if('serviceWorker' in navigator){
-  window.addEventListener('load',function(){
-    navigator.serviceWorker.register('/sw.js').catch(function(){});
-  });
-}
-let _pwaPrompt=null;
-window.addEventListener('beforeinstallprompt',function(e){
-  e.preventDefault();_pwaPrompt=e;
-  var btn=document.getElementById('pwa-install-btn');
-  if(btn)btn.style.display='flex';
-});
-window.pwaBtnInstall=function(){
-  // Redirigir a la PWA móvil para instalar desde allí
-  window.open('./MedHC_PWA.html','_blank');
-};
-window.addEventListener('appinstalled',function(){
-  _pwaPrompt=null;
-  var btn=document.getElementById('pwa-install-btn');
-  if(btn)btn.style.display='none';
-});
-</script>
 </head>
 <body>
 
@@ -717,10 +689,6 @@ window.addEventListener('appinstalled',function(){
   <button id="btn-comunidad-locked" onclick="showComunidadBeta()" style="width:calc(100% - 16px);margin:4px 8px;padding:9px 12px;background:var(--alt);color:var(--mid);border:1.5px dashed var(--border);border-radius:10px;font-size:12px;font-weight:600;cursor:pointer;display:flex;align-items:center;justify-content:space-between">
     <span style="display:flex;align-items:center;gap:8px"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>Programas y Comunidades</span>
     <span style="font-size:10px;background:#EDE9FE;color:#7C3AED;padding:2px 7px;border-radius:10px;font-weight:800">Beta</span>
-  </button>
-  <button id="pwa-install-btn" onclick="pwaBtnInstall()" style="display:flex;width:calc(100% - 26px);margin:8px 13px 2px;padding:8px 10px;background:var(--apl);color:var(--accent);border:1.5px solid var(--accent);border-radius:9px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;align-items:center;justify-content:center;gap:6px;">
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-    Instalar MedHC
   </button>
   <div id="sfoot">0 historias clínicas</div>
 </div>
@@ -1195,10 +1163,7 @@ async function selectType(tipo){
   }catch(e){}
   const p=emptyP();p.hcCode=`HC-${yr}-${String(nx).padStart(3,"0")}`;p.tipoHistoria=tipo;
   patients.unshift(p);
-  const _pacCol=currentUser
-    ? db.collection("users").doc(currentUser.uid).collection("pacientes")
-    : db.collection("pacientes");
-  await _pacCol.doc(p.id).set(p);
+  await db.collection("pacientes").doc(p.id).set(p);
   selectP(p.id);renderList();closeSB();
 }
 const uid=()=>Math.random().toString(36).slice(2,9);
@@ -6106,9 +6071,8 @@ function enterAppByRole(){
     // Abrir directamente el panel admin
     if(typeof openAdmin==="function")openAdmin();
   } else {
-    // Usuario normal → mostrar app y abrir agenda
+    // Usuario normal → mostrar app
     document.getElementById("app").style.display="flex";
-    if(typeof openAgenda==="function") openAgenda();
   }
 }
 
@@ -6845,22 +6809,6 @@ async function init(){
             if(p)document.getElementById("hdr-name").textContent=p.nombre||"Paciente sin nombre";
           }
         });
-      // Migración one-time: mover pacientes de colección global a usuario
-      (async function migrarPacientes(uid){
-        try{
-          const destSnap=await db.collection("users").doc(uid).collection("pacientes").limit(1).get();
-          if(!destSnap.empty) return; // Ya hay datos en la ruta correcta, no migrar
-          const srcSnap=await db.collection("pacientes").get();
-          if(srcSnap.empty) return;
-          const batch=db.batch();
-          srcSnap.docs.forEach(function(d){
-            const ref=db.collection("users").doc(uid).collection("pacientes").doc(d.id);
-            batch.set(ref,d.data());
-            batch.delete(d.ref);
-          });
-          await batch.commit();
-        }catch(e){console.warn("Migración de historias fallida:",e);}
-      })(user.uid);
       // Update plan display in sidebar
       updatePlanBadge();
     } else {
