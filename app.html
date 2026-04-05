@@ -769,8 +769,223 @@ pre{background:var(--alt);border:1px solid var(--border);border-radius:9px;paddi
       </div>
       <span class="lobby-btn-arrow">›</span>
     </button>
+    <button class="lobby-btn" onclick="abrirPanelFamilia()" id="lobby-btn-familia">
+      <div class="lobby-btn-icon" style="background:#F0F4FF">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#1A3A6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      </div>
+      <div class="lobby-btn-text">
+        <div class="lobby-btn-title">Formulario para la familia</div>
+        <div class="lobby-btn-sub" id="lobby-familia-sub">Enviar enlace de acceso previo a sesión</div>
+      </div>
+      <span class="lobby-btn-arrow">›</span>
+    </button>
   </div>
 </div>
+
+<!-- ═══════════════════════════════════════════════════════
+  PANEL FAMILIAR — Modal
+════════════════════════════════════════════════════════ -->
+<div id="panel-familia-overlay" style="display:none;position:fixed;inset:0;background:rgba(26,58,110,.35);z-index:9999;align-items:center;justify-content:center;padding:16px;" onclick="if(event.target===this)cerrarPanelFamilia()">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:420px;box-shadow:0 20px 60px rgba(26,58,110,.18);overflow:hidden;">
+
+    <!-- Header modal -->
+    <div style="background:linear-gradient(135deg,var(--cobalt),var(--accent));padding:18px 20px;display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <div>
+          <div style="font-weight:700;color:#fff;font-size:14px;">Formulario para la familia</div>
+          <div style="font-size:11px;color:rgba(255,255,255,.75);margin-top:1px;">Acceso controlado por usted</div>
+        </div>
+      </div>
+      <button onclick="cerrarPanelFamilia()" style="background:rgba(255,255,255,.15);border:none;border-radius:8px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+
+    <!-- Cuerpo -->
+    <div style="padding:20px;">
+
+      <!-- Estado: sin acceso generado -->
+      <div id="pf-sin-token">
+        <div style="background:var(--cobalt-light);border-radius:10px;padding:14px 16px;margin-bottom:16px;">
+          <div style="font-size:12px;color:var(--cobalt);line-height:1.6;">
+            Genere un enlace único para que la familia complete los datos informativos antes de la próxima sesión. Solo verán los campos que no son clínicos. Usted controla cuándo se abre y se cierra el acceso.
+          </div>
+        </div>
+        <button onclick="generarTokenFamilia()" style="width:100%;background:var(--cobalt);color:#fff;border:none;padding:12px;border-radius:10px;font-weight:700;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .2s;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+          Generar enlace de acceso
+        </button>
+      </div>
+
+      <!-- Estado: acceso activo -->
+      <div id="pf-con-token" style="display:none;">
+
+        <!-- Indicador completado -->
+        <div id="pf-completado-banner" style="display:none;background:#F0FDF4;border:1.5px solid #86EFAC;border-radius:10px;padding:11px 14px;margin-bottom:14px;display:none;align-items:center;gap:8px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#16A34A" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+          <span style="font-size:12px;font-weight:700;color:#16A34A;">La familia completó el formulario</span>
+        </div>
+
+        <!-- Link display -->
+        <div style="background:var(--alt);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+          <div style="font-size:10px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Enlace de acceso</div>
+          <div id="pf-link-display" style="font-size:11px;color:var(--cobalt);word-break:break-all;line-height:1.6;font-family:monospace;"></div>
+        </div>
+
+        <!-- Acciones -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <button onclick="copiarLinkFamilia()" style="background:var(--cobalt);color:#fff;border:none;padding:10px;border-radius:9px;font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+            Copiar enlace
+          </button>
+          <button onclick="compartirWhatsApp()" style="background:#25D366;color:#fff;border:none;padding:10px;border-radius:9px;font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;" onmouseover="this.style.opacity='.88'" onmouseout="this.style.opacity='1'">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+            WhatsApp
+          </button>
+        </div>
+
+        <button onclick="revocarAccesoFamilia()" style="width:100%;background:#fff;color:var(--danger);border:1.5px solid #FECACA;padding:10px;border-radius:9px;font-weight:600;font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:background .15s;" onmouseover="this.style.background='#FEF2F2'" onmouseout="this.style.background='#fff'">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+          Revocar acceso
+        </button>
+      </div>
+
+      <!-- Spinner -->
+      <div id="pf-spinner" style="display:none;text-align:center;padding:24px 0;">
+        <div style="display:inline-block;width:24px;height:24px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;"></div>
+        <div style="font-size:12px;color:var(--mid);margin-top:8px;">Procesando...</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── URL del portal familiar — actualiza con tu dominio real ───────────────────
+const FAMILIA_PORTAL_URL = 'https://medhc.app/familia.html';
+
+function abrirPanelFamilia(){
+  const p = getP();
+  if(!p) return;
+  const overlay = document.getElementById('panel-familia-overlay');
+  overlay.style.display = 'flex';
+  const token = p.familyToken;
+  const activo = p.familyActive;
+  if(token && activo){
+    mostrarTokenActivoUI(p);
+  } else {
+    document.getElementById('pf-sin-token').style.display = 'block';
+    document.getElementById('pf-con-token').style.display = 'none';
+    document.getElementById('pf-spinner').style.display = 'none';
+  }
+}
+
+function cerrarPanelFamilia(){
+  document.getElementById('panel-familia-overlay').style.display = 'none';
+}
+
+async function generarTokenFamilia(){
+  const p = getP();
+  if(!p) return;
+  document.getElementById('pf-sin-token').style.display = 'none';
+  document.getElementById('pf-spinner').style.display = 'block';
+  const token = Math.random().toString(36).slice(2,9).toUpperCase();
+  try{
+    await db.collection('pacientes').doc(p.id).set({
+      familyToken: token,
+      familyActive: true,
+      familyGeneratedAt: new Date().toISOString(),
+      familyCompleted: false,
+    },{merge:true});
+    p.familyToken = token;
+    p.familyActive = true;
+    p.familyCompleted = false;
+    document.getElementById('pf-spinner').style.display = 'none';
+    mostrarTokenActivoUI(p);
+    actualizarSubtituloLobby(p);
+  } catch(e){
+    document.getElementById('pf-spinner').style.display = 'none';
+    document.getElementById('pf-sin-token').style.display = 'block';
+    alert('Error al generar el acceso. Verifique su conexión.');
+  }
+}
+
+function mostrarTokenActivoUI(p){
+  const link = `${FAMILIA_PORTAL_URL}?token=${p.familyToken}`;
+  document.getElementById('pf-link-display').textContent = link;
+  document.getElementById('pf-sin-token').style.display = 'none';
+  document.getElementById('pf-spinner').style.display = 'none';
+  document.getElementById('pf-con-token').style.display = 'block';
+  const banner = document.getElementById('pf-completado-banner');
+  banner.style.display = p.familyCompleted ? 'flex' : 'none';
+}
+
+function copiarLinkFamilia(){
+  const p = getP();
+  const link = `${FAMILIA_PORTAL_URL}?token=${p.familyToken}`;
+  navigator.clipboard.writeText(link).then(()=>{
+    const btn = event.currentTarget;
+    const orig = btn.innerHTML;
+    btn.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.5"><path d="M9 11l3 3L22 4"/></svg> Copiado';
+    setTimeout(()=>btn.innerHTML=orig, 2000);
+  });
+}
+
+function compartirWhatsApp(){
+  const p = getP();
+  const link = `${FAMILIA_PORTAL_URL}?token=${p.familyToken}`;
+  const nombre = p.nombre || p.nombreA || 'su familiar';
+  const msg = encodeURIComponent(
+    `Estimada familia,\n\nLe comparto el enlace para completar el formulario informativo de *${nombre}* antes de nuestra próxima sesión:\n\n${link}\n\nEl proceso toma aproximadamente 10 minutos. Gracias por su colaboración.`
+  );
+  window.open(`https://wa.me/?text=${msg}`, '_blank');
+}
+
+async function revocarAccesoFamilia(){
+  if(!confirm('¿Revocar el acceso familiar? La familia no podrá ingresar con el enlace actual.')) return;
+  const p = getP();
+  document.getElementById('pf-con-token').style.display = 'none';
+  document.getElementById('pf-spinner').style.display = 'block';
+  try{
+    await db.collection('pacientes').doc(p.id).set({familyActive:false},{merge:true});
+    p.familyActive = false;
+    document.getElementById('pf-spinner').style.display = 'none';
+    document.getElementById('pf-sin-token').style.display = 'block';
+    actualizarSubtituloLobby(p);
+  } catch(e){
+    document.getElementById('pf-spinner').style.display = 'none';
+    document.getElementById('pf-con-token').style.display = 'block';
+    alert('Error al revocar. Intente de nuevo.');
+  }
+}
+
+function actualizarSubtituloLobby(p){
+  const sub = document.getElementById('lobby-familia-sub');
+  if(!sub) return;
+  if(p.familyCompleted){
+    sub.textContent = 'Completado por la familia';
+    sub.style.color = '#16A34A';
+  } else if(p.familyActive && p.familyToken){
+    sub.textContent = 'Enlace activo — esperando respuesta';
+    sub.style.color = '#0891B2';
+  } else {
+    sub.textContent = 'Enviar enlace de acceso previo a sesión';
+    sub.style.color = '';
+  }
+}
+
+// Actualizar subtítulo al cargar lobby
+const _origRenderLobby = typeof renderLobby === 'function' ? renderLobby : null;
+document.addEventListener('DOMContentLoaded', ()=>{
+  const observer = new MutationObserver(()=>{
+    const p = typeof getP === 'function' ? getP() : null;
+    if(p) actualizarSubtituloLobby(p);
+  });
+  const lobby = document.getElementById('patient-lobby');
+  if(lobby) observer.observe(lobby, {attributes:true, attributeFilter:['style']});
+});
+</script>
 
 <div id="welcome" style="display:none"></div>
 <div id="welcome-prof" style="display:none"></div>
