@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Portal Familiar — Historia Clínica</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --bg:#F4F7FB;--surface:#fff;--border:#D1DCE8;
+  --accent:#0891B2;--accent-light:#E0F5FB;
+  --green:#059669;--green-light:#ECFDF5;
+  --red:#DC2626;--red-light:#FEF2F2;
+  --text:#1E2A3A;--mid:#4A5568;--light:#94A3B8;
+  --radius:12px;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;}
+input,select,textarea{font-family:inherit;font-size:13px;width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;color:var(--text);background:var(--surface);outline:none;transition:border-color .2s;}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+textarea{resize:vertical;line-height:1.6;}
+button{cursor:pointer;font-family:inherit;font-size:13px;}
+label{display:block;font-size:12px;font-weight:600;color:var(--mid);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
+
+/* Layout */
+.wrap{max-width:720px;margin:0 auto;padding:24px 16px 60px;}
+
+/* Header */
+.hdr{background:linear-gradient(135deg,#0891B2,#0670A0);color:#fff;padding:20px 24px;border-radius:16px;margin-bottom:24px;display:flex;align-items:center;gap:16px;}
+.hdr-icon{font-size:36px;flex-shrink:0;}
+.hdr h1{font-size:20px;font-weight:700;margin-bottom:4px;}
+.hdr p{font-size:13px;opacity:.85;line-height:1.5;}
+
+/* Token screen */
+#screen-token{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;gap:20px;}
+#screen-token .big-icon{font-size:64px;}
+#screen-token h2{font-size:22px;font-weight:700;color:var(--text);}
+#screen-token p{font-size:14px;color:var(--mid);max-width:360px;line-height:1.6;}
+.token-input-wrap{display:flex;gap:10px;width:100%;max-width:360px;}
+.token-input-wrap input{font-size:16px;text-align:center;letter-spacing:2px;text-transform:uppercase;padding:12px;}
+.btn-primary{background:var(--accent);color:#fff;border:none;padding:11px 24px;border-radius:8px;font-weight:600;font-size:14px;transition:background .2s;white-space:nowrap;}
+.btn-primary:hover{background:#0670A0;}
+.btn-primary:disabled{background:var(--light);cursor:not-allowed;}
+
+/* Error / success banners */
+.banner{padding:12px 16px;border-radius:10px;font-size:13px;font-weight:500;margin-bottom:16px;display:none;}
+.banner.error{background:var(--red-light);color:var(--red);border:1px solid #FECACA;}
+.banner.success{background:var(--green-light);color:var(--green);border:1px solid #A7F3D0;}
+.banner.show{display:block;}
+
+/* Form screen */
+#screen-form{display:none;}
+.patient-pill{background:var(--accent-light);border:1.5px solid var(--accent);border-radius:10px;padding:12px 16px;margin-bottom:24px;display:flex;align-items:center;gap:12px;}
+.patient-pill .pname{font-weight:700;font-size:15px;color:var(--accent);}
+.patient-pill .phc{font-size:11px;color:var(--mid);margin-top:2px;}
+
+/* Sections */
+.sec{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:20px;overflow:hidden;}
+.sec-hdr{padding:14px 18px;background:linear-gradient(90deg,#F8FAFC,#fff);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
+.sec-num{width:26px;height:26px;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+.sec-hdr h3{font-size:14px;font-weight:700;color:var(--text);}
+.sec-body{padding:18px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+@media(max-width:540px){.g2,.g3{grid-template-columns:1fr;}}
+.fld{margin-bottom:14px;}
+.fld:last-child{margin-bottom:0;}
+
+/* Checkboxes */
+.checks{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;}
+.chk-item{display:flex;align-items:center;gap:6px;background:#F8FAFC;border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;transition:all .15s;user-select:none;}
+.chk-item:hover{border-color:var(--accent);background:var(--accent-light);}
+.chk-item.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);font-weight:600;}
+.chk-item input{display:none;}
+
+/* Convivientes */
+.conv-item{background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;position:relative;}
+.conv-item .del-btn{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--light);font-size:16px;line-height:1;}
+.conv-item .del-btn:hover{color:var(--red);}
+.add-btn{background:none;border:1.5px dashed var(--border);border-radius:8px;width:100%;padding:10px;color:var(--mid);text-align:center;transition:all .15s;margin-top:8px;}
+.add-btn:hover{border-color:var(--accent);color:var(--accent);}
+
+/* Section type badge */
+.tipo-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#EEF2FA;color:#1A3A6E;margin-left:auto;text-transform:uppercase;letter-spacing:.5px;}
+
+/* Progress */
+.progress-bar{background:#E2E8F0;border-radius:10px;height:6px;margin-bottom:24px;overflow:hidden;}
+.progress-fill{background:linear-gradient(90deg,var(--accent),var(--green));height:100%;border-radius:10px;transition:width .3s;}
+.progress-label{font-size:12px;color:var(--mid);margin-bottom:8px;display:flex;justify-content:space-between;}
+
+/* Submit */
+.submit-wrap{margin-top:28px;text-align:center;}
+.btn-submit{background:linear-gradient(135deg,var(--green),#047857);color:#fff;border:none;padding:14px 40px;border-radius:10px;font-size:15px;font-weight:700;letter-spacing:.3px;transition:opacity .2s;}
+.btn-submit:hover{opacity:.9;}
+.btn-submit:disabled{background:var(--light);cursor:not-allowed;}
+
+/* Success screen */
+#screen-done{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;gap:16px;}
+#screen-done .big-icon{font-size:72px;}
+#screen-done h2{font-size:24px;font-weight:700;}
+#screen-done p{color:var(--mid);max-width:380px;line-height:1.7;font-size:15px;}
+
+/* Spinner */
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* Locked screen */
+#screen-locked{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;gap:16px;}
+#screen-locked .big-icon{font-size:64px;}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <div class="hdr-icon">🧠</div>
+    <div>
+      <h1>Portal de Información Familiar</h1>
+      <p>Complete este formulario para ayudar al profesional a conocer mejor a su familia. Sus datos son confidenciales.</p>
+    </div>
+  </div>
+
+  <!-- PANTALLA: INGRESO CON TOKEN -->
+  <div id="screen-token">
+    <div class="big-icon">🔐</div>
+    <h2>Ingrese su código de acceso</h2>
+    <p>El profesional que los atiende les proporcionó un código único. Ingréselo a continuación para comenzar.</p>
+    <div id="banner-token" class="banner error"></div>
+    <div class="token-input-wrap">
+      <input id="inp-token" type="text" placeholder="Ej: X7K2M9P" maxlength="12" autocomplete="off" oninput="this.value=this.value.toUpperCase()"/>
+      <button class="btn-primary" id="btn-ingresar" onclick="ingresar()">Ingresar</button>
+    </div>
+    <p style="font-size:12px;color:var(--light);">Si no tiene un código, contacte a su psicólogo/a.</p>
+  </div>
+
+  <!-- PANTALLA: FORMULARIO -->
+  <div id="screen-form">
+    <div class="patient-pill">
+      <div>
+        <div class="pname" id="disp-nombre">—</div>
+        <div class="phc" id="disp-hc">—</div>
+      </div>
+    </div>
+
+    <div class="progress-label">
+      <span>Progreso del formulario</span>
+      <span id="prog-pct">0%</span>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
+
+    <div id="banner-form" class="banner error"></div>
+    <div id="banner-ok" class="banner success"></div>
+
+    <div id="form-sections"></div>
+
+    <div class="submit-wrap">
+      <button class="btn-submit" id="btn-enviar" onclick="enviar()">✅ Enviar información</button>
+      <p style="margin-top:12px;font-size:12px;color:var(--light);">Una vez enviado, sus respuestas quedarán registradas en el sistema del profesional.</p>
+    </div>
+  </div>
+
+  <!-- PANTALLA: BLOQUEADO -->
+  <div id="screen-locked">
+    <div class="big-icon">🔒</div>
+    <h2>Acceso no disponible</h2>
+    <p style="color:var(--mid);max-width:360px;line-height:1.7;">Este enlace ha sido desactivado por el profesional. Si cree que esto es un error, comuníquese con su psicólogo/a.</p>
+  </div>
+
+  <!-- PANTALLA: ENVIADO -->
+  <div id="screen-done">
+    <div class="big-icon">✅</div>
+    <h2>¡Información enviada!</h2>
+    <p>Gracias por completar el formulario. El profesional que los atiende recibirá esta información de forma inmediata.</p>
+    <p style="font-size:13px;color:var(--light);">Puede cerrar esta página.</p>
+  </div>
+
+</div><!-- /wrap -->
+
+<!-- Firebase -->
+<script>
+const firebaseConfig={
+  apiKey:"AIzaSyAdCMm57dFHMv2s6SstFS02OzehBzv4NQA",
+  authDomain:"psicohcpc-7a140.firebaseapp.com",
+  projectId:"psicohcpc-7a140",
+  storageBucket:"psicohcpc-7a140.firebasestorage.app",
+  messagingSenderId:"374245814828",
+  appId:"1:374245814828:web:70c4ece62768c83f3a9789"
+};
+firebase.initializeApp(firebaseConfig);
+const db=firebase.firestore();
+
+let currentPatient=null;
+let currentDocId=null;
+
+// ── Leer token de la URL ───────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded',()=>{
+  const params=new URLSearchParams(window.location.search);
+  const token=params.get('token');
+  if(token){
+    document.getElementById('inp-token').value=token.toUpperCase();
+    ingresar();
+  }
+});
+
+// ── Ingreso con token ─────────────────────────────────────────────────────────
+async function ingresar(){
+  const token=document.getElementById('inp-token').value.trim().toUpperCase();
+  if(!token){showBanner('token','Ingrese un código de acceso.','error');return;}
+  const btn=document.getElementById('btn-ingresar');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Verificando...';
+  hideBanner('token');
+  try{
+    const snap=await db.collection('pacientes').where('familyToken','==',token).limit(1).get();
+    if(snap.empty){showBanner('token','Código no válido. Verifique e intente de nuevo.','error');btn.disabled=false;btn.textContent='Ingresar';return;}
+    const doc=snap.docs[0];
+    const p=doc.data();
+    if(!p.familyActive){show('screen-locked');hide('screen-token');return;}
+    currentPatient=p;
+    currentDocId=doc.id;
+    mostrarFormulario(p);
+  }catch(e){
+    showBanner('token','Error de conexión. Intente de nuevo.','error');
+    btn.disabled=false;btn.textContent='Ingresar';
+  }
+}
+
+// ── Mostrar formulario según tipo de historia ─────────────────────────────────
+function mostrarFormulario(p){
+  hide('screen-token');show('screen-form');
+  document.getElementById('disp-nombre').textContent=getNombre(p);
+  document.getElementById('disp-hc').textContent=(p.hcCode||'')+(p.tipoHistoria?' · '+p.tipoHistoria:'');
+  const container=document.getElementById('form-sections');
+  container.innerHTML='';
+  const tipo=p.tipoHistoria||'';
+  if(tipo==='Infantil (0-11 años)') container.innerHTML=htmlInfantil(p);
+  else if(tipo.includes('Adolescente')) container.innerHTML=htmlAdolescente(p);
+  else if(tipo==='Adulto') container.innerHTML=htmlAdulto(p);
+  else if(tipo==='Adulto Mayor') container.innerHTML=htmlAdultoMayor(p);
+  else if(tipo==='Pareja') container.innerHTML=htmlPareja(p);
+  else if(tipo==='Familia') container.innerHTML=htmlFamilia(p);
+  else container.innerHTML=htmlInfantil(p); // fallback
+  bindChecks();
+  updateProgress();
+  // Listen for input changes
+  container.querySelectorAll('input,select,textarea').forEach(el=>{
+    el.addEventListener('input',updateProgress);
+    el.addEventListener('change',updateProgress);
+  });
+}
+
+function getNombre(p){
+  if(p.tipoHistoria==='Pareja') return (p.nombreA||'')+(p.nombreB?' & '+p.nombreB:'');
+  if(p.tipoHistoria==='Familia') return p.nombreFamilia||p.nombre||'Familia';
+  return p.nombre||'Paciente';
+}
+
+// ── Progreso ──────────────────────────────────────────────────────────────────
+function updateProgress(){
+  const all=document.querySelectorAll('#form-sections input:not([type=checkbox]):not([type=hidden]),#form-sections select,#form-sections textarea');
+  let filled=0;
+  all.forEach(el=>{if(el.value&&el.value.trim()!=='')filled++;});
+  const pct=all.length?Math.round((filled/all.length)*100):0;
+  document.getElementById('prog-fill').style.width=pct+'%';
+  document.getElementById('prog-pct').textContent=pct+'%';
+}
+
+// ── Bind checkboxes ───────────────────────────────────────────────────────────
+function bindChecks(){
+  document.querySelectorAll('.chk-item').forEach(item=>{
+    item.addEventListener('click',()=>{
+      item.classList.toggle('active');
+      updateProgress();
+    });
+  });
+}
+
+function getChecked(groupId){
+  return Array.from(document.querySelectorAll(`[data-group="${groupId}"].active`)).map(el=>el.dataset.val);
+}
+
+// ── Recolectar datos del formulario ───────────────────────────────────────────
+function collectData(){
+  const g=id=>document.getElementById(id);
+  const v=id=>g(id)?g(id).value.trim():'';
+  const tipo=currentPatient.tipoHistoria||'';
+
+  // Campos comunes identificación
+  let data={
+    familyFilledAt: new Date().toISOString(),
+    familyCompleted: true,
+  };
+
+  if(tipo==='Infantil (0-11 años)'){
+    data={...data,
+      nombre:v('f_nombre'),fechaNac:v('f_fechaNac'),lugarNac:v('f_lugarNac'),
+      sexo:v('f_sexo'),edad:v('f_edad'),cedula:v('f_cedula'),
+      gradoEscolar:v('f_grado'),institucion:v('f_institucion'),
+      direccion:v('f_direccion'),
+      repNombre:v('f_repNombre'),repParentesco:v('f_repParentesco'),
+      repTelefono:v('f_repTelefono'),personasEnCasa:v('f_personasEnCasa'),
+      motivoConsulta:v('f_motivo'),
+      embarazoPlaneado:v('f_embarazoPlaneado'),cuidadosPrenatales:v('f_cuidados'),
+      saludMadre:v('f_saludMadre'),
+      complicacionesEmbarazo:getChecked('compEmb'),otrasCompEmbarazo:v('f_otrasComp'),
+      tipoNacimiento:v('f_tipoNac'),semanasEmbarazo:v('f_semanas'),tipoParto:v('f_tipoParto'),
+      pesoNacer:v('f_peso'),tallaNacer:v('f_talla'),
+      edadCamino:v('f_edadCamino'),primerasPalabras:v('f_primerasPalabras'),
+      controlEsfinteresDiurno:v('f_esfDiurno'),controlEsfinteresNocturno:v('f_esfNocturno'),
+      asistenciaEscolar:v('f_asistencia'),relacionCompaneros:v('f_relComp'),
+      relacionDocentes:v('f_relDoc'),
+      horaDormir:v('f_horaDormir'),horaDespertar:v('f_horaDespertar'),
+      habSueno:getChecked('habSueno'),habAlimentacion:getChecked('habAlim'),
+      habAutonomia:getChecked('habAuto'),
+      actividadesExtracurriculares:v('f_extra'),
+      relacionPadres:v('f_relPadres'),respuestaLimites:v('f_respLimites'),
+      reaccionFrustracion:v('f_reacFrust'),
+      medicacionActual:v('f_medicacion'),diagnosticoPrevio:v('f_dxPrevio'),
+      convivientes:collectConvivientes(),
+    };
+  } else if(tipo.includes('Adolescente')){
+    data={...data,
+      nombre:v('f_nombre'),fechaNac:v('f_fechaNac'),edad:v('f_edad'),
+      sexo:v('f_sexo'),cedula:v('f_cedula'),direccion:v('f_direccion'),
+      gradoEscolar:v('f_grado'),institucion:v('f_institucion'),
+      repNombre:v('f_repNombre'),repTelefono:v('f_repTelefono'),
+      personasEnCasa:v('f_personasEnCasa'),
+      motivoRepresentante:v('f_motivoRep'),
+      inicioproblema:v('f_inicioproblema'),
+      impactoProblema:getChecked('impactoProb'),
+      antecedentesDesarrollo:v('f_antDesarrollo'),
+      rendimientoAcademico:v('f_rendimiento'),
+      relacionDocentesAdo:v('f_relDocAdo'),adaptacionEscolar:v('f_adaptEscolar'),
+      cantidadAmigos:v('f_cantAmigos'),calidadAmigos:v('f_calAmigos'),
+      aislamientoAdo:v('f_aislamiento'),bullyingAdo:v('f_bullying'),
+      autoestima:v('f_autoestima'),busquedaIndependencia:v('f_independencia'),
+      calidadSueno:v('f_calSueno'),patronAlimentacion:v('f_patronAlim'),
+      convivientes:collectConvivientes(),
+      medicacionActual:v('f_medicacion'),diagnosticoPrevio:v('f_dxPrevio'),
+    };
+  } else if(tipo==='Adulto'){
+    data={...data,
+      nombre:v('f_nombre'),fechaNac:v('f_fechaNac'),edad:v('f_edad'),
+      sexo:v('f_sexo'),cedula:v('f_cedula'),direccion:v('f_direccion'),
+      estadoCivil:v('f_estadoCivil'),ocupacion:v('f_ocupacion'),nivelEducativo:v('f_nivelEdu'),
+      motivoConsultaAdulto:v('f_motivoAdulto'),
+      historiaInfancia:v('f_infancia'),historiaAdolescencia:v('f_adolescencia'),
+      composicionFamiliarA:v('f_compFam'),redApoyo:v('f_redApoyo'),
+      calidadSueno:v('f_calSueno'),actividadFisica:v('f_actFisica'),
+      consumoAlcohol:v('f_alcohol'),consumoTabaco:v('f_tabaco'),
+      medicacionActual:v('f_medicacion'),diagnosticoPrevioMed:v('f_dxPrevio'),
+    };
+  } else if(tipo==='Adulto Mayor'){
+    data={...data,
+      nombre:v('f_nombre'),fechaNac:v('f_fechaNac'),edad:v('f_edad'),
+      sexo:v('f_sexo'),cedula:v('f_cedula'),direccion:v('f_direccion'),
+      repNombre:v('f_repNombre'),repTelefono:v('f_repTelefono'),
+      motivoConsulta:v('f_motivo'),
+      redApoyo:v('f_redApoyo'),composicionFamiliarA:v('f_compFam'),
+      calidadSueno:v('f_calSueno'),patronAlimentacion:v('f_patronAlim'),
+      medicacionActual:v('f_medicacion'),diagnosticoPrevioMed:v('f_dxPrevio'),
+    };
+  } else if(tipo==='Pareja'){
+    data={...data,
+      nombreA:v('f_nombreA'),nombreB:v('f_nombreB'),
+      edadA:v('f_edadA'),edadB:v('f_edadB'),
+      motivoConsulta:v('f_motivo'),
+      repTelefono:v('f_telefono'),
+    };
+  } else if(tipo==='Familia'){
+    data={...data,
+      nombreFamilia:v('f_nombreFam'),
+      motivoConsulta:v('f_motivo'),
+      repNombre:v('f_repNombre'),repTelefono:v('f_repTelefono'),
+      convivientes:collectConvivientes(),
+    };
+  }
+
+  return data;
+}
+
+function collectConvivientes(){
+  const items=document.querySelectorAll('.conv-row');
+  return Array.from(items).map(row=>({
+    nombre:row.querySelector('[data-field="nombre"]')?.value||'',
+    edad:row.querySelector('[data-field="edad"]')?.value||'',
+    ocupacion:row.querySelector('[data-field="ocupacion"]')?.value||'',
+    parentesco:row.querySelector('[data-field="parentesco"]')?.value||'',
+  })).filter(c=>c.nombre||c.parentesco);
+}
+
+// ── Enviar ────────────────────────────────────────────────────────────────────
+async function enviar(){
+  hideBanner('form');hideBanner('ok');
+  const btn=document.getElementById('btn-enviar');
+  btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Enviando...';
+  try{
+    const data=collectData();
+    await db.collection('pacientes').doc(currentDocId).set(data,{merge:true});
+    hide('screen-form');show('screen-done');
+  }catch(e){
+    showBanner('form','Error al enviar. Verifique su conexión e intente de nuevo.','error');
+    btn.disabled=false;btn.textContent='✅ Enviar información';
+  }
+}
+
+// ── Convivientes dinámicos ────────────────────────────────────────────────────
+function addConv(){
+  const cont=document.getElementById('conv-list');
+  const idx=cont.children.length;
+  const div=document.createElement('div');
+  div.className='conv-item conv-row';
+  div.innerHTML=`
+    <button class="del-btn" onclick="this.parentElement.remove();updateProgress()">✕</button>
+    <div class="g2" style="margin-bottom:8px">
+      <div class="fld"><label>Nombre</label><input data-field="nombre" type="text" placeholder="Nombre completo"/></div>
+      <div class="fld"><label>Edad</label><input data-field="edad" type="number" placeholder="Años"/></div>
+    </div>
+    <div class="g2">
+      <div class="fld"><label>Parentesco</label><input data-field="parentesco" type="text" placeholder="Madre, Padre, Hermano..."/></div>
+      <div class="fld"><label>Ocupación</label><input data-field="ocupacion" type="text" placeholder="Ocupación"/></div>
+    </div>`;
+  cont.appendChild(div);
+  div.querySelectorAll('input').forEach(el=>el.addEventListener('input',updateProgress));
+}
+
+// ── Helpers UI ────────────────────────────────────────────────────────────────
+function show(id){const el=document.getElementById(id);if(el){el.style.display='flex';}}
+function hide(id){const el=document.getElementById(id);if(el)el.style.display='none';}
+function showBanner(which,msg,type){
+  const id=which==='token'?'banner-token':type==='success'?'banner-ok':'banner-form';
+  const el=document.getElementById(id);
+  if(el){el.textContent=msg;el.className='banner '+type+' show';}
+}
+function hideBanner(which){
+  ['banner-token','banner-form','banner-ok'].forEach(id=>{
+    const el=document.getElementById(id);if(el)el.className='banner';
+  });
+}
+
+// ── Checks helper ─────────────────────────────────────────────────────────────
+function chks(group,options,selected=[]){
+  return `<div class="checks">${options.map(o=>`
+    <label class="chk-item${selected.includes(o)?' active':''}" data-group="${group}" data-val="${o}">
+      <input type="checkbox"${selected.includes(o)?' checked':''}/>${o}
+    </label>`).join('')}</div>`;
+}
+
+function sel(id,opts,val='',placeholder='Seleccionar...'){
+  return `<select id="${id}"><option value="">${placeholder}</option>${opts.map(o=>`<option${val===o?' selected':''}>${o}</option>`).join('')}</select>`;
+}
+
+function convBlock(convs=[]){
+  const rows=convs.map((c,i)=>`
+    <div class="conv-item conv-row">
+      <button class="del-btn" onclick="this.parentElement.remove();updateProgress()">✕</button>
+      <div class="g2" style="margin-bottom:8px">
+        <div class="fld"><label>Nombre</label><input data-field="nombre" type="text" value="${c.nombre||''}" placeholder="Nombre completo"/></div>
+        <div class="fld"><label>Edad</label><input data-field="edad" type="number" value="${c.edad||''}" placeholder="Años"/></div>
+      </div>
+      <div class="g2">
+        <div class="fld"><label>Parentesco</label><input data-field="parentesco" type="text" value="${c.parentesco||''}" placeholder="Madre, Padre, Hermano..."/></div>
+        <div class="fld"><label>Ocupación</label><input data-field="ocupacion" type="text" value="${c.ocupacion||''}" placeholder="Ocupación"/></div>
+      </div>
+    </div>`).join('');
+  return `<div id="conv-list">${rows}</div>
+    <button class="add-btn" onclick="addConv()">+ Agregar persona</button>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// HTML POR TIPO DE HISTORIA
+// ══════════════════════════════════════════════════════════════════════════════
+
+function htmlInfantil(p){
+  return `
+  <!-- 1. Identificación -->
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación del niño/a</h3><span class="tipo-badge">Infantil</span></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Nombre completo</label><input id="f_nombre" type="text" value="${p.nombre||''}" placeholder="Nombre y apellidos"/></div>
+        <div class="fld"><label>Fecha de nacimiento</label><input id="f_fechaNac" type="date" value="${p.fechaNac||''}"/></div>
+        <div class="fld"><label>Lugar de nacimiento</label><input id="f_lugarNac" type="text" value="${p.lugarNac||''}" placeholder="Ciudad, Estado, País"/></div>
+        <div class="fld"><label>Edad actual</label><input id="f_edad" type="number" value="${p.edad||''}" placeholder="Años"/></div>
+        <div class="fld"><label>Sexo</label>${sel('f_sexo',['Femenino','Masculino','Otro'],p.sexo||'')}</div>
+        <div class="fld"><label>Cédula / Documento</label><input id="f_cedula" type="text" value="${p.cedula||''}" placeholder="Número de documento"/></div>
+        <div class="fld"><label>Grado escolar</label><input id="f_grado" type="text" value="${p.gradoEscolar||''}" placeholder="Ej: 3er grado"/></div>
+        <div class="fld"><label>Institución educativa</label><input id="f_institucion" type="text" value="${p.institucion||''}" placeholder="Nombre del colegio"/></div>
+      </div>
+      <div class="fld"><label>Dirección de residencia</label><input id="f_direccion" type="text" value="${p.direccion||''}" placeholder="Dirección completa"/></div>
+    </div>
+  </div>
+
+  <!-- 2. Representante -->
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">2</div><h3>Datos del representante</h3></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Nombre del representante</label><input id="f_repNombre" type="text" value="${p.repNombre||''}" placeholder="Nombre completo"/></div>
+        <div class="fld"><label>Parentesco</label>${sel('f_repParentesco',['Madre','Padre','Abuela/o','Tía/o','Tutora/or','Otro'],p.repParentesco||'')}</div>
+        <div class="fld"><label>Teléfono / WhatsApp</label><input id="f_repTelefono" type="tel" value="${p.repTelefono||''}" placeholder="+58 412..."/></div>
+        <div class="fld"><label>Personas que viven en casa</label><input id="f_personasEnCasa" type="number" value="${p.personasEnCasa||''}" placeholder="Número"/></div>
+      </div>
+      <div class="fld"><label>Personas que conviven con el/la niño/a</label>${convBlock(p.convivientes||[])}</div>
+    </div>
+  </div>
+
+  <!-- 3. Motivo de consulta -->
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">3</div><h3>Motivo de consulta</h3></div>
+    <div class="sec-body">
+      <div class="fld"><label>¿Por qué buscan atención psicológica?</label>
+        <textarea id="f_motivo" rows="4" placeholder="Describa con sus palabras qué los trae a consulta...">${p.motivoConsulta||''}</textarea></div>
+    </div>
+  </div>
+
+  <!-- 4. Embarazo y nacimiento -->
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">4</div><h3>Historia del embarazo y nacimiento</h3></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>¿El embarazo fue planeado?</label>${sel('f_embarazoPlaneado',['Sí','No','Sorpresa','No aplica'],p.embarazoPlaneado||'')}</div>
+        <div class="fld"><label>¿Cuándo comenzó el control prenatal?</label><input id="f_cuidados" type="text" value="${p.cuidadosPrenatales||''}" placeholder="Ej: 6ª semana"/></div>
+        <div class="fld"><label>Salud de la madre durante el embarazo</label>${sel('f_saludMadre',['Excelente','Buena','Regular','Complicada'],p.saludMadre||'')}</div>
+        <div class="fld"><label>Tipo de nacimiento</label>${sel('f_tipoNac',['A término (37-42 semanas)','Prematuro (antes de 37 semanas)','Post-término (más de 42 semanas)'],p.tipoNacimiento||'')}</div>
+        <div class="fld"><label>Semanas de gestación</label><input id="f_semanas" type="number" value="${p.semanasEmbarazo||''}" placeholder="Ej: 40"/></div>
+        <div class="fld"><label>Tipo de parto</label>${sel('f_tipoParto',['Natural / vaginal','Cesárea','Fórceps','Vacío (ventosa)'],p.tipoParto||'')}</div>
+        <div class="fld"><label>Peso al nacer (kg)</label><input id="f_peso" type="text" value="${p.pesoNacer||''}" placeholder="Ej: 3.2"/></div>
+        <div class="fld"><label>Talla al nacer (cm)</label><input id="f_talla" type="text" value="${p.tallaNacer||''}" placeholder="Ej: 50"/></div>
+      </div>
+      <div class="fld"><label>Complicaciones durante el embarazo</label>
+        ${chks('compEmb',['Hipertensión','Diabetes gestacional','Amenaza de aborto','Infecciones urinarias','Estrés significativo','Depresión','Hinchazón excesiva','Vómito excesivo','Ninguna'],p.complicacionesEmbarazo||[])}
+      </div>
+      <div class="fld"><label>Otras complicaciones no listadas</label><input id="f_otrasComp" type="text" value="${p.otrasCompEmbarazo||''}" placeholder="Describa si hay otras..."/></div>
+    </div>
+  </div>
+
+  <!-- 5. Desarrollo -->
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">5</div><h3>Hitos del desarrollo</h3></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>¿A qué edad caminó solo/a?</label><input id="f_edadCamino" type="text" value="${p.edadCamino||''}" placeholder="Ej: 12 meses"/></div>
+        <div class="fld"><label>¿A qué edad dijo sus primeras palabras?</label><input id="f_primerasPalabras" type="text" value="${p.primerasPalabras||''}" placeholder="Ej: 10 meses"/></div>
+        <div class="fld"><label>Control de esfínteres diurno</label><input id="f_esfDiurno" type="text" value="${p.controlEsfinteresDiurno||''}" placeholder="Ej: 2 años"/></div>
+        <div class="fld"><label>Control de esfínteres nocturno</label><input id="f_esfNocturno" type="text" value="${p.controlEsfinteresNocturno||''}" placeholder="Ej: 3 años"/></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. Escuela -->
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">6</div><h3>Área escolar y social</h3></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Asistencia escolar</label>${sel('f_asistencia',['Excelente','Regular','Frecuentes ausencias','No asiste actualmente'],p.asistenciaEscolar||'')}</div>
+        <div class="fld"><label>Relación con compañeros</label>${sel('f_relComp',['Positiva','Regular','Conflictiva','Sin amigos','Pocos pero buenos'],p.relacionCompaneros||'')}</div>
+        <div class="fld"><label>Relación con docentes</label>${sel('f_relDoc',['Buena','Regular','Conflictiva','Indiferente'],p.relacionDocentes||'')}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. Hábitos -->
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">7</div><h3>Hábitos y rutinas</h3></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Hora de dormir</label><input id="f_horaDormir" type="time" value="${p.horaDormir||''}"/></div>
+        <div class="fld"><label>Hora de despertar</label><input id="f_horaDespertar" type="time" value="${p.horaDespertar||''}"/></div>
+      </div>
+      <div class="fld"><label>Hábitos de sueño</label>
+        ${chks('habSueno',['Duerme solo/a','Duerme acompañado/a','Duerme toda la noche','Se despierta frecuentemente','Tiene rituales para dormir','Pesadillas frecuentes','Resistencia para dormir'],p.habSueno||[])}
+      </div>
+      <div class="fld"><label>Alimentación</label>
+        ${chks('habAlim',['Balanceada','Come suficiente','Come mucho','Come poco','Selectivo/a con alimentos','Se alimenta solo/a','Necesita ayuda para comer'],p.habAlimentacion||[])}
+      </div>
+      <div class="fld"><label>Autonomía e higiene</label>
+        ${chks('habAuto',['Se baña solo/a','Necesita recordatorio para bañarse','Se lava manos y dientes solo/a','Se viste solo/a','Le gusta que le elijan la ropa','Requiere ayuda para vestirse'],p.habAutonomia||[])}
+      </div>
+      <div class="fld"><label>Actividades extracurriculares</label>
+        <input id="f_extra" type="text" value="${p.actividadesExtracurriculares||''}" placeholder="Deporte, música, arte..."/></div>
+    </div>
+  </div>
+
+  <!-- 8. Dinámica familiar -->
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">8</div><h3>Dinámica familiar</h3></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Relación con los padres</label>${sel('f_relPadres',['Apegado/a','Distante','Ambivalente','Cercana','Conflictiva'],p.relacionPadres||'')}</div>
+        <div class="fld"><label>Respuesta a los límites</label>${sel('f_respLimites',['Los respeta','Los cuestiona','Los ignora','Se enoja pero los acepta','Desafíante'],p.respuestaLimites||'')}</div>
+        <div class="fld"><label>Reacción ante la frustración</label>${sel('f_reacFrust',['Se calma solo/a','Llora','Se enoja','Se cierra','Agresividad verbal','Agresividad física','Busca apoyo adulto'],p.reaccionFrustracion||'')}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. Salud -->
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">9</div><h3>Antecedentes de salud</h3></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Medicación actual</label><input id="f_medicacion" type="text" value="${p.medicacionActual||''}" placeholder="Nombre, dosis o escriba 'Ninguna'"/></div>
+        <div class="fld"><label>Diagnóstico previo (si existe)</label><input id="f_dxPrevio" type="text" value="${p.diagnosticoPrevio||''}" placeholder="Ej: TDAH, Ansiedad..."/></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── ADOLESCENTE ───────────────────────────────────────────────────────────────
+function htmlAdolescente(p){
+  return `
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación</h3><span class="tipo-badge">Adolescente</span></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Nombre completo</label><input id="f_nombre" type="text" value="${p.nombre||''}" placeholder="Nombre y apellidos"/></div>
+        <div class="fld"><label>Fecha de nacimiento</label><input id="f_fechaNac" type="date" value="${p.fechaNac||''}"/></div>
+        <div class="fld"><label>Edad</label><input id="f_edad" type="number" value="${p.edad||''}" placeholder="Años"/></div>
+        <div class="fld"><label>Sexo</label>${sel('f_sexo',['Femenino','Masculino','No binario','Prefiere no indicar'],p.sexo||'')}</div>
+        <div class="fld"><label>Cédula / Documento</label><input id="f_cedula" type="text" value="${p.cedula||''}"/></div>
+        <div class="fld"><label>Grado / Nivel educativo</label><input id="f_grado" type="text" value="${p.gradoEscolar||''}" placeholder="Ej: 4to año"/></div>
+        <div class="fld"><label>Institución</label><input id="f_institucion" type="text" value="${p.institucion||''}" placeholder="Colegio o Universidad"/></div>
+      </div>
+      <div class="fld"><label>Dirección</label><input id="f_direccion" type="text" value="${p.direccion||''}"/></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">2</div><h3>Representante / Contacto</h3></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Nombre del representante</label><input id="f_repNombre" type="text" value="${p.repNombre||''}"/></div>
+        <div class="fld"><label>Teléfono</label><input id="f_repTelefono" type="tel" value="${p.repTelefono||''}"/></div>
+        <div class="fld"><label>Personas en casa</label><input id="f_personasEnCasa" type="number" value="${p.personasEnCasa||''}"/></div>
+      </div>
+      <div class="fld"><label>Personas que conviven</label>${convBlock(p.convivientes||[])}</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">3</div><h3>Motivo de consulta</h3></div>
+    <div class="sec-body">
+      <div class="fld"><label>Versión del representante — ¿Por qué buscan ayuda?</label>
+        <textarea id="f_motivoRep" rows="4" placeholder="Describa desde su perspectiva qué los trae a consulta...">${p.motivoRepresentante||''}</textarea></div>
+      <div class="fld"><label>¿Cuándo comenzó el problema?</label>
+        <input id="f_inicioproblema" type="text" value="${p.inicioproblema||''}" placeholder="Ej: Hace 6 meses, en agosto del año pasado..."/></div>
+      <div class="fld"><label>¿En qué áreas ha afectado?</label>
+        ${chks('impactoProb',['Asistencia a clases','Relaciones con amigos','Estado de ánimo diario','Sueño','Alimentación','Motivación general','Familia','Actividades que antes disfrutaba'],p.impactoProblema||[])}
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">4</div><h3>Desarrollo y antecedentes</h3></div>
+    <div class="sec-body">
+      <div class="fld"><label>¿Hubo dificultades relevantes en la infancia o desarrollo temprano?</label>
+        <textarea id="f_antDesarrollo" rows="3" placeholder="Problemas de lenguaje, aprendizaje, conducta, salud...">${p.antecedentesDesarrollo||''}</textarea></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">5</div><h3>Área escolar y social</h3></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Rendimiento académico</label>${sel('f_rendimiento',['Excelente','Bueno','Regular','Bajo','Muy bajo'],p.rendimientoAcademico||'')}</div>
+        <div class="fld"><label>Relación con docentes</label>${sel('f_relDocAdo',['Buena','Regular','Conflictiva','Indiferente'],p.relacionDocentesAdo||'')}</div>
+        <div class="fld"><label>Adaptación escolar</label>${sel('f_adaptEscolar',['Bien adaptado/a','Con dificultades','Mal adaptado/a','Cambió recientemente de institución'],p.adaptacionEscolar||'')}</div>
+        <div class="fld"><label>¿Ha habido bullying?</label>${sel('f_bullying',['No','Sí, como víctima','Sí, como agresor/a','Ambos roles','No seguro/a'],p.bullyingAdo||'')}</div>
+        <div class="fld"><label>Cantidad de amigos</label>${sel('f_cantAmigos',['Muchos','Varios','Pocos','Casi ninguno','Ninguno'],p.cantidadAmigos||'')}</div>
+        <div class="fld"><label>Calidad de las amistades</label>${sel('f_calAmigos',['Relaciones sólidas','Relaciones superficiales','Relaciones conflictivas','Con altibajos'],p.calidadAmigos||'')}</div>
+        <div class="fld"><label>Aislamiento social</label>${sel('f_aislamiento',['No hay aislamiento','Leve aislamiento','Aislamiento moderado','Aislamiento significativo'],p.aislamientoAdo||'')}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">6</div><h3>Identidad y autoconcepto</h3></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Autoestima percibida</label>${sel('f_autoestima',['Alta','Normal','Baja','Muy baja — se descalifica constantemente'],p.autoestima||'')}</div>
+        <div class="fld"><label>Búsqueda de independencia</label>${sel('f_independencia',['Alta — muy autónomo/a','Normal para su edad','Baja — muy dependiente de adultos'],p.busquedaIndependencia||'')}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">7</div><h3>Hábitos</h3></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Calidad del sueño</label>${sel('f_calSueno',['Buena','Regular','Mala — insomnio o sueño muy tardío','Duerme en exceso'],p.calidadSueno||'')}</div>
+        <div class="fld"><label>Alimentación</label>${sel('f_patronAlim',['Balanceada','Come poco','Come mucho','Irregular','Restrictiva'],p.patronAlimentacion||'')}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">8</div><h3>Antecedentes de salud</h3></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Medicación actual</label><input id="f_medicacion" type="text" value="${p.medicacionActual||''}" placeholder="Nombre y dosis o 'Ninguna'"/></div>
+        <div class="fld"><label>Diagnóstico previo</label><input id="f_dxPrevio" type="text" value="${p.diagnosticoPrevio||''}" placeholder="Si existe alguno..."/></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── ADULTO ────────────────────────────────────────────────────────────────────
+function htmlAdulto(p){
+  return `
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación</h3><span class="tipo-badge">Adulto</span></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Nombre completo</label><input id="f_nombre" type="text" value="${p.nombre||''}"/></div>
+        <div class="fld"><label>Fecha de nacimiento</label><input id="f_fechaNac" type="date" value="${p.fechaNac||''}"/></div>
+        <div class="fld"><label>Edad</label><input id="f_edad" type="number" value="${p.edad||''}"/></div>
+        <div class="fld"><label>Sexo</label>${sel('f_sexo',['Femenino','Masculino','No binario','Prefiere no indicar'],p.sexo||'')}</div>
+        <div class="fld"><label>Cédula / Documento</label><input id="f_cedula" type="text" value="${p.cedula||''}"/></div>
+        <div class="fld"><label>Estado civil</label>${sel('f_estadoCivil',['Soltero/a','Casado/a','Unión libre','Divorciado/a','Viudo/a','Separado/a'],p.estadoCivil||'')}</div>
+        <div class="fld"><label>Ocupación</label><input id="f_ocupacion" type="text" value="${p.ocupacion||''}" placeholder="Profesión o actividad principal"/></div>
+        <div class="fld"><label>Nivel educativo</label>${sel('f_nivelEdu',['Primaria','Secundaria','Técnico/a','Universitario/a','Posgrado','Sin estudios formales'],p.nivelEducativo||'')}</div>
+      </div>
+      <div class="fld"><label>Dirección</label><input id="f_direccion" type="text" value="${p.direccion||''}"/></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">2</div><h3>Motivo de consulta</h3></div>
+    <div class="sec-body">
+      <div class="fld"><label>¿Qué lo/la trae a consulta?</label>
+        <textarea id="f_motivoAdulto" rows="4" placeholder="Describa con sus palabras...">${p.motivoConsultaAdulto||''}</textarea></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">3</div><h3>Historia de vida</h3></div>
+    <div class="sec-body">
+      <div class="fld"><label>Aspectos relevantes de su infancia</label>
+        <textarea id="f_infancia" rows="3" placeholder="Lo que considere importante compartir...">${p.historiaInfancia||''}</textarea></div>
+      <div class="fld"><label>Aspectos relevantes de su adolescencia</label>
+        <textarea id="f_adolescencia" rows="3" placeholder="Lo que considere importante compartir...">${p.historiaAdolescencia||''}</textarea></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">4</div><h3>Contexto familiar y social</h3></div>
+    <div class="sec-body">
+      <div class="fld"><label>¿Con quiénes vive actualmente?</label>
+        <textarea id="f_compFam" rows="2" placeholder="Nombre, parentesco y edad de cada persona...">${p.composicionFamiliarA||''}</textarea></div>
+      <div class="fld"><label>Red de apoyo</label>
+        <textarea id="f_redApoyo" rows="2" placeholder="¿Con quién cuenta cuando lo necesita?">${p.redApoyo||''}</textarea></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">5</div><h3>Hábitos</h3></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Calidad del sueño</label>${sel('f_calSueno',['Buena','Regular','Mala','Insomnio frecuente'],p.calidadSueno||'')}</div>
+        <div class="fld"><label>Actividad física</label>${sel('f_actFisica',['Frecuente','Ocasional','Rara vez','Ninguna'],p.actividadFisica||'')}</div>
+        <div class="fld"><label>Consumo de alcohol</label>${sel('f_alcohol',['No consume','Ocasional','Frecuente','Diario'],p.consumoAlcohol||'')}</div>
+        <div class="fld"><label>Consumo de tabaco</label>${sel('f_tabaco',['No consume','Ex-fumador/a','Ocasional','Diario'],p.consumoTabaco||'')}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">6</div><h3>Antecedentes de salud</h3></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Medicación actual</label><input id="f_medicacion" type="text" value="${p.medicacionActual||''}" placeholder="Nombre, dosis o 'Ninguna'"/></div>
+        <div class="fld"><label>Diagnósticos previos</label><input id="f_dxPrevio" type="text" value="${p.diagnosticoPrevioMed||''}" placeholder="Si existen..."/></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── ADULTO MAYOR ──────────────────────────────────────────────────────────────
+function htmlAdultoMayor(p){
+  return `
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación</h3><span class="tipo-badge">Adulto Mayor</span></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Nombre completo</label><input id="f_nombre" type="text" value="${p.nombre||''}"/></div>
+        <div class="fld"><label>Fecha de nacimiento</label><input id="f_fechaNac" type="date" value="${p.fechaNac||''}"/></div>
+        <div class="fld"><label>Edad</label><input id="f_edad" type="number" value="${p.edad||''}"/></div>
+        <div class="fld"><label>Sexo</label>${sel('f_sexo',['Femenino','Masculino','Prefiere no indicar'],p.sexo||'')}</div>
+        <div class="fld"><label>Cédula / Documento</label><input id="f_cedula" type="text" value="${p.cedula||''}"/></div>
+      </div>
+      <div class="fld"><label>Dirección</label><input id="f_direccion" type="text" value="${p.direccion||''}"/></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">2</div><h3>Representante / Cuidador</h3></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Nombre del cuidador/representante</label><input id="f_repNombre" type="text" value="${p.repNombre||''}"/></div>
+        <div class="fld"><label>Teléfono</label><input id="f_repTelefono" type="tel" value="${p.repTelefono||''}"/></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">3</div><h3>Motivo de consulta</h3></div>
+    <div class="sec-body">
+      <div class="fld"><label>¿Por qué buscan atención psicológica?</label>
+        <textarea id="f_motivo" rows="4" placeholder="Describa la situación...">${p.motivoConsulta||''}</textarea></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">4</div><h3>Red de apoyo y contexto</h3></div>
+    <div class="sec-body">
+      <div class="fld"><label>¿Con quiénes vive?</label>
+        <textarea id="f_compFam" rows="2" placeholder="Nombre y relación de cada persona...">${p.composicionFamiliarA||''}</textarea></div>
+      <div class="fld"><label>¿Con quién cuenta para apoyarse?</label>
+        <textarea id="f_redApoyo" rows="2" placeholder="Familiares, amigos, vecinos...">${p.redApoyo||''}</textarea></div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">5</div><h3>Hábitos</h3></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Calidad del sueño</label>${sel('f_calSueno',['Buena','Regular','Mala','Insomnio'],p.calidadSueno||'')}</div>
+        <div class="fld"><label>Alimentación</label>${sel('f_patronAlim',['Balanceada','Regular','Deficiente','Muy deficiente'],p.patronAlimentacion||'')}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">6</div><h3>Antecedentes de salud</h3></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Medicación actual</label><input id="f_medicacion" type="text" value="${p.medicacionActual||''}" placeholder="Lista de medicamentos actuales"/></div>
+        <div class="fld"><label>Diagnósticos previos o actuales</label><input id="f_dxPrevio" type="text" value="${p.diagnosticoPrevioMed||''}" placeholder="Enfermedades crónicas, diagnósticos..."/></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+// ── PAREJA ────────────────────────────────────────────────────────────────────
+function htmlPareja(p){
+  return `
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación de la pareja</h3><span class="tipo-badge">Pareja</span></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Nombre — Persona A</label><input id="f_nombreA" type="text" value="${p.nombreA||''}" placeholder="Nombre completo"/></div>
+        <div class="fld"><label>Nombre — Persona B</label><input id="f_nombreB" type="text" value="${p.nombreB||''}" placeholder="Nombre completo"/></div>
+        <div class="fld"><label>Edad — Persona A</label><input id="f_edadA" type="number" value="${p.edadA||''}" placeholder="Años"/></div>
+        <div class="fld"><label>Edad — Persona B</label><input id="f_edadB" type="number" value="${p.edadB||''}" placeholder="Años"/></div>
+        <div class="fld"><label>Teléfono de contacto</label><input id="f_telefono" type="tel" value="${p.repTelefono||''}" placeholder="+58 412..."/></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">2</div><h3>Motivo de consulta</h3></div>
+    <div class="sec-body">
+      <div class="fld"><label>¿Qué los trae a consulta?</label>
+        <textarea id="f_motivo" rows="4" placeholder="Describa la situación que los motiva a buscar ayuda...">${p.motivoConsulta||''}</textarea></div>
+    </div>
+  </div>`;
+}
+
+// ── FAMILIA ───────────────────────────────────────────────────────────────────
+function htmlFamilia(p){
+  return `
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación familiar</h3><span class="tipo-badge">Familia</span></div>
+    <div class="sec-body">
+      <div class="g2">
+        <div class="fld"><label>Apellido familiar</label><input id="f_nombreFam" type="text" value="${p.nombreFamilia||''}" placeholder="Ej: Familia García"/></div>
+        <div class="fld"><label>Representante / Quien consulta</label><input id="f_repNombre" type="text" value="${p.repNombre||''}" placeholder="Nombre completo"/></div>
+        <div class="fld"><label>Teléfono de contacto</label><input id="f_repTelefono" type="tel" value="${p.repTelefono||''}" placeholder="+58 412..."/></div>
+      </div>
+      <div class="fld"><label>Integrantes del grupo familiar</label>${convBlock(p.convivientes||[])}</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">2</div><h3>Motivo de consulta</h3></div>
+    <div class="sec-body">
+      <div class="fld"><label>¿Qué los trae a consulta como familia?</label>
+        <textarea id="f_motivo" rows="4" placeholder="Describa la situación familiar...">${p.motivoConsulta||''}</textarea></div>
+    </div>
+  </div>`;
+}
+</script>
+</body>
+</html>
