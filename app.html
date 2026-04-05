@@ -6496,6 +6496,12 @@ function adminUserCard(u){
         <button onclick="adminClearPersonalMsg('${uid2}')" style="padding:6px 10px;background:#FEF2F2;color:#DC2626;border:1.5px solid #FECACA;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">Borrar</button>
       </div>
     </div>
+    <div style="margin-top:8px;border-top:1px solid #e5e7eb;padding-top:8px">
+      <div style="font-size:11px;font-weight:600;color:#64748b;margin-bottom:4px">TOKENS FAMILIARES</div>
+      <div id="adm-tokens-${uid2}" style="font-size:12px;color:#64748b">
+        <button onclick="adminLoadTokens('${uid2}')" style="font-size:11px;padding:2px 8px;border:1px solid #cbd5e1;border-radius:4px;background:#f8fafc;cursor:pointer">Ver tokens</button>
+      </div>
+    </div>
     <div style="display:flex;gap:6px;margin-top:8px">
       <button onclick="adminConfirmDelete('${uid2}','${em}')" style="flex:1;padding:7px;background:#FEF2F2;color:#DC2626;border:1.5px solid #FECACA;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">Eliminar cuenta</button>
       <button onclick="adminConfirmBlock('${uid2}','${em}')" style="flex:1;padding:7px;background:#FFF7ED;color:#D97706;border:1.5px solid #FDE68A;border-radius:7px;font-size:11px;font-weight:700;cursor:pointer">Bloquear</button>
@@ -6530,6 +6536,33 @@ async function adminToggleMod(uid,email,mod,enable){
     const q=(document.getElementById("adm-q")||{}).value||"";
     if(q.trim())await adminDoSearch();else await adminLoadUsers();
   }catch(e){alert("Error: "+e.message);}
+}
+
+async function adminLoadTokens(uid){
+  const el=document.getElementById('adm-tokens-'+uid);
+  if(!el)return;
+  el.innerHTML='<span style="color:#94a3b8;font-size:11px">Cargando...</span>';
+  try{
+    const snap=await db.collection('users').doc(uid).collection('pacientes')
+      .where('familyToken','!=',null).get();
+    if(snap.empty){el.innerHTML='<span style="color:#94a3b8;font-size:11px">Sin tokens generados</span>';return;}
+    let html='<table style="width:100%;font-size:11px;border-collapse:collapse">';
+    html+='<tr style="color:#94a3b8"><th style="text-align:left;padding:2px 4px">Paciente</th><th style="text-align:left;padding:2px 4px">Token</th><th style="text-align:left;padding:2px 4px">Estado</th></tr>';
+    snap.docs.forEach(function(d){
+      const p=d.data();
+      if(!p.familyToken)return;
+      const estado=p.familyCompleted
+        ?'<span style="color:#16a34a">Completado</span>'
+        :(p.familyActive
+          ?'<span style="color:#d97706">Activo</span>'
+          :'<span style="color:#94a3b8">Revocado</span>');
+      html+='<tr><td style="padding:2px 4px">'+(p.nombre||'Sin nombre')+'</td>'
+        +'<td style="padding:2px 4px;font-family:monospace">'+p.familyToken+'</td>'
+        +'<td style="padding:2px 4px">'+estado+'</td></tr>';
+    });
+    html+='</table>';
+    el.innerHTML=html;
+  }catch(e){el.innerHTML='<span style="color:#ef4444;font-size:11px">Error al cargar</span>';}
 }
 
 function showAdminPanel(){

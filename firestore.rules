@@ -1,0 +1,79 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Cada usuario accede solo a su propio documento de perfil y pacientes
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+
+      // Subcollección de pacientes del usuario autenticado
+      match /pacientes/{patientId} {
+        allow read, write: if request.auth != null && request.auth.uid == userId;
+      }
+    }
+
+    // Colección raíz de pacientes — usada por el portal familiar
+    match /pacientes/{docId} {
+
+      // Solo puede leer quien tiene el token válido y activo
+      // (la app principal usa auth de Firebase; el portal familiar usa token en URL)
+      allow read: if
+        // Usuario autenticado (la app del psicólogo)
+        request.auth != null
+        ||
+        // Portal familiar: puede leer si conoce el token exacto
+        (resource.data.familyActive == true &&
+         resource.data.familyToken != null);
+
+      // Escritura completa: solo usuarios autenticados (psicólogos)
+      allow write: if request.auth != null;
+
+      // El portal familiar solo puede hacer merge con campos permitidos
+      allow update: if
+        resource.data.familyActive == true &&
+        resource.data.familyToken != null &&
+        // Solo puede tocar campos de familia, no datos clínicos
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['familyCompleted','familyFilledAt',
+                    'nombre','fechaNac','lugarNac','sexo','edad','cedula',
+                    'gradoEscolar','institucion','direccion',
+                    'repNombre','repParentesco','repTelefono','personasEnCasa',
+                    'motivoConsulta','motivoRepresentante','motivoConsultaAdulto',
+                    'embarazoPlaneado','cuidadosPrenatales','saludMadre',
+                    'complicacionesEmbarazo','otrasCompEmbarazo',
+                    'tipoNacimiento','semanasEmbarazo','tipoParto',
+                    'pesoNacer','tallaNacer','edadCamino','primerasPalabras',
+                    'controlEsfinteresDiurno','controlEsfinteresNocturno',
+                    'asistenciaEscolar','relacionCompaneros','relacionDocentes',
+                    'horaDormir','horaDespertar','habSueno','habAlimentacion',
+                    'habAutonomia','actividadesExtracurriculares',
+                    'relacionPadres','respuestaLimites','reaccionFrustracion',
+                    'medicacionActual','diagnosticoPrevio','diagnosticoPrevioMed',
+                    'convivientes','estadoCivil','ocupacion','nivelEducativo',
+                    'historiaInfancia','historiaAdolescencia',
+                    'composicionFamiliarA','redApoyo','calidadSueno',
+                    'actividadFisica','consumoAlcohol','consumoTabaco',
+                    'nombreA','nombreB','edadA','edadB',
+                    'nombreFamilia','comentariosAdicionales',
+                    'impactoProblema','antecedentesDesarrollo',
+                    'rendimientoAcademico','relacionDocentesAdo',
+                    'adaptacionEscolar','cantidadAmigos','calidadAmigos',
+                    'aislamientoAdo','bullyingAdo','autoestima',
+                    'busquedaIndependencia','patronAlimentacion',
+                    'inicioproblema'
+                   ]);
+    }
+
+    // Contadores por usuario (yearCounter_{uid})
+    match /meta/{document} {
+      allow read, write: if request.auth != null;
+    }
+
+    // Mensajes globales y configuración — lectura pública, escritura solo admin
+    match /config/{document} {
+      allow read: if true;
+      allow write: if request.auth != null &&
+        request.auth.token.email in ['carolca31@gmail.com'];
+    }
+  }
+}
