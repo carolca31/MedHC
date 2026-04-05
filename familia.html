@@ -3,47 +3,108 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Portal Familiar — Historia Clínica</title>
+<title>Portal de Información — Historia Clínica</title>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js"></script>
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Inter:wght@400;500;600&display=swap');
+
 :root{
-  --bg:#F4F7FB;--surface:#fff;--border:#D1DCE8;
-  --accent:#0891B2;--accent-light:#E0F5FB;
+  --bg:#F0F4F8;
+  --surface:#fff;
+  --border:#D1DCE8;
+  --accent:#0891B2;
+  --accent-light:#E0F5FB;
   --green:#059669;--green-light:#ECFDF5;
   --red:#DC2626;--red-light:#FEF2F2;
   --text:#1E2A3A;--mid:#4A5568;--light:#94A3B8;
-  --radius:12px;
+  --radius:14px;
+  --cobalt:#1A3A6E;
+  --shadow: 0 2px 12px rgba(8,145,178,.08), 0 1px 3px rgba(0,0,0,.06);
+  --shadow-lg: 0 8px 32px rgba(8,145,178,.13), 0 2px 8px rgba(0,0,0,.07);
 }
 *{margin:0;padding:0;box-sizing:border-box;}
-body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;}
-input,select,textarea{font-family:inherit;font-size:13px;width:100%;padding:9px 11px;border:1.5px solid var(--border);border-radius:8px;color:var(--text);background:var(--surface);outline:none;transition:border-color .2s;}
-input:focus,select:focus,textarea:focus{border-color:var(--accent);}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;}
+
+/* Fondo decorativo */
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:
+    radial-gradient(ellipse 80% 50% at 10% -10%, rgba(8,145,178,.07) 0%, transparent 60%),
+    radial-gradient(ellipse 60% 40% at 90% 100%, rgba(5,150,105,.05) 0%, transparent 60%);
+}
+
+input,select,textarea{
+  font-family:'Inter',sans-serif;font-size:13px;width:100%;
+  padding:10px 13px;border:1.5px solid var(--border);border-radius:9px;
+  color:var(--text);background:var(--surface);outline:none;
+  transition:border-color .2s, box-shadow .2s;
+}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--accent);
+  box-shadow:0 0 0 3px rgba(8,145,178,.1);
+}
 textarea{resize:vertical;line-height:1.6;}
-button{cursor:pointer;font-family:inherit;font-size:13px;}
-label{display:block;font-size:12px;font-weight:600;color:var(--mid);margin-bottom:5px;text-transform:uppercase;letter-spacing:.4px;}
+button{cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;}
+label{display:block;font-size:11.5px;font-weight:700;color:var(--mid);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;}
 
 /* Layout */
-.wrap{max-width:720px;margin:0 auto;padding:24px 16px 60px;}
+.wrap{max-width:700px;margin:0 auto;padding:28px 16px 70px;position:relative;z-index:1;}
 
-/* Header */
-.hdr{background:linear-gradient(135deg,#0891B2,#0670A0);color:#fff;padding:20px 24px;border-radius:16px;margin-bottom:24px;display:flex;align-items:center;gap:16px;}
-.hdr-icon{font-size:36px;flex-shrink:0;}
-.hdr h1{font-size:20px;font-weight:700;margin-bottom:4px;}
-.hdr p{font-size:13px;opacity:.85;line-height:1.5;}
+/* Header mejorado */
+.hdr{
+  background:linear-gradient(135deg,#0a7ea4,#0670A0 60%,#044f7a);
+  color:#fff;padding:22px 26px;border-radius:18px;
+  margin-bottom:26px;
+  display:flex;align-items:center;gap:18px;
+  box-shadow:0 6px 24px rgba(6,112,160,.3);
+  position:relative;overflow:hidden;
+}
+.hdr::after{
+  content:'';position:absolute;right:-20px;top:-20px;
+  width:140px;height:140px;
+  background:rgba(255,255,255,.06);
+  border-radius:50%;
+}
+.hdr::before{
+  content:'';position:absolute;right:60px;bottom:-40px;
+  width:100px;height:100px;
+  background:rgba(255,255,255,.04);
+  border-radius:50%;
+}
+.hdr-icon{font-size:38px;flex-shrink:0;filter:drop-shadow(0 2px 4px rgba(0,0,0,.2));}
+.hdr h1{font-family:'Nunito',sans-serif;font-size:19px;font-weight:800;margin-bottom:4px;letter-spacing:-.2px;}
+.hdr p{font-size:12.5px;opacity:.85;line-height:1.55;}
 
 /* Token screen */
-#screen-token{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;gap:20px;}
-#screen-token .big-icon{font-size:64px;}
-#screen-token h2{font-size:22px;font-weight:700;color:var(--text);}
-#screen-token p{font-size:14px;color:var(--mid);max-width:360px;line-height:1.6;}
-.token-input-wrap{display:flex;gap:10px;width:100%;max-width:360px;}
-.token-input-wrap input{font-size:16px;text-align:center;letter-spacing:2px;text-transform:uppercase;padding:12px;}
-.btn-primary{background:var(--accent);color:#fff;border:none;padding:11px 24px;border-radius:8px;font-weight:600;font-size:14px;transition:background .2s;white-space:nowrap;}
-.btn-primary:hover{background:#0670A0;}
-.btn-primary:disabled{background:var(--light);cursor:not-allowed;}
+#screen-token{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:68vh;text-align:center;gap:22px;}
+#screen-token .big-icon{font-size:66px;filter:drop-shadow(0 4px 8px rgba(8,145,178,.2));}
+#screen-token h2{font-family:'Nunito',sans-serif;font-size:22px;font-weight:800;color:var(--text);}
+#screen-token p{font-size:14px;color:var(--mid);max-width:360px;line-height:1.65;}
+.token-card{
+  background:var(--surface);border:1px solid var(--border);
+  border-radius:16px;padding:24px;width:100%;max-width:380px;
+  box-shadow:var(--shadow-lg);
+}
+.token-input-wrap{display:flex;gap:10px;width:100%;}
+.token-input-wrap input{
+  font-size:17px;text-align:center;letter-spacing:3px;
+  text-transform:uppercase;padding:13px;font-weight:700;
+  border-radius:10px;
+}
+.btn-primary{
+  background:linear-gradient(135deg,var(--accent),#0670A0);
+  color:#fff;border:none;padding:12px 22px;border-radius:10px;
+  font-weight:700;font-size:13.5px;
+  transition:opacity .2s, transform .1s;
+  white-space:nowrap;
+  box-shadow:0 3px 12px rgba(8,145,178,.3);
+}
+.btn-primary:hover{opacity:.9;transform:translateY(-1px);}
+.btn-primary:active{transform:translateY(0);}
+.btn-primary:disabled{background:var(--light);cursor:not-allowed;transform:none;box-shadow:none;}
 
-/* Error / success banners */
+/* Banners */
 .banner{padding:12px 16px;border-radius:10px;font-size:13px;font-weight:500;margin-bottom:16px;display:none;}
 .banner.error{background:var(--red-light);color:var(--red);border:1px solid #FECACA;}
 .banner.success{background:var(--green-light);color:var(--green);border:1px solid #A7F3D0;}
@@ -51,63 +112,157 @@ label{display:block;font-size:12px;font-weight:600;color:var(--mid);margin-botto
 
 /* Form screen */
 #screen-form{display:none;}
-.patient-pill{background:var(--accent-light);border:1.5px solid var(--accent);border-radius:10px;padding:12px 16px;margin-bottom:24px;display:flex;align-items:center;gap:12px;}
-.patient-pill .pname{font-weight:700;font-size:15px;color:var(--accent);}
+.patient-pill{
+  background:linear-gradient(135deg,var(--accent-light),#f0faff);
+  border:1.5px solid #bae6f5;border-radius:12px;
+  padding:14px 18px;margin-bottom:26px;
+  display:flex;align-items:center;gap:14px;
+  box-shadow:0 2px 8px rgba(8,145,178,.08);
+}
+.patient-pill-icon{
+  width:42px;height:42px;background:var(--accent);border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;flex-shrink:0;
+  box-shadow:0 3px 10px rgba(8,145,178,.25);
+}
+.patient-pill .pname{font-family:'Nunito',sans-serif;font-weight:800;font-size:15px;color:var(--cobalt);}
 .patient-pill .phc{font-size:11px;color:var(--mid);margin-top:2px;}
 
 /* Sections */
-.sec{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);margin-bottom:20px;overflow:hidden;}
-.sec-hdr{padding:14px 18px;background:linear-gradient(90deg,#F8FAFC,#fff);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;}
-.sec-num{width:26px;height:26px;background:var(--accent);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
-.sec-hdr h3{font-size:14px;font-weight:700;color:var(--text);}
-.sec-body{padding:18px;}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;}
+.sec{
+  background:var(--surface);border-radius:var(--radius);
+  border:1px solid var(--border);margin-bottom:18px;
+  overflow:hidden;box-shadow:var(--shadow);
+  transition:box-shadow .2s;
+}
+.sec:focus-within{box-shadow:var(--shadow-lg);}
+.sec-hdr{
+  padding:14px 20px;
+  background:linear-gradient(90deg,#F8FAFC,#fff);
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;
+}
+.sec-num{
+  width:28px;height:28px;
+  background:linear-gradient(135deg,var(--accent),#0670A0);
+  color:#fff;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:800;flex-shrink:0;
+  box-shadow:0 2px 6px rgba(8,145,178,.3);
+}
+.sec-hdr h3{font-family:'Nunito',sans-serif;font-size:14px;font-weight:800;color:var(--text);}
+.sec-body{padding:20px;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:15px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:15px;}
 @media(max-width:540px){.g2,.g3{grid-template-columns:1fr;}}
-.fld{margin-bottom:14px;}
+.fld{margin-bottom:15px;}
 .fld:last-child{margin-bottom:0;}
 
 /* Checkboxes */
-.checks{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px;}
-.chk-item{display:flex;align-items:center;gap:6px;background:#F8FAFC;border:1px solid var(--border);border-radius:6px;padding:6px 10px;cursor:pointer;transition:all .15s;user-select:none;}
+.checks{display:flex;flex-wrap:wrap;gap:7px;margin-top:5px;}
+.chk-item{
+  display:flex;align-items:center;gap:6px;
+  background:#F8FAFC;border:1.5px solid var(--border);
+  border-radius:8px;padding:7px 11px;cursor:pointer;
+  transition:all .15s;user-select:none;font-size:12.5px;
+}
 .chk-item:hover{border-color:var(--accent);background:var(--accent-light);}
-.chk-item.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);font-weight:600;}
+.chk-item.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);font-weight:700;}
 .chk-item input{display:none;}
+.chk-item.active::before{content:'✓ ';font-weight:800;}
 
 /* Convivientes */
-.conv-item{background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:10px;position:relative;}
-.conv-item .del-btn{position:absolute;top:8px;right:8px;background:none;border:none;color:var(--light);font-size:16px;line-height:1;}
-.conv-item .del-btn:hover{color:var(--red);}
-.add-btn{background:none;border:1.5px dashed var(--border);border-radius:8px;width:100%;padding:10px;color:var(--mid);text-align:center;transition:all .15s;margin-top:8px;}
-.add-btn:hover{border-color:var(--accent);color:var(--accent);}
+.conv-item{
+  background:#F8FAFC;border:1.5px solid var(--border);
+  border-radius:10px;padding:14px;margin-bottom:10px;
+  position:relative;transition:border-color .2s;
+}
+.conv-item:hover{border-color:var(--accent);}
+.conv-item .del-btn{
+  position:absolute;top:10px;right:10px;
+  background:#fee2e2;border:none;color:var(--red);
+  font-size:13px;line-height:1;border-radius:6px;
+  width:24px;height:24px;display:flex;align-items:center;justify-content:center;
+  transition:background .15s;
+}
+.conv-item .del-btn:hover{background:#fecaca;}
+.add-btn{
+  background:none;border:1.5px dashed var(--border);
+  border-radius:10px;width:100%;padding:11px;
+  color:var(--mid);text-align:center;
+  transition:all .15s;margin-top:8px;font-weight:600;
+}
+.add-btn:hover{border-color:var(--accent);color:var(--accent);background:var(--accent-light);}
 
 /* Section type badge */
-.tipo-badge{font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;background:#EEF2FA;color:#1A3A6E;margin-left:auto;text-transform:uppercase;letter-spacing:.5px;}
+.tipo-badge{
+  font-size:10px;font-weight:800;padding:3px 10px;
+  border-radius:12px;background:var(--cobalt);
+  color:#fff;margin-left:auto;text-transform:uppercase;letter-spacing:.6px;
+}
+.tipo-badge.infantil{background:linear-gradient(135deg,#0891B2,#0670A0);}
+.tipo-badge.adolescente{background:linear-gradient(135deg,#7C3AED,#5B21B6);}
+.tipo-badge.adulto{background:linear-gradient(135deg,#059669,#047857);}
+.tipo-badge.adulto-mayor{background:linear-gradient(135deg,#D97706,#B45309);}
+.tipo-badge.pareja{background:linear-gradient(135deg,#E11D48,#BE123C);}
+.tipo-badge.grupo{background:linear-gradient(135deg,#0F766E,#0D9488);}
 
 /* Progress */
-.progress-bar{background:#E2E8F0;border-radius:10px;height:6px;margin-bottom:24px;overflow:hidden;}
-.progress-fill{background:linear-gradient(90deg,var(--accent),var(--green));height:100%;border-radius:10px;transition:width .3s;}
-.progress-label{font-size:12px;color:var(--mid);margin-bottom:8px;display:flex;justify-content:space-between;}
+.progress-wrap{margin-bottom:26px;}
+.progress-bar{background:#E2E8F0;border-radius:12px;height:8px;overflow:hidden;}
+.progress-fill{
+  background:linear-gradient(90deg,var(--accent),var(--green));
+  height:100%;border-radius:12px;
+  transition:width .4s cubic-bezier(.4,0,.2,1);
+}
+.progress-label{font-size:12px;color:var(--mid);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
+.progress-label strong{font-family:'Nunito',sans-serif;font-size:16px;font-weight:800;color:var(--accent);}
 
 /* Submit */
-.submit-wrap{margin-top:28px;text-align:center;}
-.btn-submit{background:linear-gradient(135deg,var(--green),#047857);color:#fff;border:none;padding:14px 40px;border-radius:10px;font-size:15px;font-weight:700;letter-spacing:.3px;transition:opacity .2s;}
-.btn-submit:hover{opacity:.9;}
-.btn-submit:disabled{background:var(--light);cursor:not-allowed;}
+.submit-wrap{margin-top:30px;text-align:center;}
+.btn-submit{
+  background:linear-gradient(135deg,var(--green),#047857);
+  color:#fff;border:none;padding:15px 44px;
+  border-radius:12px;font-family:'Nunito',sans-serif;
+  font-size:16px;font-weight:800;letter-spacing:.2px;
+  transition:opacity .2s, transform .1s;
+  box-shadow:0 4px 16px rgba(5,150,105,.3);
+}
+.btn-submit:hover{opacity:.92;transform:translateY(-1px);}
+.btn-submit:disabled{background:var(--light);cursor:not-allowed;transform:none;box-shadow:none;}
 
 /* Success screen */
-#screen-done{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;gap:16px;}
-#screen-done .big-icon{font-size:72px;}
-#screen-done h2{font-size:24px;font-weight:700;}
+#screen-done{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:68vh;text-align:center;gap:18px;}
+#screen-done .big-icon{font-size:76px;filter:drop-shadow(0 6px 12px rgba(5,150,105,.25));}
+#screen-done h2{font-family:'Nunito',sans-serif;font-size:25px;font-weight:800;}
 #screen-done p{color:var(--mid);max-width:380px;line-height:1.7;font-size:15px;}
 
 /* Spinner */
-.spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:8px;}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:7px;}
 @keyframes spin{to{transform:rotate(360deg);}}
 
 /* Locked screen */
-#screen-locked{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;text-align:center;gap:16px;}
+#screen-locked{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:68vh;text-align:center;gap:18px;}
 #screen-locked .big-icon{font-size:64px;}
+
+/* Nota orientadora */
+.nota-info{
+  background:linear-gradient(135deg,#EFF6FF,#F0F9FF);
+  border:1px solid #BAE6FD;border-radius:10px;
+  padding:11px 14px;margin-bottom:14px;
+  font-size:12px;color:#0369A1;line-height:1.6;
+  display:flex;gap:8px;align-items:flex-start;
+}
+.nota-info-icon{font-size:15px;flex-shrink:0;margin-top:1px;}
+
+/* Divider con texto */
+.sec-divider{
+  font-family:'Nunito',sans-serif;font-size:11px;font-weight:800;
+  color:var(--light);text-transform:uppercase;letter-spacing:1px;
+  text-align:center;margin:16px 0 14px;
+  display:flex;align-items:center;gap:10px;
+}
+.sec-divider::before,.sec-divider::after{content:'';flex:1;height:1px;background:var(--border);}
 </style>
 </head>
 <body>
@@ -118,38 +273,43 @@ label{display:block;font-size:12px;font-weight:600;color:var(--mid);margin-botto
   <div class="hdr">
     <div class="hdr-icon">🧠</div>
     <div>
-      <h1>Portal de Información Familiar</h1>
-      <p>Complete este formulario para ayudar al profesional a conocer mejor a su familia. Sus datos son confidenciales.</p>
+      <h1>Portal de Información Clínica</h1>
+      <p>Complete este formulario para ayudar al profesional a conocer mejor la situación. Sus datos son estrictamente confidenciales.</p>
     </div>
   </div>
 
-  <!-- PANTALLA: INGRESO CON TOKEN -->
+  <!-- PANTALLA: TOKEN -->
   <div id="screen-token">
     <div class="big-icon">🔐</div>
     <h2>Ingrese su código de acceso</h2>
     <p>El profesional que los atiende les proporcionó un código único. Ingréselo a continuación para comenzar.</p>
-    <div id="banner-token" class="banner error"></div>
-    <div class="token-input-wrap">
-      <input id="inp-token" type="text" placeholder="Ej: X7K2M9P" maxlength="12" autocomplete="off" oninput="this.value=this.value.toUpperCase()"/>
-      <button class="btn-primary" id="btn-ingresar" onclick="ingresar()">Ingresar</button>
+    <div class="token-card">
+      <div id="banner-token" class="banner error"></div>
+      <div class="token-input-wrap">
+        <input id="inp-token" type="text" placeholder="Ej: X7K2M9P" maxlength="12" autocomplete="off" oninput="this.value=this.value.toUpperCase()" onkeydown="if(event.key==='Enter')ingresar()"/>
+        <button class="btn-primary" id="btn-ingresar" onclick="ingresar()">Ingresar</button>
+      </div>
+      <p style="font-size:12px;color:var(--light);margin-top:12px;text-align:center;">Si no tiene un código, contacte a su profesional.</p>
     </div>
-    <p style="font-size:12px;color:var(--light);">Si no tiene un código, contacte a su psicólogo/a.</p>
   </div>
 
   <!-- PANTALLA: FORMULARIO -->
   <div id="screen-form">
     <div class="patient-pill">
+      <div class="patient-pill-icon">👤</div>
       <div>
         <div class="pname" id="disp-nombre">—</div>
         <div class="phc" id="disp-hc">—</div>
       </div>
     </div>
 
-    <div class="progress-label">
-      <span>Progreso del formulario</span>
-      <span id="prog-pct">0%</span>
+    <div class="progress-wrap">
+      <div class="progress-label">
+        <span>Progreso del formulario</span>
+        <strong id="prog-pct">0%</strong>
+      </div>
+      <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
     </div>
-    <div class="progress-bar"><div class="progress-fill" id="prog-fill" style="width:0%"></div></div>
 
     <div id="banner-form" class="banner error"></div>
     <div id="banner-ok" class="banner success"></div>
@@ -158,7 +318,7 @@ label{display:block;font-size:12px;font-weight:600;color:var(--mid);margin-botto
 
     <div class="submit-wrap">
       <button class="btn-submit" id="btn-enviar" onclick="enviar()">✅ Enviar información</button>
-      <p style="margin-top:12px;font-size:12px;color:var(--light);">Una vez enviado, sus respuestas quedarán registradas en el sistema del profesional.</p>
+      <p style="margin-top:12px;font-size:12px;color:var(--light);">Una vez enviado, sus respuestas quedarán registradas de forma segura.</p>
     </div>
   </div>
 
@@ -173,13 +333,12 @@ label{display:block;font-size:12px;font-weight:600;color:var(--mid);margin-botto
   <div id="screen-done">
     <div class="big-icon">✅</div>
     <h2>¡Información enviada!</h2>
-    <p>Gracias por completar el formulario. El profesional que los atiende recibirá esta información de forma inmediata.</p>
+    <p>Gracias por completar el formulario. El profesional recibirá esta información de inmediato.</p>
     <p style="font-size:13px;color:var(--light);">Puede cerrar esta página.</p>
   </div>
 
 </div><!-- /wrap -->
 
-<!-- Firebase -->
 <script>
 const firebaseConfig={
   apiKey:"AIzaSyAdCMm57dFHMv2s6SstFS02OzehBzv4NQA",
@@ -195,7 +354,7 @@ const db=firebase.firestore();
 let currentPatient=null;
 let currentDocId=null;
 
-// ── Leer token de la URL ───────────────────────────────────────────────────────
+// ── URL por token ─────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded',()=>{
   const params=new URLSearchParams(window.location.search);
   const token=params.get('token');
@@ -238,13 +397,13 @@ function mostrarFormulario(p){
   if(tipo==='Infantil (0-11 años)') container.innerHTML=htmlInfantil(p);
   else if(tipo.includes('Adolescente')) container.innerHTML=htmlAdolescente(p);
   else if(tipo==='Adulto') container.innerHTML=htmlAdulto(p);
-  else if(tipo==='Adulto Mayor') container.innerHTML=htmlAdultoMayor(p);
+  else if(tipo==='Adulto Mayor'||tipo.includes('Adulto mayor')) container.innerHTML=htmlAdultoMayor(p);
   else if(tipo==='Pareja') container.innerHTML=htmlPareja(p);
   else if(tipo==='Familia') container.innerHTML=htmlFamilia(p);
+  else if(tipo==='Grupo terapéutico') container.innerHTML=htmlGrupo(p);
   else container.innerHTML=htmlInfantil(p); // fallback
   bindChecks();
   updateProgress();
-  // Listen for input changes
   container.querySelectorAll('input,select,textarea').forEach(el=>{
     el.addEventListener('input',updateProgress);
     el.addEventListener('change',updateProgress);
@@ -253,8 +412,9 @@ function mostrarFormulario(p){
 
 function getNombre(p){
   if(p.tipoHistoria==='Pareja') return (p.nombreA||'')+(p.nombreB?' & '+p.nombreB:'');
-  if(p.tipoHistoria==='Familia') return p.nombreFamilia||p.nombre||'Familia';
-  return p.nombre||'Paciente';
+  if(p.tipoHistoria==='Familia') return p.nombreFamilia||p.nombre||'Grupo familiar';
+  if(p.tipoHistoria==='Grupo terapéutico') return p.nombre||'Grupo terapéutico';
+  return p.nombre||'Consultante';
 }
 
 // ── Progreso ──────────────────────────────────────────────────────────────────
@@ -281,13 +441,10 @@ function getChecked(groupId){
   return Array.from(document.querySelectorAll(`[data-group="${groupId}"].active`)).map(el=>el.dataset.val);
 }
 
-// ── Recolectar datos del formulario ───────────────────────────────────────────
+// ── Recolectar datos ──────────────────────────────────────────────────────────
 function collectData(){
-  const g=id=>document.getElementById(id);
-  const v=id=>g(id)?g(id).value.trim():'';
+  const v=id=>{const el=document.getElementById(id);return el?el.value.trim():''};
   const tipo=currentPatient.tipoHistoria||'';
-
-  // Campos comunes identificación
   let data={
     familyFilledAt: new Date().toISOString(),
     familyCompleted: true,
@@ -352,7 +509,7 @@ function collectData(){
       consumoAlcohol:v('f_alcohol'),consumoTabaco:v('f_tabaco'),
       medicacionActual:v('f_medicacion'),diagnosticoPrevioMed:v('f_dxPrevio'),
     };
-  } else if(tipo==='Adulto Mayor'){
+  } else if(tipo==='Adulto Mayor'||tipo.includes('Adulto mayor')){
     data={...data,
       nombre:v('f_nombre'),fechaNac:v('f_fechaNac'),edad:v('f_edad'),
       sexo:v('f_sexo'),cedula:v('f_cedula'),direccion:v('f_direccion'),
@@ -376,8 +533,12 @@ function collectData(){
       repNombre:v('f_repNombre'),repTelefono:v('f_repTelefono'),
       convivientes:collectConvivientes(),
     };
+  } else if(tipo==='Grupo terapéutico'){
+    data={...data,
+      motivoConsulta:v('f_motivoGrp'),
+      comentariosAdicionales:v('f_comentariosGrp'),
+    };
   }
-
   return data;
 }
 
@@ -402,31 +563,30 @@ async function enviar(){
     hide('screen-form');show('screen-done');
   }catch(e){
     showBanner('form','Error al enviar. Verifique su conexión e intente de nuevo.','error');
-    btn.disabled=false;btn.textContent='✅ Enviar información';
+    btn.disabled=false;btn.innerHTML='✅ Enviar información';
   }
 }
 
 // ── Convivientes dinámicos ────────────────────────────────────────────────────
 function addConv(){
   const cont=document.getElementById('conv-list');
-  const idx=cont.children.length;
   const div=document.createElement('div');
   div.className='conv-item conv-row';
   div.innerHTML=`
     <button class="del-btn" onclick="this.parentElement.remove();updateProgress()">✕</button>
-    <div class="g2" style="margin-bottom:8px">
+    <div class="g2" style="margin-bottom:10px">
       <div class="fld"><label>Nombre</label><input data-field="nombre" type="text" placeholder="Nombre completo"/></div>
       <div class="fld"><label>Edad</label><input data-field="edad" type="number" placeholder="Años"/></div>
     </div>
     <div class="g2">
-      <div class="fld"><label>Parentesco</label><input data-field="parentesco" type="text" placeholder="Madre, Padre, Hermano..."/></div>
+      <div class="fld"><label>Parentesco / Relación</label><input data-field="parentesco" type="text" placeholder="Madre, Padre, Hermano..."/></div>
       <div class="fld"><label>Ocupación</label><input data-field="ocupacion" type="text" placeholder="Ocupación"/></div>
     </div>`;
   cont.appendChild(div);
   div.querySelectorAll('input').forEach(el=>el.addEventListener('input',updateProgress));
 }
 
-// ── Helpers UI ────────────────────────────────────────────────────────────────
+// ── UI helpers ────────────────────────────────────────────────────────────────
 function show(id){const el=document.getElementById(id);if(el){el.style.display='flex';}}
 function hide(id){const el=document.getElementById(id);if(el)el.style.display='none';}
 function showBanner(which,msg,type){
@@ -440,11 +600,11 @@ function hideBanner(which){
   });
 }
 
-// ── Checks helper ─────────────────────────────────────────────────────────────
+// ── Helpers de renderizado ────────────────────────────────────────────────────
 function chks(group,options,selected=[]){
   return `<div class="checks">${options.map(o=>`
     <label class="chk-item${selected.includes(o)?' active':''}" data-group="${group}" data-val="${o}">
-      <input type="checkbox"${selected.includes(o)?' checked':''}/>${o}
+      <input type="checkbox"${selected.includes(o)?' checked':''}>${o}
     </label>`).join('')}</div>`;
 }
 
@@ -453,15 +613,15 @@ function sel(id,opts,val='',placeholder='Seleccionar...'){
 }
 
 function convBlock(convs=[]){
-  const rows=convs.map((c,i)=>`
+  const rows=convs.map((c)=>`
     <div class="conv-item conv-row">
       <button class="del-btn" onclick="this.parentElement.remove();updateProgress()">✕</button>
-      <div class="g2" style="margin-bottom:8px">
+      <div class="g2" style="margin-bottom:10px">
         <div class="fld"><label>Nombre</label><input data-field="nombre" type="text" value="${c.nombre||''}" placeholder="Nombre completo"/></div>
         <div class="fld"><label>Edad</label><input data-field="edad" type="number" value="${c.edad||''}" placeholder="Años"/></div>
       </div>
       <div class="g2">
-        <div class="fld"><label>Parentesco</label><input data-field="parentesco" type="text" value="${c.parentesco||''}" placeholder="Madre, Padre, Hermano..."/></div>
+        <div class="fld"><label>Parentesco / Relación</label><input data-field="parentesco" type="text" value="${c.parentesco||''}" placeholder="Madre, Padre, Hermano..."/></div>
         <div class="fld"><label>Ocupación</label><input data-field="ocupacion" type="text" value="${c.ocupacion||''}" placeholder="Ocupación"/></div>
       </div>
     </div>`).join('');
@@ -470,14 +630,19 @@ function convBlock(convs=[]){
 }
 
 // ══════════════════════════════════════════════════════════════════════════════
-// HTML POR TIPO DE HISTORIA
+// FORMULARIOS POR TIPO
 // ══════════════════════════════════════════════════════════════════════════════
 
+// ── INFANTIL — llena el REPRESENTANTE ────────────────────────────────────────
 function htmlInfantil(p){
   return `
-  <!-- 1. Identificación -->
+  <div class="nota-info">
+    <span class="nota-info-icon">ℹ️</span>
+    <span>Este formulario debe ser completado por el <strong>representante o adulto responsable</strong> del niño/a. Por favor, responda en nombre del menor.</span>
+  </div>
+
   <div class="sec">
-    <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación del niño/a</h3><span class="tipo-badge">Infantil</span></div>
+    <div class="sec-hdr"><div class="sec-num">1</div><h3>Datos del niño o niña</h3><span class="tipo-badge infantil">Infantil</span></div>
     <div class="sec-body">
       <div class="g2">
         <div class="fld"><label>Nombre completo</label><input id="f_nombre" type="text" value="${p.nombre||''}" placeholder="Nombre y apellidos"/></div>
@@ -493,7 +658,6 @@ function htmlInfantil(p){
     </div>
   </div>
 
-  <!-- 2. Representante -->
   <div class="sec">
     <div class="sec-hdr"><div class="sec-num">2</div><h3>Datos del representante</h3></div>
     <div class="sec-body">
@@ -507,7 +671,6 @@ function htmlInfantil(p){
     </div>
   </div>
 
-  <!-- 3. Motivo de consulta -->
   <div class="sec">
     <div class="sec-hdr"><div class="sec-num">3</div><h3>Motivo de consulta</h3></div>
     <div class="sec-body">
@@ -516,7 +679,6 @@ function htmlInfantil(p){
     </div>
   </div>
 
-  <!-- 4. Embarazo y nacimiento -->
   <div class="sec">
     <div class="sec-hdr"><div class="sec-num">4</div><h3>Historia del embarazo y nacimiento</h3></div>
     <div class="sec-body">
@@ -537,7 +699,6 @@ function htmlInfantil(p){
     </div>
   </div>
 
-  <!-- 5. Desarrollo -->
   <div class="sec">
     <div class="sec-hdr"><div class="sec-num">5</div><h3>Hitos del desarrollo</h3></div>
     <div class="sec-body">
@@ -550,7 +711,6 @@ function htmlInfantil(p){
     </div>
   </div>
 
-  <!-- 6. Escuela -->
   <div class="sec">
     <div class="sec-hdr"><div class="sec-num">6</div><h3>Área escolar y social</h3></div>
     <div class="sec-body">
@@ -562,7 +722,6 @@ function htmlInfantil(p){
     </div>
   </div>
 
-  <!-- 7. Hábitos -->
   <div class="sec">
     <div class="sec-hdr"><div class="sec-num">7</div><h3>Hábitos y rutinas</h3></div>
     <div class="sec-body">
@@ -584,19 +743,17 @@ function htmlInfantil(p){
     </div>
   </div>
 
-  <!-- 8. Dinámica familiar -->
   <div class="sec">
-    <div class="sec-hdr"><div class="sec-num">8</div><h3>Dinámica familiar</h3></div>
+    <div class="sec-hdr"><div class="sec-num">8</div><h3>Dinámica del hogar</h3></div>
     <div class="sec-body">
       <div class="g2">
-        <div class="fld"><label>Relación con los padres</label>${sel('f_relPadres',['Apegado/a','Distante','Ambivalente','Cercana','Conflictiva'],p.relacionPadres||'')}</div>
-        <div class="fld"><label>Respuesta a los límites</label>${sel('f_respLimites',['Los respeta','Los cuestiona','Los ignora','Se enoja pero los acepta','Desafíante'],p.respuestaLimites||'')}</div>
+        <div class="fld"><label>Relación con los padres / cuidadores</label>${sel('f_relPadres',['Apegado/a','Distante','Ambivalente','Cercana','Conflictiva'],p.relacionPadres||'')}</div>
+        <div class="fld"><label>Respuesta a los límites</label>${sel('f_respLimites',['Los respeta','Los cuestiona','Los ignora','Se enoja pero los acepta','Desafiante'],p.respuestaLimites||'')}</div>
         <div class="fld"><label>Reacción ante la frustración</label>${sel('f_reacFrust',['Se calma solo/a','Llora','Se enoja','Se cierra','Agresividad verbal','Agresividad física','Busca apoyo adulto'],p.reaccionFrustracion||'')}</div>
       </div>
     </div>
   </div>
 
-  <!-- 9. Salud -->
   <div class="sec">
     <div class="sec-hdr"><div class="sec-num">9</div><h3>Antecedentes de salud</h3></div>
     <div class="sec-body">
@@ -608,11 +765,16 @@ function htmlInfantil(p){
   </div>`;
 }
 
-// ── ADOLESCENTE ───────────────────────────────────────────────────────────────
+// ── ADOLESCENTE — llena el REPRESENTANTE ─────────────────────────────────────
 function htmlAdolescente(p){
   return `
+  <div class="nota-info">
+    <span class="nota-info-icon">ℹ️</span>
+    <span>Este formulario debe ser completado por el <strong>representante o adulto responsable</strong> del/la adolescente. Responda desde su perspectiva como representante.</span>
+  </div>
+
   <div class="sec">
-    <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación</h3><span class="tipo-badge">Adolescente</span></div>
+    <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación</h3><span class="tipo-badge adolescente">Adolescente</span></div>
     <div class="sec-body">
       <div class="g2">
         <div class="fld"><label>Nombre completo</label><input id="f_nombre" type="text" value="${p.nombre||''}" placeholder="Nombre y apellidos"/></div>
@@ -628,7 +790,7 @@ function htmlAdolescente(p){
   </div>
 
   <div class="sec">
-    <div class="sec-hdr"><div class="sec-num">2</div><h3>Representante / Contacto</h3></div>
+    <div class="sec-hdr"><div class="sec-num">2</div><h3>Datos del representante</h3></div>
     <div class="sec-body">
       <div class="g2">
         <div class="fld"><label>Nombre del representante</label><input id="f_repNombre" type="text" value="${p.repNombre||''}"/></div>
@@ -706,11 +868,16 @@ function htmlAdolescente(p){
   </div>`;
 }
 
-// ── ADULTO ────────────────────────────────────────────────────────────────────
+// ── ADULTO — lo llena el PROPIO ADULTO ───────────────────────────────────────
 function htmlAdulto(p){
   return `
+  <div class="nota-info">
+    <span class="nota-info-icon">ℹ️</span>
+    <span>Este formulario es para usted. Por favor, complételo con sus propios datos y perspectiva.</span>
+  </div>
+
   <div class="sec">
-    <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación</h3><span class="tipo-badge">Adulto</span></div>
+    <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación</h3><span class="tipo-badge adulto">Adulto</span></div>
     <div class="sec-body">
       <div class="g2">
         <div class="fld"><label>Nombre completo</label><input id="f_nombre" type="text" value="${p.nombre||''}"/></div>
@@ -745,7 +912,7 @@ function htmlAdulto(p){
   </div>
 
   <div class="sec">
-    <div class="sec-hdr"><div class="sec-num">4</div><h3>Contexto familiar y social</h3></div>
+    <div class="sec-hdr"><div class="sec-num">4</div><h3>Contexto actual</h3></div>
     <div class="sec-body">
       <div class="fld"><label>¿Con quiénes vive actualmente?</label>
         <textarea id="f_compFam" rows="2" placeholder="Nombre, parentesco y edad de cada persona...">${p.composicionFamiliarA||''}</textarea></div>
@@ -777,11 +944,16 @@ function htmlAdulto(p){
   </div>`;
 }
 
-// ── ADULTO MAYOR ──────────────────────────────────────────────────────────────
+// ── ADULTO MAYOR — llena el representante/cuidador ────────────────────────────
 function htmlAdultoMayor(p){
   return `
+  <div class="nota-info">
+    <span class="nota-info-icon">ℹ️</span>
+    <span>Este formulario puede ser completado por el <strong>cuidador o representante</strong>, o por el/la consultante si así lo prefiere.</span>
+  </div>
+
   <div class="sec">
-    <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación</h3><span class="tipo-badge">Adulto Mayor</span></div>
+    <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación</h3><span class="tipo-badge adulto-mayor">Adulto Mayor</span></div>
     <div class="sec-body">
       <div class="g2">
         <div class="fld"><label>Nombre completo</label><input id="f_nombre" type="text" value="${p.nombre||''}"/></div>
@@ -795,7 +967,7 @@ function htmlAdultoMayor(p){
   </div>
 
   <div class="sec">
-    <div class="sec-hdr"><div class="sec-num">2</div><h3>Representante / Cuidador</h3></div>
+    <div class="sec-hdr"><div class="sec-num">2</div><h3>Cuidador o Contacto</h3></div>
     <div class="sec-body">
       <div class="g2">
         <div class="fld"><label>Nombre del cuidador/representante</label><input id="f_repNombre" type="text" value="${p.repNombre||''}"/></div>
@@ -843,11 +1015,16 @@ function htmlAdultoMayor(p){
   </div>`;
 }
 
-// ── PAREJA ────────────────────────────────────────────────────────────────────
+// ── PAREJA — ambos miembros ───────────────────────────────────────────────────
 function htmlPareja(p){
   return `
+  <div class="nota-info">
+    <span class="nota-info-icon">ℹ️</span>
+    <span>Este formulario puede ser completado por cualquiera de los dos miembros de la pareja, o en conjunto.</span>
+  </div>
+
   <div class="sec">
-    <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación de la pareja</h3><span class="tipo-badge">Pareja</span></div>
+    <div class="sec-hdr"><div class="sec-num">1</div><h3>Datos de la pareja</h3><span class="tipo-badge pareja">Pareja</span></div>
     <div class="sec-body">
       <div class="g2">
         <div class="fld"><label>Nombre — Persona A</label><input id="f_nombreA" type="text" value="${p.nombreA||''}" placeholder="Nombre completo"/></div>
@@ -868,15 +1045,39 @@ function htmlPareja(p){
   </div>`;
 }
 
-// ── FAMILIA ───────────────────────────────────────────────────────────────────
+// ── GRUPO — llena el coordinador o participante ───────────────────────────────
+function htmlGrupo(p){
+  return `
+  <div class="nota-info">
+    <span class="nota-info-icon">ℹ️</span>
+    <span>Este formulario es para el <strong>grupo terapéutico</strong>. Puede ser completado por el coordinador o por un participante designado.</span>
+  </div>
+
+  <div class="sec">
+    <div class="sec-hdr"><div class="sec-num">1</div><h3>Información del grupo</h3><span class="tipo-badge grupo">Grupo</span></div>
+    <div class="sec-body">
+      <div class="fld"><label>¿Qué los trae a este proceso grupal?</label>
+        <textarea id="f_motivoGrp" rows="4" placeholder="Describa brevemente el motivo o situación que motiva la participación del grupo...">${p.motivoConsulta||''}</textarea></div>
+      <div class="fld"><label>Comentarios adicionales</label>
+        <textarea id="f_comentariosGrp" rows="3" placeholder="Cualquier información adicional que considere relevante para el profesional...">${p.comentariosAdicionales||''}</textarea></div>
+    </div>
+  </div>`;
+}
+
+// ── FAMILIA — llena el representante del grupo familiar ───────────────────────
 function htmlFamilia(p){
   return `
+  <div class="nota-info">
+    <span class="nota-info-icon">ℹ️</span>
+    <span>Este formulario debe ser completado por el <strong>representante o adulto responsable</strong> que consulta en nombre del grupo familiar.</span>
+  </div>
+
   <div class="sec">
-    <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación familiar</h3><span class="tipo-badge">Familia</span></div>
+    <div class="sec-hdr"><div class="sec-num">1</div><h3>Datos del grupo familiar</h3><span class="tipo-badge">Grupo familiar</span></div>
     <div class="sec-body">
       <div class="g2">
-        <div class="fld"><label>Apellido familiar</label><input id="f_nombreFam" type="text" value="${p.nombreFamilia||''}" placeholder="Ej: Familia García"/></div>
-        <div class="fld"><label>Representante / Quien consulta</label><input id="f_repNombre" type="text" value="${p.repNombre||''}" placeholder="Nombre completo"/></div>
+        <div class="fld"><label>Apellido de la familia</label><input id="f_nombreFam" type="text" value="${p.nombreFamilia||''}" placeholder="Ej: García Rodríguez"/></div>
+        <div class="fld"><label>Quien consulta / Representante</label><input id="f_repNombre" type="text" value="${p.repNombre||''}" placeholder="Nombre completo"/></div>
         <div class="fld"><label>Teléfono de contacto</label><input id="f_repTelefono" type="tel" value="${p.repTelefono||''}" placeholder="+58 412..."/></div>
       </div>
       <div class="fld"><label>Integrantes del grupo familiar</label>${convBlock(p.convivientes||[])}</div>
@@ -886,8 +1087,8 @@ function htmlFamilia(p){
   <div class="sec">
     <div class="sec-hdr"><div class="sec-num">2</div><h3>Motivo de consulta</h3></div>
     <div class="sec-body">
-      <div class="fld"><label>¿Qué los trae a consulta como familia?</label>
-        <textarea id="f_motivo" rows="4" placeholder="Describa la situación familiar...">${p.motivoConsulta||''}</textarea></div>
+      <div class="fld"><label>¿Qué los trae a consulta?</label>
+        <textarea id="f_motivo" rows="4" placeholder="Describa la situación que los motiva a buscar apoyo...">${p.motivoConsulta||''}</textarea></div>
     </div>
   </div>`;
 }
