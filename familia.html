@@ -378,9 +378,11 @@ let currentPatient=null;
 let currentDocId=null;
 
 // ── URL por token ─────────────────────────────────────────────────────────────
+let urlPid = null; // Patient ID from URL (included in new-format links)
 window.addEventListener('DOMContentLoaded',()=>{
   const params=new URLSearchParams(window.location.search);
   const token=params.get('token');
+  urlPid=params.get('pid')||null;
   if(token){
     document.getElementById('inp-token').value=token.toUpperCase();
     ingresar();
@@ -395,15 +397,37 @@ async function ingresar(){
   btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Verificando...';
   hideBanner('token');
   try{
-    const snap=await db.collection('pacientes').where('familyToken','==',token).limit(1).get();
-    if(snap.empty){showBanner('token','Código no válido. Verifique e intente de nuevo.','error');btn.disabled=false;btn.textContent='Ingresar';return;}
-    const doc=snap.docs[0];
+    let doc=null;
+
+    if(urlPid){
+      // Acceso por enlace (incluye pid): usa get() directo — no requiere query ni índice
+      const snap=await db.collection('pacientes').doc(urlPid).get();
+      if(!snap.exists){
+        showBanner('token','Enlace no válido. Solicite uno nuevo a su profesional.','error');
+        btn.disabled=false;btn.textContent='Ingresar';return;
+      }
+      if(snap.data().familyToken!==token){
+        showBanner('token','Código no válido. Verifique e intente de nuevo.','error');
+        btn.disabled=false;btn.textContent='Ingresar';return;
+      }
+      doc=snap;
+    } else {
+      // Acceso manual (sin pid): usa query — requiere reglas Firestore actualizadas
+      const snap=await db.collection('pacientes').where('familyToken','==',token).limit(1).get();
+      if(snap.empty){
+        showBanner('token','Código no válido. Verifique e intente de nuevo.','error');
+        btn.disabled=false;btn.textContent='Ingresar';return;
+      }
+      doc=snap.docs[0];
+    }
+
     const p=doc.data();
     if(!p.familyActive){show('screen-locked');hide('screen-token');return;}
     currentPatient=p;
     currentDocId=doc.id;
     mostrarFormulario(p);
   }catch(e){
+    console.error('Error al ingresar con token:',e);
     showBanner('token','Error de conexión. Intente de nuevo.','error');
     btn.disabled=false;btn.textContent='Ingresar';
   }

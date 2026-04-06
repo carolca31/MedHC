@@ -917,7 +917,7 @@ async function generarTokenFamilia(){
 }
 
 function mostrarTokenActivoUI(p){
-  const link = `${FAMILIA_PORTAL_URL}?token=${p.familyToken}`;
+  const link = `${FAMILIA_PORTAL_URL}?token=${p.familyToken}&pid=${p.id}`;
   document.getElementById('pf-link-display').textContent = link;
   document.getElementById('pf-sin-token').style.display = 'none';
   document.getElementById('pf-spinner').style.display = 'none';
@@ -928,7 +928,7 @@ function mostrarTokenActivoUI(p){
 
 function copiarLinkFamilia(){
   const p = getP();
-  const link = `${FAMILIA_PORTAL_URL}?token=${p.familyToken}`;
+  const link = `${FAMILIA_PORTAL_URL}?token=${p.familyToken}&pid=${p.id}`;
   navigator.clipboard.writeText(link).then(()=>{
     const btn = event.currentTarget;
     const orig = btn.innerHTML;
@@ -939,7 +939,7 @@ function copiarLinkFamilia(){
 
 function compartirWhatsApp(){
   const p = getP();
-  const link = `${FAMILIA_PORTAL_URL}?token=${p.familyToken}`;
+  const link = `${FAMILIA_PORTAL_URL}?token=${p.familyToken}&pid=${p.id}`;
   const nombre = p.nombre || p.nombreA || 'su familiar';
   const msg = encodeURIComponent(
     `Estimada familia,\n\nLe comparto el enlace para completar el formulario informativo de *${nombre}* antes de nuestra próxima sesión:\n\n${link}\n\nEl proceso toma aproximadamente 10 minutos. Gracias por su colaboración.`
