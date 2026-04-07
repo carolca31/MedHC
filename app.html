@@ -940,11 +940,24 @@ function copiarLinkFamilia(){
 function compartirWhatsApp(){
   const p = getP();
   const link = `${FAMILIA_PORTAL_URL}?token=${p.familyToken}&pid=${p.id}`;
-  const nombre = p.nombre || p.nombreA || 'su familiar';
-  const msg = encodeURIComponent(
-    `Estimada familia,\n\nLe comparto el enlace para completar el formulario informativo de *${nombre}* antes de nuestra próxima sesión:\n\n${link}\n\nEl proceso toma aproximadamente 10 minutos. Gracias por su colaboración.`
-  );
-  window.open(`https://wa.me/?text=${msg}`, '_blank');
+  const tipo = p.tipoHistoria || '';
+  let msg;
+  if(tipo === 'Pareja'){
+    msg = `Estimada pareja,\n\nLes comparto el enlace para completar el formulario informativo antes de nuestra próxima sesión:\n\n${link}\n\nEl proceso toma aproximadamente 10 minutos. Gracias por su colaboración.`;
+  } else if(tipo === 'Familia'){
+    const nom = p.nombreFamilia || p.nombre || '';
+    msg = `Estimada familia${nom?' '+nom:''},\n\nLes comparto el enlace para completar el formulario informativo antes de nuestra próxima sesión:\n\n${link}\n\nEl proceso toma aproximadamente 10 minutos. Gracias por su colaboración.`;
+  } else if(tipo === 'Grupo terapéutico'){
+    msg = `Estimado/a coordinador/a,\n\nLe comparto el enlace del formulario informativo para el grupo antes de nuestra próxima sesión:\n\n${link}\n\nEl proceso toma aproximadamente 10 minutos. Gracias por su colaboración.`;
+  } else if(tipo === 'Adulto' || tipo === 'Adulto Mayor' || tipo.includes('Adulto mayor')){
+    const nombre = p.nombre || 'consultante';
+    msg = `Estimado/a ${nombre},\n\nLe comparto el enlace para completar su formulario informativo antes de nuestra próxima sesión:\n\n${link}\n\nEl proceso toma aproximadamente 10 minutos. Gracias por su colaboración.`;
+  } else {
+    // Infantil / Adolescente — mensaje para el representante
+    const nombre = p.nombre || 'su familiar';
+    msg = `Estimado/a representante,\n\nLe comparto el enlace para completar el formulario informativo de *${nombre}* antes de la próxima consulta:\n\n${link}\n\nEl proceso toma aproximadamente 10 minutos. Gracias por su colaboración.`;
+  }
+  window.open(`https://wa.me/?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
 async function revocarAccesoFamilia(){
@@ -6612,23 +6625,56 @@ async function adminLoadTokens(uid){
     const snap=await db.collection('users').doc(uid).collection('pacientes')
       .where('familyToken','!=',null).get();
     if(snap.empty){el.innerHTML='<span style="color:#94a3b8;font-size:11px">Sin tokens generados</span>';return;}
-    let html='<table style="width:100%;font-size:11px;border-collapse:collapse">';
-    html+='<tr style="color:#94a3b8"><th style="text-align:left;padding:2px 4px">Paciente</th><th style="text-align:left;padding:2px 4px">Token</th><th style="text-align:left;padding:2px 4px">Estado</th></tr>';
-    snap.docs.forEach(function(d){
+    let activos=0,completados=0,revocados=0;
+    const tokens=[];
+    snap.docs.forEach(d=>{
       const p=d.data();
       if(!p.familyToken)return;
-      const estado=p.familyCompleted
+      if(p.familyCompleted) completados++;
+      else if(p.familyActive) activos++;
+      else revocados++;
+      tokens.push({id:d.id,token:p.familyToken,activo:!!p.familyActive,completado:!!p.familyCompleted});
+    });
+    let html=`<div style="font-size:11px;color:#64748b;margin-bottom:8px;padding:6px 0;border-bottom:1px solid #e2e8f0">`;
+    html+=`<span style="color:#16a34a;font-weight:700">${completados} completado${completados!==1?'s':''}</span> &nbsp;·&nbsp; `;
+    html+=`<span style="color:#d97706;font-weight:700">${activos} activo${activos!==1?'s':''}</span> &nbsp;·&nbsp; `;
+    html+=`<span style="color:#94a3b8">${revocados} revocado${revocados!==1?'s':''}</span></div>`;
+    html+='<table style="width:100%;font-size:11px;border-collapse:collapse">';
+    html+='<tr style="color:#94a3b8"><th style="text-align:left;padding:3px 4px">Token</th><th style="text-align:left;padding:3px 4px">Estado</th><th style="padding:3px 4px"></th></tr>';
+    tokens.forEach(t=>{
+      const estado=t.completado
         ?'<span style="color:#16a34a">Completado</span>'
-        :(p.familyActive
+        :(t.activo
           ?'<span style="color:#d97706">Activo</span>'
           :'<span style="color:#94a3b8">Revocado</span>');
-      html+='<tr><td style="padding:2px 4px">'+(p.nombre||'Sin nombre')+'</td>'
-        +'<td style="padding:2px 4px;font-family:monospace">'+p.familyToken+'</td>'
-        +'<td style="padding:2px 4px">'+estado+'</td></tr>';
+      const desactivarBtn=(!t.completado&&t.activo)
+        ?`<button onclick="adminRevocarToken('${uid}','${t.id}')" style="font-size:10px;padding:2px 6px;border:1px solid #fca5a5;border-radius:4px;background:#fef2f2;color:#dc2626;cursor:pointer;margin-right:3px">Desactivar</button>`
+        :'';
+      const elimBtn=`<button onclick="adminEliminarToken('${uid}','${t.id}')" style="font-size:10px;padding:2px 6px;border:1px solid #e2e8f0;border-radius:4px;background:#f8fafc;color:#64748b;cursor:pointer">Eliminar</button>`;
+      html+=`<tr><td style="padding:3px 4px;font-family:monospace;letter-spacing:1px">${t.token}</td><td style="padding:3px 4px">${estado}</td><td style="padding:3px 4px;white-space:nowrap">${desactivarBtn}${elimBtn}</td></tr>`;
     });
     html+='</table>';
     el.innerHTML=html;
   }catch(e){el.innerHTML='<span style="color:#ef4444;font-size:11px">Error al cargar</span>';}
+}
+
+async function adminRevocarToken(uid,patientId){
+  if(!confirm('¿Desactivar este token? La familia no podrá ingresar con el enlace actual.'))return;
+  try{
+    await db.collection('users').doc(uid).collection('pacientes').doc(patientId).set({familyActive:false},{merge:true});
+    await db.collection('pacientes').doc(patientId).set({familyActive:false},{merge:true});
+    adminLoadTokens(uid);
+  }catch(e){alert('Error al desactivar: '+e.message);}
+}
+
+async function adminEliminarToken(uid,patientId){
+  if(!confirm('¿Eliminar este token permanentemente? La familia perderá el acceso y no podrá recuperarlo.'))return;
+  try{
+    const del=firebase.firestore.FieldValue.delete();
+    await db.collection('users').doc(uid).collection('pacientes').doc(patientId).set({familyToken:del,familyActive:false,familyCompleted:false},{merge:true});
+    await db.collection('pacientes').doc(patientId).set({familyToken:del,familyActive:false},{merge:true});
+    adminLoadTokens(uid);
+  }catch(e){alert('Error al eliminar: '+e.message);}
 }
 
 function showAdminPanel(){
