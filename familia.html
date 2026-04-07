@@ -49,7 +49,7 @@ button{cursor:pointer;font-family:'Inter',sans-serif;font-size:13px;}
 label{display:block;font-size:11.5px;font-weight:700;color:var(--mid);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px;}
 
 /* Layout */
-.wrap{max-width:700px;margin:0 auto;padding:28px 16px 70px;position:relative;z-index:1;}
+.wrap{max-width:700px;margin:0 auto;padding:28px 16px 0;position:relative;z-index:1;}
 
 /* Header mejorado */
 .hdr{
@@ -169,7 +169,7 @@ label{display:block;font-size:11.5px;font-weight:700;color:var(--mid);margin-bot
 .chk-item:hover{border-color:var(--accent);background:var(--accent-light);}
 .chk-item.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent);font-weight:700;}
 .chk-item input{display:none;}
-.chk-item.active::before{content:'✓ ';font-weight:800;}
+.chk-item.active::before{content:'';display:inline-block;width:13px;height:13px;flex-shrink:0;border-radius:3px;background:var(--accent) url("data:image/svg+xml,%3Csvg viewBox='0 0 13 13' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M3 6.5l2.5 2.5 4.5-4.5' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center/11px no-repeat;margin-right:6px;}
 
 /* Convivientes */
 .conv-item{
@@ -218,15 +218,22 @@ label{display:block;font-size:11.5px;font-weight:700;color:var(--mid);margin-bot
 .progress-label{font-size:12px;color:var(--mid);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;}
 .progress-label strong{font-family:'Nunito',sans-serif;font-size:16px;font-weight:800;color:var(--accent);}
 
-/* Submit */
-.submit-wrap{margin-top:30px;text-align:center;}
+/* Submit — sticky al fondo */
+.submit-wrap{
+  position:sticky;bottom:0;
+  background:#fff;border-top:1px solid var(--border);
+  padding:12px 16px 18px;margin:30px -16px 0;
+  z-index:50;text-align:center;
+  box-shadow:0 -4px 16px rgba(0,0,0,.07);
+}
 .btn-submit{
   background:linear-gradient(135deg,var(--green),#047857);
-  color:#fff;border:none;padding:15px 44px;
-  border-radius:12px;font-family:'Nunito',sans-serif;
-  font-size:16px;font-weight:800;letter-spacing:.2px;
+  color:#fff;border:none;padding:14px 44px;
+  border-radius:12px;font-family:'Inter',sans-serif;
+  font-size:15px;font-weight:700;letter-spacing:.2px;
   transition:opacity .2s, transform .1s;
   box-shadow:0 4px 16px rgba(5,150,105,.3);
+  display:inline-flex;align-items:center;gap:8px;
 }
 .btn-submit:hover{opacity:.92;transform:translateY(-1px);}
 .btn-submit:disabled{background:var(--light);cursor:not-allowed;transform:none;box-shadow:none;}
@@ -266,7 +273,7 @@ label{display:block;font-size:11.5px;font-weight:700;color:var(--mid);margin-bot
 
 /* Mejoras móvil extra */
 @media(max-width:480px){
-  .wrap{padding:14px 10px 80px;}
+  .wrap{padding:14px 10px 0;}
   .hdr{padding:18px 16px;gap:12px;}
   .hdr h1{font-size:16px;}
   .hdr p{font-size:11.5px;}
@@ -275,8 +282,14 @@ label{display:block;font-size:11.5px;font-weight:700;color:var(--mid);margin-bot
   .g2,.g3{gap:10px;}
   .chk-item{font-size:12px;padding:8px 10px;min-height:36px;}
   .patient-pill{padding:11px 14px;gap:10px;}
-  .patient-pill-icon{width:36px;height:36px;font-size:17px;}
-  .btn-submit{padding:14px 28px;font-size:15px;}
+  .patient-pill-icon{width:36px;height:36px;}
+  .btn-submit{padding:13px 28px;font-size:14px;}
+  .submit-wrap{margin:20px -10px 0;}
+}
+@media(max-width:390px){
+  .hdr h1{font-size:15px;}
+  .sec-hdr h3{font-size:13px;}
+  .date-wrap{grid-template-columns:1fr 1.4fr 1.2fr;gap:6px;}
 }
 /* Checkboxes más táctiles */
 .checks{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
@@ -286,6 +299,12 @@ label{font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;text-transf
 /* Inputs ligeramente más grandes */
 input,select,textarea{font-size:14px;padding:11px 13px;}
 select{appearance:auto;}
+/* Hints y validación */
+.hint{font-size:11px;color:var(--light);margin-top:4px;line-height:1.4;display:block;}
+.field-error{border-color:var(--red)!important;box-shadow:0 0 0 3px rgba(220,38,38,.1)!important;}
+label.req::after{content:' *';color:var(--red);font-size:10px;font-weight:700;}
+/* Date selects */
+.date-wrap{display:grid;grid-template-columns:1fr 1.6fr 1.3fr;gap:8px;}
 </style>
 </head>
 <body>
@@ -294,7 +313,9 @@ select{appearance:auto;}
 
   <!-- HEADER -->
   <div class="hdr">
-    <div class="hdr-icon">🧠</div>
+    <div class="hdr-icon">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.92)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    </div>
     <div>
       <h1>Portal de Información Clínica</h1>
       <p>Complete este formulario para ayudar al profesional a conocer mejor la situación. Sus datos son estrictamente confidenciales.</p>
@@ -303,7 +324,7 @@ select{appearance:auto;}
 
   <!-- PANTALLA: TOKEN -->
   <div id="screen-token">
-    <div class="big-icon">🔐</div>
+    <div class="big-icon"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg></div>
     <h2>Ingrese su código de acceso</h2>
     <p>El profesional que los atiende les proporcionó un código único. Ingréselo a continuación para comenzar.</p>
     <div class="token-card">
@@ -319,7 +340,7 @@ select{appearance:auto;}
   <!-- PANTALLA: FORMULARIO -->
   <div id="screen-form">
     <div class="patient-pill">
-      <div class="patient-pill-icon">👤</div>
+      <div class="patient-pill-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
       <div>
         <div class="pname" id="disp-nombre">—</div>
         <div class="phc" id="disp-hc">—</div>
@@ -340,21 +361,21 @@ select{appearance:auto;}
     <div id="form-sections"></div>
 
     <div class="submit-wrap">
-      <button class="btn-submit" id="btn-enviar" onclick="enviar()">✅ Enviar información</button>
+      <button class="btn-submit" id="btn-enviar" onclick="enviar()"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Enviar información</button>
       <p style="margin-top:12px;font-size:12px;color:var(--light);">Una vez enviado, sus respuestas quedarán registradas de forma segura.</p>
     </div>
   </div>
 
   <!-- PANTALLA: BLOQUEADO -->
   <div id="screen-locked">
-    <div class="big-icon">🔒</div>
+    <div class="big-icon"><svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="var(--mid)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/><circle cx="12" cy="16" r="1.2" fill="var(--mid)"/></svg></div>
     <h2>Acceso no disponible</h2>
     <p style="color:var(--mid);max-width:360px;line-height:1.7;">Este enlace ha sido desactivado por el profesional. Si cree que esto es un error, comuníquese con su psicólogo/a.</p>
   </div>
 
   <!-- PANTALLA: ENVIADO -->
   <div id="screen-done">
-    <div class="big-icon">✅</div>
+    <div class="big-icon"><svg width="76" height="76" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><circle cx="12" cy="12" r="10"/><path d="M8 12l3 3 5-5"/></svg></div>
     <h2>¡Información enviada!</h2>
     <p>Gracias por completar el formulario. El profesional recibirá esta información de inmediato.</p>
     <p style="font-size:13px;color:var(--light);">Puede cerrar esta página.</p>
@@ -451,7 +472,7 @@ function mostrarFormulario(p){
   else container.innerHTML=htmlInfantil(p); // fallback
   if(p.familyCompleted){
     container.insertAdjacentHTML('afterbegin',
-      '<div class="nota-info" style="background:#ecfdf5;border:1px solid #6ee7b7;color:#065f46;"><span class="nota-info-icon">✅</span><span>Este formulario ya fue enviado anteriormente. Puede revisar o actualizar la información y volver a enviarlo.</span></div>'
+      '<div class="nota-info" style="background:#ecfdf5;border:1px solid #6ee7b7;color:#065f46;"><span class="nota-info-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></span><span>Este formulario ya fue enviado anteriormente. Puede revisar o actualizar la información y volver a enviarlo.</span></div>'
     );
   }
   bindChecks();
@@ -507,7 +528,7 @@ function collectData(){
 
   if(tipo==='Infantil (0-11 años)'){
     data={...data,
-      nombre:v('f_nombre'),fechaNac:v('f_fechaNac'),lugarNac:v('f_lugarNac'),
+      nombre:v('f_nombre'),fechaNac:getDate('f_fechaNac'),lugarNac:v('f_lugarNac'),
       sexo:v('f_sexo'),edad:v('f_edad'),cedula:v('f_cedula'),
       gradoEscolar:v('f_grado'),institucion:v('f_institucion'),
       direccion:v('f_direccion'),
@@ -534,7 +555,7 @@ function collectData(){
     };
   } else if(tipo.includes('Adolescente')){
     data={...data,
-      nombre:v('f_nombre'),fechaNac:v('f_fechaNac'),edad:v('f_edad'),
+      nombre:v('f_nombre'),fechaNac:getDate('f_fechaNac'),edad:v('f_edad'),
       sexo:v('f_sexo'),cedula:v('f_cedula'),direccion:v('f_direccion'),
       gradoEscolar:v('f_grado'),institucion:v('f_institucion'),
       repNombre:v('f_repNombre'),repTelefono:v('f_repTelefono'),
@@ -554,7 +575,7 @@ function collectData(){
     };
   } else if(tipo==='Adulto'){
     data={...data,
-      nombre:v('f_nombre'),fechaNac:v('f_fechaNac'),edad:v('f_edad'),
+      nombre:v('f_nombre'),fechaNac:getDate('f_fechaNac'),edad:v('f_edad'),
       sexo:v('f_sexo'),cedula:v('f_cedula'),direccion:v('f_direccion'),
       estadoCivil:v('f_estadoCivil'),ocupacion:v('f_ocupacion'),nivelEducativo:v('f_nivelEdu'),
       motivoConsultaAdulto:v('f_motivoAdulto'),
@@ -566,7 +587,7 @@ function collectData(){
     };
   } else if(tipo==='Adulto Mayor'||tipo.includes('Adulto mayor')){
     data={...data,
-      nombre:v('f_nombre'),fechaNac:v('f_fechaNac'),edad:v('f_edad'),
+      nombre:v('f_nombre'),fechaNac:getDate('f_fechaNac'),edad:v('f_edad'),
       sexo:v('f_sexo'),cedula:v('f_cedula'),direccion:v('f_direccion'),
       repNombre:v('f_repNombre'),repTelefono:v('f_repTelefono'),
       motivoConsulta:v('f_motivo'),
@@ -612,13 +633,23 @@ async function enviar(){
   hideBanner('form');hideBanner('ok');
   const btn=document.getElementById('btn-enviar');
   btn.disabled=true;btn.innerHTML='<span class="spinner"></span>Enviando...';
+  const val=validarFormulario();
+  if(!val.ok){
+    const lista=val.missing.slice(0,3).join(', ')+(val.missing.length>3?' y otros más':'');
+    showBanner('form',`Complete los campos requeridos: ${lista}`,'error');
+    val.firstEl?.scrollIntoView({behavior:'smooth',block:'center'});
+    btn.disabled=false;
+    btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Enviar información';
+    return;
+  }
   try{
     const data=collectData();
     await db.collection('pacientes').doc(currentDocId).set(data,{merge:true});
     hide('screen-form');show('screen-done');
   }catch(e){
     showBanner('form','Error al enviar. Verifique su conexión e intente de nuevo.','error');
-    btn.disabled=false;btn.innerHTML='✅ Enviar información';
+    btn.disabled=false;
+    btn.innerHTML='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Enviar información';
   }
 }
 
@@ -667,6 +698,55 @@ function sel(id,opts,val='',placeholder='Seleccionar...'){
   return `<select id="${id}"><option value="">${placeholder}</option>${opts.map(o=>`<option${val===o?' selected':''}>${o}</option>`).join('')}</select>`;
 }
 
+function dateSel(idBase,val){
+  const parts=val?val.split('-'):['','',''];
+  const yy=parts[0],mm=parts[1],dd=parts[2];
+  const MESES=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  const cur=new Date().getFullYear();
+  const days=Array.from({length:31},(_,i)=>String(i+1).padStart(2,'0'));
+  const years=Array.from({length:100},(_,i)=>cur-i);
+  return `<div class="date-wrap">
+    <select id="${idBase}_d" required>
+      <option value="">Día</option>
+      ${days.map(v=>`<option value="${v}"${dd===v?' selected':''}>${v}</option>`).join('')}
+    </select>
+    <select id="${idBase}_m" required>
+      <option value="">Mes</option>
+      ${MESES.map((m,i)=>{const v=String(i+1).padStart(2,'0');return`<option value="${v}"${mm===v?' selected':''}>${m}</option>`;}).join('')}
+    </select>
+    <select id="${idBase}_y" required>
+      <option value="">Año</option>
+      ${years.map(v=>`<option value="${v}"${yy==v?' selected':''}>${v}</option>`).join('')}
+    </select>
+  </div>`;
+}
+
+function getDate(idBase){
+  const d=document.getElementById(idBase+'_d');
+  const m=document.getElementById(idBase+'_m');
+  const y=document.getElementById(idBase+'_y');
+  if(!d||!m||!y||!d.value||!m.value||!y.value)return '';
+  return `${y.value}-${m.value}-${d.value}`;
+}
+
+function hint(text){return `<span class="hint">${text}</span>`;}
+
+function validarFormulario(){
+  document.querySelectorAll('.field-error').forEach(el=>el.classList.remove('field-error'));
+  const reqs=document.querySelectorAll('#form-sections [required]');
+  const missing=[];let firstEl=null;
+  reqs.forEach(el=>{
+    const empty=!el.value||el.value.trim()==='';
+    if(empty){
+      el.classList.add('field-error');
+      if(!firstEl)firstEl=el;
+      const lbl=el.closest('.fld')?.querySelector('label');
+      missing.push(lbl?lbl.textContent.replace('*','').trim():'Campo requerido');
+    }
+  });
+  return{ok:missing.length===0,missing,firstEl};
+}
+
 function convBlock(convs=[]){
   const rows=convs.map((c)=>`
     <div class="conv-item conv-row">
@@ -692,7 +772,7 @@ function convBlock(convs=[]){
 function htmlInfantil(p){
   return `
   <div class="nota-info">
-    <span class="nota-info-icon">ℹ️</span>
+    <span class="nota-info-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></span>
     <span>Este formulario debe ser completado por el <strong>representante o adulto responsable</strong> del niño/a. Por favor, responda en nombre del menor.</span>
   </div>
 
@@ -700,8 +780,8 @@ function htmlInfantil(p){
     <div class="sec-hdr"><div class="sec-num">1</div><h3>Datos del niño o niña</h3><span class="tipo-badge infantil">Infantil</span></div>
     <div class="sec-body">
       <div class="g2">
-        <div class="fld"><label>Nombre completo</label><input id="f_nombre" type="text" value="${p.nombre||''}" placeholder="Nombre y apellidos"/></div>
-        <div class="fld"><label>Fecha de nacimiento</label><input id="f_fechaNac" type="date" value="${p.fechaNac||''}"/></div>
+        <div class="fld"><label class="req">Nombre completo</label><input id="f_nombre" type="text" value="${p.nombre||''}" required/>${hint('Nombre y apellidos del niño/a')}</div>
+        <div class="fld"><label class="req">Fecha de nacimiento</label>${dateSel('f_fechaNac',p.fechaNac||'')}</div>
         <div class="fld"><label>Lugar de nacimiento</label><input id="f_lugarNac" type="text" value="${p.lugarNac||''}" placeholder="Ciudad, Estado, País"/></div>
         <div class="fld"><label>Edad actual</label><input id="f_edad" type="number" value="${p.edad||''}" placeholder="Años"/></div>
         <div class="fld"><label>Sexo</label>${sel('f_sexo',['Femenino','Masculino','Otro'],p.sexo||'')}</div>
@@ -717,9 +797,9 @@ function htmlInfantil(p){
     <div class="sec-hdr"><div class="sec-num">2</div><h3>Datos del representante</h3></div>
     <div class="sec-body">
       <div class="g2">
-        <div class="fld"><label>Nombre del representante</label><input id="f_repNombre" type="text" value="${p.repNombre||''}" placeholder="Nombre completo"/></div>
+        <div class="fld"><label class="req">Nombre del representante</label><input id="f_repNombre" type="text" value="${p.repNombre||''}" required/>${hint('Nombre y apellidos de quien completa el formulario')}</div>
         <div class="fld"><label>Parentesco</label>${sel('f_repParentesco',['Madre','Padre','Abuela/o','Tía/o','Tutora/or','Otro'],p.repParentesco||'')}</div>
-        <div class="fld"><label>Teléfono / WhatsApp</label><input id="f_repTelefono" type="tel" value="${p.repTelefono||''}" placeholder="+58 412..."/></div>
+        <div class="fld"><label class="req">Teléfono / WhatsApp</label><input id="f_repTelefono" type="tel" value="${p.repTelefono||''}" required/>${hint('Incluya código de área. Ej: +58 412-5678901')}</div>
         <div class="fld"><label>Personas que viven en casa</label><input id="f_personasEnCasa" type="number" value="${p.personasEnCasa||''}" placeholder="Número"/></div>
       </div>
       <div class="fld"><label>Personas que conviven con el/la niño/a</label>${convBlock(p.convivientes||[])}</div>
@@ -729,8 +809,8 @@ function htmlInfantil(p){
   <div class="sec">
     <div class="sec-hdr"><div class="sec-num">3</div><h3>Motivo de consulta</h3></div>
     <div class="sec-body">
-      <div class="fld"><label>¿Por qué buscan atención psicológica?</label>
-        <textarea id="f_motivo" rows="4" placeholder="Describa con sus palabras qué los trae a consulta...">${p.motivoConsulta||''}</textarea></div>
+      <div class="fld"><label class="req">¿Por qué buscan atención psicológica?</label>
+        <textarea id="f_motivo" rows="4" placeholder="Describa con sus palabras qué los trae a consulta..." required>${p.motivoConsulta||''}</textarea></div>
     </div>
   </div>
 
@@ -824,7 +904,7 @@ function htmlInfantil(p){
 function htmlAdolescente(p){
   return `
   <div class="nota-info">
-    <span class="nota-info-icon">ℹ️</span>
+    <span class="nota-info-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></span>
     <span>Este formulario debe ser completado por el <strong>representante o adulto responsable</strong> del/la adolescente. Responda desde su perspectiva como representante.</span>
   </div>
 
@@ -832,8 +912,8 @@ function htmlAdolescente(p){
     <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación</h3><span class="tipo-badge adolescente">Adolescente</span></div>
     <div class="sec-body">
       <div class="g2">
-        <div class="fld"><label>Nombre completo</label><input id="f_nombre" type="text" value="${p.nombre||''}" placeholder="Nombre y apellidos"/></div>
-        <div class="fld"><label>Fecha de nacimiento</label><input id="f_fechaNac" type="date" value="${p.fechaNac||''}"/></div>
+        <div class="fld"><label class="req">Nombre completo</label><input id="f_nombre" type="text" value="${p.nombre||''}" required/>${hint('Nombre y apellidos del/la adolescente')}</div>
+        <div class="fld"><label class="req">Fecha de nacimiento</label>${dateSel('f_fechaNac',p.fechaNac||'')}</div>
         <div class="fld"><label>Edad</label><input id="f_edad" type="number" value="${p.edad||''}" placeholder="Años"/></div>
         <div class="fld"><label>Sexo</label>${sel('f_sexo',['Femenino','Masculino','No binario','Prefiere no indicar'],p.sexo||'')}</div>
         <div class="fld"><label>Cédula / Documento</label><input id="f_cedula" type="text" value="${p.cedula||''}"/></div>
@@ -848,8 +928,8 @@ function htmlAdolescente(p){
     <div class="sec-hdr"><div class="sec-num">2</div><h3>Datos del representante</h3></div>
     <div class="sec-body">
       <div class="g2">
-        <div class="fld"><label>Nombre del representante</label><input id="f_repNombre" type="text" value="${p.repNombre||''}"/></div>
-        <div class="fld"><label>Teléfono</label><input id="f_repTelefono" type="tel" value="${p.repTelefono||''}"/></div>
+        <div class="fld"><label class="req">Nombre del representante</label><input id="f_repNombre" type="text" value="${p.repNombre||''}" required/>${hint('Nombre y apellidos de quien completa el formulario')}</div>
+        <div class="fld"><label class="req">Teléfono</label><input id="f_repTelefono" type="tel" value="${p.repTelefono||''}" required/>${hint('Incluya código de área. Ej: +58 412-5678901')}</div>
         <div class="fld"><label>Personas en casa</label><input id="f_personasEnCasa" type="number" value="${p.personasEnCasa||''}"/></div>
       </div>
       <div class="fld"><label>Personas que conviven</label>${convBlock(p.convivientes||[])}</div>
@@ -859,8 +939,8 @@ function htmlAdolescente(p){
   <div class="sec">
     <div class="sec-hdr"><div class="sec-num">3</div><h3>Motivo de consulta</h3></div>
     <div class="sec-body">
-      <div class="fld"><label>Versión del representante — ¿Por qué buscan ayuda?</label>
-        <textarea id="f_motivoRep" rows="4" placeholder="Describa desde su perspectiva qué los trae a consulta...">${p.motivoRepresentante||''}</textarea></div>
+      <div class="fld"><label class="req">Versión del representante — ¿Por qué buscan ayuda?</label>
+        <textarea id="f_motivoRep" rows="4" placeholder="Describa desde su perspectiva qué los trae a consulta..." required>${p.motivoRepresentante||''}</textarea></div>
       <div class="fld"><label>¿Cuándo comenzó el problema?</label>
         ${sel('f_inicioproblema',['Hace menos de 1 mes','Hace 1-3 meses','Hace 3-6 meses','Hace 6-12 meses','Hace más de 1 año','Hace más de 2 años','Desde siempre / desde pequeño'],p.inicioproblema||'')}</div>
       <div class="fld"><label>¿En qué áreas ha afectado?</label>
@@ -927,7 +1007,7 @@ function htmlAdolescente(p){
 function htmlAdulto(p){
   return `
   <div class="nota-info">
-    <span class="nota-info-icon">ℹ️</span>
+    <span class="nota-info-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></span>
     <span>Este formulario es para usted. Por favor, complételo con sus propios datos y perspectiva.</span>
   </div>
 
@@ -935,8 +1015,8 @@ function htmlAdulto(p){
     <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación</h3><span class="tipo-badge adulto">Adulto</span></div>
     <div class="sec-body">
       <div class="g2">
-        <div class="fld"><label>Nombre completo</label><input id="f_nombre" type="text" value="${p.nombre||''}"/></div>
-        <div class="fld"><label>Fecha de nacimiento</label><input id="f_fechaNac" type="date" value="${p.fechaNac||''}"/></div>
+        <div class="fld"><label class="req">Nombre completo</label><input id="f_nombre" type="text" value="${p.nombre||''}" required/>${hint('Sus nombres y apellidos completos')}</div>
+        <div class="fld"><label class="req">Fecha de nacimiento</label>${dateSel('f_fechaNac',p.fechaNac||'')}</div>
         <div class="fld"><label>Edad</label><input id="f_edad" type="number" value="${p.edad||''}"/></div>
         <div class="fld"><label>Sexo</label>${sel('f_sexo',['Femenino','Masculino','No binario','Prefiere no indicar'],p.sexo||'')}</div>
         <div class="fld"><label>Cédula / Documento</label><input id="f_cedula" type="text" value="${p.cedula||''}"/></div>
@@ -951,8 +1031,8 @@ function htmlAdulto(p){
   <div class="sec">
     <div class="sec-hdr"><div class="sec-num">2</div><h3>Motivo de consulta</h3></div>
     <div class="sec-body">
-      <div class="fld"><label>¿Qué lo/la trae a consulta?</label>
-        <textarea id="f_motivoAdulto" rows="4" placeholder="Describa con sus palabras...">${p.motivoConsultaAdulto||''}</textarea></div>
+      <div class="fld"><label class="req">¿Qué lo/la trae a consulta?</label>
+        <textarea id="f_motivoAdulto" rows="4" placeholder="Describa con sus palabras..." required>${p.motivoConsultaAdulto||''}</textarea></div>
     </div>
   </div>
 
@@ -1003,7 +1083,7 @@ function htmlAdulto(p){
 function htmlAdultoMayor(p){
   return `
   <div class="nota-info">
-    <span class="nota-info-icon">ℹ️</span>
+    <span class="nota-info-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></span>
     <span>Este formulario puede ser completado por el <strong>cuidador o representante</strong>, o por el/la consultante si así lo prefiere.</span>
   </div>
 
@@ -1011,8 +1091,8 @@ function htmlAdultoMayor(p){
     <div class="sec-hdr"><div class="sec-num">1</div><h3>Identificación</h3><span class="tipo-badge adulto-mayor">Adulto Mayor</span></div>
     <div class="sec-body">
       <div class="g2">
-        <div class="fld"><label>Nombre completo</label><input id="f_nombre" type="text" value="${p.nombre||''}"/></div>
-        <div class="fld"><label>Fecha de nacimiento</label><input id="f_fechaNac" type="date" value="${p.fechaNac||''}"/></div>
+        <div class="fld"><label class="req">Nombre completo</label><input id="f_nombre" type="text" value="${p.nombre||''}" required/>${hint('Nombre y apellidos completos')}</div>
+        <div class="fld"><label class="req">Fecha de nacimiento</label>${dateSel('f_fechaNac',p.fechaNac||'')}</div>
         <div class="fld"><label>Edad</label><input id="f_edad" type="number" value="${p.edad||''}"/></div>
         <div class="fld"><label>Sexo</label>${sel('f_sexo',['Femenino','Masculino','Prefiere no indicar'],p.sexo||'')}</div>
         <div class="fld"><label>Cédula / Documento</label><input id="f_cedula" type="text" value="${p.cedula||''}"/></div>
@@ -1025,8 +1105,8 @@ function htmlAdultoMayor(p){
     <div class="sec-hdr"><div class="sec-num">2</div><h3>Cuidador o Contacto</h3></div>
     <div class="sec-body">
       <div class="g2">
-        <div class="fld"><label>Nombre del cuidador/representante</label><input id="f_repNombre" type="text" value="${p.repNombre||''}"/></div>
-        <div class="fld"><label>Teléfono</label><input id="f_repTelefono" type="tel" value="${p.repTelefono||''}"/></div>
+        <div class="fld"><label class="req">Nombre del cuidador/representante</label><input id="f_repNombre" type="text" value="${p.repNombre||''}" required/>${hint('Quien completa o quien se encarga del cuidado')}</div>
+        <div class="fld"><label class="req">Teléfono</label><input id="f_repTelefono" type="tel" value="${p.repTelefono||''}" required/>${hint('Incluya código de área. Ej: +58 412-5678901')}</div>
       </div>
     </div>
   </div>
@@ -1034,8 +1114,8 @@ function htmlAdultoMayor(p){
   <div class="sec">
     <div class="sec-hdr"><div class="sec-num">3</div><h3>Motivo de consulta</h3></div>
     <div class="sec-body">
-      <div class="fld"><label>¿Por qué buscan atención psicológica?</label>
-        <textarea id="f_motivo" rows="4" placeholder="Describa la situación...">${p.motivoConsulta||''}</textarea></div>
+      <div class="fld"><label class="req">¿Por qué buscan atención psicológica?</label>
+        <textarea id="f_motivo" rows="4" placeholder="Describa la situación..." required>${p.motivoConsulta||''}</textarea></div>
     </div>
   </div>
 
@@ -1074,7 +1154,7 @@ function htmlAdultoMayor(p){
 function htmlPareja(p){
   return `
   <div class="nota-info">
-    <span class="nota-info-icon">ℹ️</span>
+    <span class="nota-info-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></span>
     <span>Este formulario puede ser completado por cualquiera de los dos miembros de la pareja, o en conjunto.</span>
   </div>
 
@@ -1104,7 +1184,7 @@ function htmlPareja(p){
 function htmlGrupo(p){
   return `
   <div class="nota-info">
-    <span class="nota-info-icon">ℹ️</span>
+    <span class="nota-info-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></span>
     <span>Este formulario es para el <strong>grupo terapéutico</strong>. Puede ser completado por el coordinador o por un participante designado.</span>
   </div>
 
@@ -1123,7 +1203,7 @@ function htmlGrupo(p){
 function htmlFamilia(p){
   return `
   <div class="nota-info">
-    <span class="nota-info-icon">ℹ️</span>
+    <span class="nota-info-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg></span>
     <span>Este formulario debe ser completado por el <strong>representante o adulto responsable</strong> que consulta en nombre del grupo familiar.</span>
   </div>
 
