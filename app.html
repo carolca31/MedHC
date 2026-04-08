@@ -827,6 +827,9 @@ pre{background:var(--alt);border:1px solid var(--border);border-radius:9px;paddi
           <span style="font-size:12px;font-weight:700;color:#16A34A;">La familia completó el formulario</span>
         </div>
 
+        <!-- Resumen de datos familiares -->
+        <div id="pf-resumen-familiar" style="display:none;background:#EFF6FF;border:1.5px solid #BAE6FD;border-radius:10px;padding:12px 14px;margin-bottom:12px;"></div>
+
         <!-- Link display -->
         <div style="background:var(--alt);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
           <div style="font-size:10px;font-weight:700;color:var(--mid);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;">Enlace de acceso</div>
@@ -924,6 +927,7 @@ function mostrarTokenActivoUI(p){
   document.getElementById('pf-con-token').style.display = 'block';
   const banner = document.getElementById('pf-completado-banner');
   banner.style.display = p.familyCompleted ? 'flex' : 'none';
+  mostrarResumenFamiliar(p);
 }
 
 function copiarLinkFamilia(){
@@ -1032,11 +1036,34 @@ function watchFamilyToken(patientId){
         // Actualizar en memoria
         const idx = patients.findIndex(function(x){ return x.id === patientId; });
         if(idx !== -1){ Object.assign(patients[idx], toMerge); renderList(); }
+        // Si el paciente está actualmente abierto en el lobby, refrescar su panel
+        if(currentPatient && currentPatient.id === patientId){
+          Object.assign(currentPatient, toMerge);
+          actualizarSubtituloLobby(currentPatient);
+          mostrarResumenFamiliar(currentPatient);
+        }
         // Desuscribir tras sincronización exitosa
         familyTokenListeners[patientId]();
         delete familyTokenListeners[patientId];
       }catch(e){ console.error('Error sincronizando datos familiares:', e); }
     });
+}
+
+function mostrarResumenFamiliar(p){
+  const el = document.getElementById('pf-resumen-familiar');
+  if(!el) return;
+  if(!p.familyCompleted){ el.style.display='none'; return; }
+  const fecha = p.familyFilledAt ? new Date(p.familyFilledAt).toLocaleDateString('es-VE',{day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '';
+  const motivo = p.motivoConsulta||p.motivoRepresentante||p.motivoConsultaAdulto||'—';
+  const rep = p.repNombre ? `<b>${p.repNombre}</b>${p.repTelefono?' · '+p.repTelefono:''}` : '';
+  el.style.display='block';
+  el.innerHTML = `<div style="font-size:11px;color:#0369A1;font-weight:700;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="20 6 9 17 4 12"/></svg>
+    Formulario completado${fecha?' · '+fecha:''}
+  </div>
+  ${motivo!=='—'?`<div style="font-size:11.5px;color:#1e293b;margin-bottom:6px;"><b>Motivo:</b> ${motivo.substring(0,200)}${motivo.length>200?'…':''}</div>`:''}
+  ${rep?`<div style="font-size:11px;color:#475569;"><b>Contacto:</b> ${rep}</div>`:''}
+  <button onclick="lobbyVerHistoria()" style="margin-top:10px;font-size:11px;padding:5px 12px;background:#0891B2;color:#fff;border:none;border-radius:7px;cursor:pointer;font-weight:600;">Ver historia completa</button>`;
 }
 
 function actualizarSubtituloLobby(p){
