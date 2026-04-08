@@ -73,6 +73,7 @@ label{display:block;font-size:11.5px;font-weight:700;color:var(--mid);margin-bot
   border-radius:50%;
 }
 .hdr-icon{font-size:38px;flex-shrink:0;filter:drop-shadow(0 2px 4px rgba(0,0,0,.2));}
+.hdr-logo{width:46px;height:46px;border-radius:12px;object-fit:cover;box-shadow:0 2px 8px rgba(0,0,0,.2);}
 .hdr h1{font-family:'Nunito',sans-serif;font-size:19px;font-weight:800;margin-bottom:4px;letter-spacing:-.2px;}
 .hdr p{font-size:12.5px;opacity:.85;line-height:1.55;}
 
@@ -297,7 +298,7 @@ label{display:block;font-size:11.5px;font-weight:700;color:var(--mid);margin-bot
 /* Labels más claros */
 label{font-size:11px;font-weight:700;color:#475569;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px;}
 /* Inputs ligeramente más grandes */
-input,select,textarea{font-size:14px;padding:11px 13px;}
+input,select,textarea{font-size:16px;padding:11px 13px;}
 select{appearance:auto;}
 /* Hints y validación */
 .hint{font-size:11px;color:var(--light);margin-top:4px;line-height:1.4;display:block;}
@@ -305,6 +306,28 @@ select{appearance:auto;}
 label.req::after{content:' *';color:var(--red);font-size:10px;font-weight:700;}
 /* Date selects */
 .date-wrap{display:grid;grid-template-columns:1fr 1.6fr 1.3fr;gap:8px;}
+/* Mobile UX mejorado */
+@media(max-width:540px){
+  .progress-wrap{margin-bottom:14px;}
+  .progress-bar{height:6px;}
+  .progress-label{font-size:11px;}
+  .progress-label strong{font-size:14px;}
+  .patient-pill{padding:10px 13px;gap:9px;}
+  .patient-pill .pname{font-size:14px;}
+  .patient-pill .phc{font-size:10px;}
+  .sec-body{padding:12px 11px;}
+  .sec-hdr{padding:10px 13px;}
+  .sec-hdr h3{font-size:13.5px;}
+  .sec-num{width:24px;height:24px;font-size:11px;}
+  .checks{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+  .chk-item{min-height:42px;font-size:12.5px;justify-content:flex-start;}
+  .date-wrap{gap:5px;}
+  .nota-info{font-size:11.5px;padding:9px 12px;}
+}
+@media(max-width:390px){
+  .checks{grid-template-columns:1fr;}
+  .date-wrap{grid-template-columns:0.8fr 1.4fr 1.1fr;}
+}
 </style>
 </head>
 <body>
@@ -314,7 +337,7 @@ label.req::after{content:' *';color:var(--red);font-size:10px;font-weight:700;}
   <!-- HEADER -->
   <div class="hdr">
     <div class="hdr-icon">
-      <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.92)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" xmlns="http://www.w3.org/2000/svg"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <img src="icon-512.png" alt="MedHC" class="hdr-logo"/>
     </div>
     <div>
       <h1>Portal de Información Clínica</h1>
@@ -810,7 +833,8 @@ function htmlInfantil(p){
     <div class="sec-hdr"><div class="sec-num">3</div><h3>Motivo de consulta</h3></div>
     <div class="sec-body">
       <div class="fld"><label class="req">¿Por qué buscan atención psicológica?</label>
-        <textarea id="f_motivo" rows="4" placeholder="Describa con sus palabras qué los trae a consulta..." required>${p.motivoConsulta||''}</textarea></div>
+        <textarea id="f_motivo" rows="4" placeholder="Describa con sus palabras qué los trae a consulta..." required>${p.motivoConsulta||''}</textarea>
+        ${hint('Incluya: ¿Cuándo empezó el problema? · ¿Cómo afecta su vida diaria? · ¿Han buscado ayuda antes?')}</div>
     </div>
   </div>
 
@@ -940,7 +964,8 @@ function htmlAdolescente(p){
     <div class="sec-hdr"><div class="sec-num">3</div><h3>Motivo de consulta</h3></div>
     <div class="sec-body">
       <div class="fld"><label class="req">Versión del representante — ¿Por qué buscan ayuda?</label>
-        <textarea id="f_motivoRep" rows="4" placeholder="Describa desde su perspectiva qué los trae a consulta..." required>${p.motivoRepresentante||''}</textarea></div>
+        <textarea id="f_motivoRep" rows="4" placeholder="Describa desde su perspectiva qué los trae a consulta..." required>${p.motivoRepresentante||''}</textarea>
+        ${hint('Cuente desde su perspectiva: ¿Qué notaron primero? · ¿Cuándo empeoró? · ¿Cómo reacciona el/la joven en casa?')}</div>
       <div class="fld"><label>¿Cuándo comenzó el problema?</label>
         ${sel('f_inicioproblema',['Hace menos de 1 mes','Hace 1-3 meses','Hace 3-6 meses','Hace 6-12 meses','Hace más de 1 año','Hace más de 2 años','Desde siempre / desde pequeño'],p.inicioproblema||'')}</div>
       <div class="fld"><label>¿En qué áreas ha afectado?</label>
@@ -953,7 +978,8 @@ function htmlAdolescente(p){
     <div class="sec-hdr"><div class="sec-num">4</div><h3>Desarrollo y antecedentes</h3></div>
     <div class="sec-body">
       <div class="fld"><label>¿Hubo dificultades relevantes en la infancia o desarrollo temprano?</label>
-        <textarea id="f_antDesarrollo" rows="3" placeholder="Problemas de lenguaje, aprendizaje, conducta, salud...">${p.antecedentesDesarrollo||''}</textarea></div>
+        <textarea id="f_antDesarrollo" rows="3" placeholder="Problemas de lenguaje, aprendizaje, conducta, salud...">${p.antecedentesDesarrollo||''}</textarea>
+        ${hint('¿Tuvo dificultades para hablar o caminar? · ¿Problemas escolares o de conducta antes? · ¿Algún diagnóstico o tratamiento previo?')}</div>
     </div>
   </div>
 
@@ -1032,7 +1058,8 @@ function htmlAdulto(p){
     <div class="sec-hdr"><div class="sec-num">2</div><h3>Motivo de consulta</h3></div>
     <div class="sec-body">
       <div class="fld"><label class="req">¿Qué lo/la trae a consulta?</label>
-        <textarea id="f_motivoAdulto" rows="4" placeholder="Describa con sus palabras..." required>${p.motivoConsultaAdulto||''}</textarea></div>
+        <textarea id="f_motivoAdulto" rows="4" placeholder="Describa con sus palabras..." required>${p.motivoConsultaAdulto||''}</textarea>
+        ${hint('Cuente con sus propias palabras: ¿Qué lo/la trajo aquí ahora? · ¿Cuánto tiempo lleva así? · ¿Cómo afecta su vida cotidiana?')}</div>
     </div>
   </div>
 
@@ -1040,9 +1067,11 @@ function htmlAdulto(p){
     <div class="sec-hdr"><div class="sec-num">3</div><h3>Historia de vida</h3></div>
     <div class="sec-body">
       <div class="fld"><label>Aspectos relevantes de su infancia</label>
-        <textarea id="f_infancia" rows="3" placeholder="Lo que considere importante compartir...">${p.historiaInfancia||''}</textarea></div>
+        <textarea id="f_infancia" rows="3" placeholder="Lo que considere importante compartir...">${p.historiaInfancia||''}</textarea>
+        ${hint('¿Cómo era la relación con sus padres? · ¿Vivió algo difícil en esa etapa? · ¿Cómo recuerda ese período en general?')}</div>
       <div class="fld"><label>Aspectos relevantes de su adolescencia</label>
-        <textarea id="f_adolescencia" rows="3" placeholder="Lo que considere importante compartir...">${p.historiaAdolescencia||''}</textarea></div>
+        <textarea id="f_adolescencia" rows="3" placeholder="Lo que considere importante compartir...">${p.historiaAdolescencia||''}</textarea>
+        ${hint('¿Cómo fue el período escolar? · ¿Tenía amigos cercanos? · ¿Hubo conflictos familiares o algo que lo/la marcara?')}</div>
     </div>
   </div>
 
@@ -1050,9 +1079,11 @@ function htmlAdulto(p){
     <div class="sec-hdr"><div class="sec-num">4</div><h3>Contexto actual</h3></div>
     <div class="sec-body">
       <div class="fld"><label>¿Con quiénes vive actualmente?</label>
-        <textarea id="f_compFam" rows="2" placeholder="Nombre, parentesco y edad de cada persona...">${p.composicionFamiliarA||''}</textarea></div>
+        <textarea id="f_compFam" rows="2" placeholder="Nombre, parentesco y edad de cada persona...">${p.composicionFamiliarA||''}</textarea>
+        ${hint('Ej: "Esposa (42 años, enfermera); hijo (15 años, estudiante)". Mencione nombre, edad y relación de cada uno.')}</div>
       <div class="fld"><label>Red de apoyo</label>
-        <textarea id="f_redApoyo" rows="2" placeholder="¿Con quién cuenta cuando lo necesita?">${p.redApoyo||''}</textarea></div>
+        <textarea id="f_redApoyo" rows="2" placeholder="¿Con quién cuenta cuando lo necesita?">${p.redApoyo||''}</textarea>
+        ${hint('¿A quién llama cuando lo necesita? · ¿Tiene familia o amigos cercanos en quienes confíe?')}</div>
     </div>
   </div>
 
@@ -1115,7 +1146,8 @@ function htmlAdultoMayor(p){
     <div class="sec-hdr"><div class="sec-num">3</div><h3>Motivo de consulta</h3></div>
     <div class="sec-body">
       <div class="fld"><label class="req">¿Por qué buscan atención psicológica?</label>
-        <textarea id="f_motivo" rows="4" placeholder="Describa la situación..." required>${p.motivoConsulta||''}</textarea></div>
+        <textarea id="f_motivo" rows="4" placeholder="Describa la situación..." required>${p.motivoConsulta||''}</textarea>
+        ${hint('Incluya: ¿Cuándo empezó el problema? · ¿Cómo afecta su vida diaria? · ¿Han buscado ayuda antes?')}</div>
     </div>
   </div>
 
@@ -1123,9 +1155,11 @@ function htmlAdultoMayor(p){
     <div class="sec-hdr"><div class="sec-num">4</div><h3>Red de apoyo y contexto</h3></div>
     <div class="sec-body">
       <div class="fld"><label>¿Con quiénes vive?</label>
-        <textarea id="f_compFam" rows="2" placeholder="Nombre y relación de cada persona...">${p.composicionFamiliarA||''}</textarea></div>
+        <textarea id="f_compFam" rows="2" placeholder="Nombre y relación de cada persona...">${p.composicionFamiliarA||''}</textarea>
+        ${hint('Ej: "Esposa (42 años, enfermera); hijo (15 años, estudiante)". Mencione nombre, edad y relación de cada uno.')}</div>
       <div class="fld"><label>¿Con quién cuenta para apoyarse?</label>
-        <textarea id="f_redApoyo" rows="2" placeholder="Familiares, amigos, vecinos...">${p.redApoyo||''}</textarea></div>
+        <textarea id="f_redApoyo" rows="2" placeholder="Familiares, amigos, vecinos...">${p.redApoyo||''}</textarea>
+        ${hint('¿A quién llama cuando lo necesita? · ¿Tiene familia o amigos cercanos en quienes confíe?')}</div>
     </div>
   </div>
 
@@ -1175,7 +1209,8 @@ function htmlPareja(p){
     <div class="sec-hdr"><div class="sec-num">2</div><h3>Motivo de consulta</h3></div>
     <div class="sec-body">
       <div class="fld"><label>¿Qué los trae a consulta?</label>
-        <textarea id="f_motivo" rows="4" placeholder="Describa la situación que los motiva a buscar ayuda...">${p.motivoConsulta||''}</textarea></div>
+        <textarea id="f_motivo" rows="4" placeholder="Describa la situación que los motiva a buscar ayuda...">${p.motivoConsulta||''}</textarea>
+        ${hint('Incluya: ¿Cuándo empezó el problema? · ¿Cómo afecta su vida diaria? · ¿Han buscado ayuda antes?')}</div>
     </div>
   </div>`;
 }
@@ -1192,7 +1227,8 @@ function htmlGrupo(p){
     <div class="sec-hdr"><div class="sec-num">1</div><h3>Información del grupo</h3><span class="tipo-badge grupo">Grupo</span></div>
     <div class="sec-body">
       <div class="fld"><label>¿Qué los trae a este proceso grupal?</label>
-        <textarea id="f_motivoGrp" rows="4" placeholder="Describa brevemente el motivo o situación que motiva la participación del grupo...">${p.motivoConsulta||''}</textarea></div>
+        <textarea id="f_motivoGrp" rows="4" placeholder="Describa brevemente el motivo o situación que motiva la participación del grupo...">${p.motivoConsulta||''}</textarea>
+        ${hint('¿Cuál es la situación o necesidad que reúne al grupo? · ¿Qué esperan lograr con el proceso terapéutico?')}</div>
       <div class="fld"><label>Comentarios adicionales</label>
         <textarea id="f_comentariosGrp" rows="3" placeholder="Cualquier información adicional que considere relevante para el profesional...">${p.comentariosAdicionales||''}</textarea></div>
     </div>
@@ -1223,7 +1259,8 @@ function htmlFamilia(p){
     <div class="sec-hdr"><div class="sec-num">2</div><h3>Motivo de consulta</h3></div>
     <div class="sec-body">
       <div class="fld"><label>¿Qué los trae a consulta?</label>
-        <textarea id="f_motivo" rows="4" placeholder="Describa la situación que los motiva a buscar apoyo...">${p.motivoConsulta||''}</textarea></div>
+        <textarea id="f_motivo" rows="4" placeholder="Describa la situación que los motiva a buscar apoyo...">${p.motivoConsulta||''}</textarea>
+        ${hint('Incluya: ¿Cuándo empezó el problema? · ¿Cómo afecta su vida diaria? · ¿Han buscado ayuda antes?')}</div>
     </div>
   </div>`;
 }
