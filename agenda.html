@@ -1,0 +1,1944 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover"/>
+<title>Agenda MedHC</title>
+<meta name="theme-color" content="#1A3A6E"/>
+<link rel="manifest" href="manifest.json"/>
+<link rel="apple-touch-icon" href="icon-192.png"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="Agenda"/>
+<!-- Conexión silenciosa con la cuenta de MedHC (mismo proyecto Firebase). Si no hay sesión activa
+     en este dispositivo/navegador, la Agenda sigue funcionando 100% en modo local, sin pedir login. -->
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js" onerror="window.__agFirebaseFailed=true"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js" onerror="window.__agFirebaseFailed=true"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-auth-compat.js" onerror="window.__agFirebaseFailed=true"></script>
+<!-- Motor de Excel (solo se usa para exportar balances a .xlsx). Si no hay conexión la primera vez,
+     el resto de la aplicación sigue funcionando 100% normal; solo la exportación a Excel avisará
+     que necesita internet para cargarse. -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js" onerror="window.__agXlsxFailed=true"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#F4F6F9;--surface:#FFFFFF;--alt:#F0F4F8;--border:#D1DCE8;
+  --accent:#0891B2;--apl:#E0F5FB;--apltx:#0670A0;--cobalt:#1A3A6E;
+  --rose:#E05C5C;--rpl:#FDECEA;--yellow:#F59E0B;--ypl:#FEF3C7;
+  --green:#16A34A;--gpl:#E7F7EC;
+  --brown:#1E2A3A;--mid:#4A5568;--light:#94A3B8;--danger:#DC2626;
+  --wa:#25D366;
+}
+html[data-theme="dark"]{
+  --bg:#0F1720;--surface:#16212C;--alt:#1C2A38;--border:#2A3B4C;
+  --apl:#123044;--rpl:#3A1B1B;--ypl:#3A2E10;--gpl:#0F2E1C;
+  --brown:#EAF0F6;--mid:#9AAAB9;--light:#5E6F80;
+}
+html[data-theme="dark"] .tag.online{color:#F5C15C;}
+html[data-theme="dark"] .tag.val{color:#5FD68C;}
+html[data-theme="dark"] .tag.hc,html[data-theme="dark"] .tag.estado-lbl{color:var(--mid);}
+html[data-theme="dark"] .sug-item,html[data-theme="dark"] .sr-item{border-color:var(--alt);}
+html,body{height:100%;background:var(--bg);}
+body{font-family:'Segoe UI',Arial,sans-serif;color:var(--brown);font-size:14px;
+  padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);
+  -webkit-overflow-scrolling:touch;transition:background .2s,color .2s;}
+body.compact .cita{padding:5px 6px;}
+body.compact .day-hd{padding:7px 13px;}
+body.compact .day-body{padding:3px 8px;}
+body.compact .cita-tags{margin-top:1px;}
+input,select,button,textarea{font-family:inherit;font-size:15px;}
+button{cursor:pointer;}
+svg{display:block;}
+.ic{width:16px;height:16px;stroke:currentColor;fill:none;stroke-width:2.1;stroke-linecap:round;stroke-linejoin:round;}
+
+/* ===== Header ===== */
+#hdr{position:sticky;top:0;z-index:20;background:linear-gradient(135deg,var(--cobalt),var(--accent));
+  color:#fff;padding:14px 16px 12px;box-shadow:0 2px 10px rgba(0,0,0,.12);}
+#hdr-top{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+#hdr-id{display:flex;align-items:center;gap:10px;min-width:0;}
+#hdr-logo{width:38px;height:38px;border-radius:11px;background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;font-weight:800;font-size:15px;}
+#hdr-logo img{width:100%;height:100%;object-fit:cover;}
+#hdr-txt{min-width:0;}
+#hdr-title{font-size:15.5px;font-weight:800;display:flex;align-items:center;gap:6px;}
+#hdr-title .ic{width:15px;height:15px;}
+#hdr-sub{font-size:11.5px;opacity:.88;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+#hdr-acts{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+.hdr-btn{background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);color:#fff;
+  width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+#install-btn{width:auto;padding:0 10px;gap:5px;font-size:11px;font-weight:700;display:none;}
+#install-btn.show{display:flex;}
+#week-bar{display:flex;align-items:center;justify-content:space-between;margin-top:12px;
+  background:rgba(255,255,255,.14);border-radius:10px;padding:6px 8px;}
+.wk-nav{background:none;border:none;color:#fff;display:flex;align-items:center;justify-content:center;padding:2px 12px;}
+.wk-nav .ic{width:18px;height:18px;stroke-width:2.6;}
+#week-lbl{font-size:12.5px;font-weight:700;text-align:center;flex:1;}
+#week-lbl small{display:block;font-weight:500;opacity:.8;font-size:10px;margin-top:1px;}
+#hoy-btn{background:none;border:none;color:#fff;font-size:10px;font-weight:800;text-decoration:underline;
+  opacity:.85;text-align:center;width:100%;margin-top:6px;padding:2px;}
+
+/* ===== Resumen semanal ===== */
+#resumen{padding:12px 10px 0;}
+#resumen-card{background:var(--surface);border:1.5px solid var(--border);border-radius:13px;padding:12px 13px;}
+#resumen-hd{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:800;color:var(--mid);
+  text-transform:uppercase;letter-spacing:.04em;margin-bottom:9px;}
+#resumen-hd .ic{width:13px;height:13px;color:var(--accent);}
+#resumen-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.res-item{background:var(--alt);border-radius:9px;padding:8px 10px;}
+.res-item b{display:block;font-size:16.5px;font-weight:800;color:var(--brown);}
+.res-item span{font-size:10px;color:var(--mid);font-weight:600;}
+.res-item.ok b{color:var(--green);}
+#resumen-modal{display:flex;gap:12px;margin-top:9px;font-size:11px;color:var(--mid);font-weight:600;}
+#resumen-modal span b{color:var(--brown);}
+
+/* ===== Filtro ===== */
+#filtro-bar{padding:10px 10px 0;display:flex;gap:8px;}
+#filtro-bar select{flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:9px;
+  background:var(--surface);color:var(--brown);font-size:12px;font-weight:700;outline:none;}
+
+/* ===== Búsqueda ===== */
+#search-ov .sheet{padding-top:14px;}
+#search-input-wrap{position:relative;margin-bottom:12px;}
+#search-input-wrap .ic{position:absolute;left:11px;top:50%;transform:translateY(-50%);width:15px;height:15px;color:var(--light);}
+#search-input{width:100%;padding:11px 11px 11px 34px;border:1.5px solid var(--border);border-radius:10px;
+  background:var(--alt);color:var(--brown);outline:none;}
+#search-input:focus{border-color:var(--accent);}
+#search-res .sr-item{display:flex;align-items:center;gap:10px;padding:11px 6px;border-bottom:1px solid var(--alt);}
+#search-res .sr-item:last-child{border-bottom:none;}
+#search-res .sr-day{width:44px;flex-shrink:0;text-align:center;}
+#search-res .sr-day b{display:block;font-size:15px;font-weight:800;color:var(--cobalt);}
+#search-res .sr-day span{display:block;font-size:9px;color:var(--mid);font-weight:700;text-transform:uppercase;}
+#search-res .sr-mid{flex:1;min-width:0;}
+#search-res .sr-mid b{font-size:13px;color:var(--brown);}
+#search-res .sr-mid span{display:block;font-size:11px;color:var(--mid);margin-top:1px;}
+#search-empty{text-align:center;color:var(--light);font-size:12px;padding:30px 10px;}
+
+/* ===== Ajustes: horario laboral ===== */
+.days-check{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;}
+.day-check{width:38px;height:38px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);
+  color:var(--mid);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.day-check.on{background:var(--apl);border-color:var(--accent);color:var(--apltx);}
+
+/* ===== Days list ===== */
+#days{padding:12px 10px 90px;}
+.day-card{background:var(--surface);border:1.5px solid var(--border);border-radius:13px;
+  margin-bottom:11px;overflow:hidden;}
+.day-card.today{border-color:var(--accent);box-shadow:0 0 0 2px var(--apl);}
+.day-hd{display:flex;align-items:center;justify-content:space-between;padding:10px 13px;
+  background:var(--alt);border-bottom:1.5px solid var(--border);}
+.day-card.today .day-hd{background:var(--apl);}
+.day-hd-name{font-size:13.5px;font-weight:800;color:var(--brown);}
+.day-hd-name span{font-weight:500;color:var(--mid);font-size:11.5px;margin-left:5px;}
+.day-hd-count{font-size:10px;font-weight:700;color:var(--mid);background:#fff;border:1px solid var(--border);
+  border-radius:20px;padding:2px 8px;}
+.day-body{padding:6px 8px;}
+.empty-day{padding:14px 6px;text-align:center;color:var(--light);font-size:11.5px;}
+
+/* ===== Appointment row ===== */
+.cita{display:flex;align-items:flex-start;gap:9px;padding:9px 6px;border-bottom:1px solid var(--alt);}
+.cita:last-child{border-bottom:none;}
+.cita.ghost{opacity:.5;}
+.chk{width:25px;height:25px;border-radius:50%;border:2px solid var(--border);flex-shrink:0;margin-top:2px;
+  display:flex;align-items:center;justify-content:center;background:#fff;}
+.chk .ic{width:13px;height:13px;stroke-width:3;}
+.chk.st-confirmada{background:var(--apl);border-color:var(--accent);color:var(--apltx);}
+.chk.st-asistio{background:var(--green);border-color:var(--green);color:#fff;}
+.chk.st-no-asistio{background:var(--rose);border-color:var(--rose);color:#fff;}
+.chk.st-cancelada{background:var(--alt);border-color:var(--border);color:var(--light);}
+.cita-mid{flex:1;min-width:0;}
+.cita-top{display:flex;align-items:baseline;gap:7px;flex-wrap:wrap;}
+.cita-hora{font-size:13px;font-weight:800;color:var(--cobalt);}
+.cita-nombre{font-size:13.5px;font-weight:700;color:var(--brown);word-break:break-word;}
+.cita-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px;align-items:center;}
+.tag{font-size:9.5px;font-weight:700;padding:1.5px 6px;border-radius:8px;display:inline-flex;align-items:center;gap:3px;}
+.tag .ic{width:9px;height:9px;stroke-width:3;}
+.tag.online{background:var(--ypl);color:#92660b;}
+.tag.rec{background:var(--apl);color:var(--apltx);}
+.tag.hc{background:var(--alt);color:var(--mid);}
+.tag.val{background:var(--gpl);color:#15803d;}
+.tag.estado-lbl{background:var(--alt);color:var(--mid);}
+.cita-acts{display:flex;gap:5px;flex-shrink:0;margin-top:2px;}
+.act-btn{width:28px;height:28px;border-radius:8px;border:1.5px solid var(--border);background:#fff;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.act-btn .ic{width:14px;height:14px;}
+.act-wa{background:var(--wa);border-color:var(--wa);color:#fff;}
+.act-del{color:var(--danger);}
+.add-row{display:flex;align-items:center;gap:6px;padding:9px 6px;color:var(--accent);font-weight:700;
+  font-size:12.5px;border-top:1px dashed var(--border);margin-top:2px;}
+.add-row .ic{width:14px;height:14px;stroke-width:2.6;color:var(--accent);}
+
+/* ===== FAB ===== */
+#fab{position:fixed;right:18px;bottom:calc(18px + env(safe-area-inset-bottom));z-index:15;
+  width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--cobalt),var(--accent));
+  color:#fff;border:none;box-shadow:0 6px 18px rgba(8,145,178,.4);display:flex;align-items:center;
+  justify-content:center;}
+#fab .ic{width:24px;height:24px;stroke-width:2.6;}
+
+/* ===== Modal genérico (bottom sheet) ===== */
+.ov{display:none;position:fixed;inset:0;background:rgba(15,25,40,.5);z-index:50;
+  align-items:flex-end;justify-content:center;}
+.ov.open{display:flex;}
+.sheet{width:100%;max-width:480px;background:var(--surface);border-radius:18px 18px 0 0;
+  max-height:92vh;overflow-y:auto;padding:18px 18px calc(18px + env(safe-area-inset-bottom));
+  animation:slideUp .22s ease;}
+@keyframes slideUp{from{transform:translateY(30px);opacity:0}to{transform:translateY(0);opacity:1}}
+.sheet h3{font-size:15px;font-weight:800;color:var(--brown);margin-bottom:2px;display:flex;align-items:center;gap:7px;}
+.sheet h3 .ic{width:16px;height:16px;color:var(--accent);}
+.sheet .sub{font-size:11.5px;color:var(--mid);margin-bottom:14px;}
+.fld{margin-bottom:12px;position:relative;}
+.fld label{display:block;font-size:10.5px;font-weight:700;color:var(--mid);margin-bottom:4px;
+  text-transform:uppercase;letter-spacing:.04em;}
+.fld input,.fld select,.fld textarea{width:100%;padding:10px 11px;border:1.5px solid var(--border);border-radius:9px;
+  background:var(--surface);color:var(--brown);outline:none;}
+.fld textarea{resize:vertical;min-height:70px;line-height:1.4;}
+.fld input:focus,.fld select:focus,.fld textarea:focus{border-color:var(--accent);}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0 10px;}
+.seg{display:flex;gap:6px;flex-wrap:wrap;}
+.seg-btn{flex:1;min-width:70px;padding:9px 6px;border:1.5px solid var(--border);border-radius:9px;
+  background:#fff;color:var(--mid);font-size:12px;font-weight:700;text-align:center;}
+.seg-btn.on{border-color:var(--accent);background:var(--apl);color:var(--apltx);}
+#sug-box{position:absolute;top:100%;left:0;right:0;background:#fff;border:1.5px solid var(--border);
+  border-radius:9px;margin-top:3px;max-height:160px;overflow-y:auto;z-index:5;box-shadow:0 6px 16px rgba(0,0,0,.1);
+  display:none;}
+.sug-item{padding:8px 11px;border-bottom:1px solid var(--alt);font-size:12.5px;}
+.sug-item:last-child{border-bottom:none;}
+.sug-item b{color:var(--brown);}
+.sug-item span{display:block;font-size:10px;color:var(--light);}
+#conflict-warn{display:none;background:var(--rpl);color:var(--danger);font-size:11.5px;font-weight:600;
+  padding:8px 10px;border-radius:8px;margin-bottom:10px;align-items:center;gap:6px;}
+#conflict-warn .ic{width:14px;height:14px;flex-shrink:0;}
+.sheet-btns{display:flex;gap:9px;margin-top:6px;}
+.btn{flex:1;padding:12px;border:none;border-radius:10px;font-size:13.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;}
+.btn .ic{width:15px;height:15px;}
+.btn-cancel{background:var(--alt);color:var(--mid);}
+.btn-save{background:linear-gradient(135deg,var(--cobalt),var(--accent));color:#fff;}
+.btn-stop{width:100%;margin-top:10px;padding:10px;border:1.5px solid var(--rpl);background:var(--rpl);
+  color:var(--danger);border-radius:9px;font-size:12px;font-weight:700;}
+#toast{position:fixed;bottom:90px;left:50%;transform:translateX(-50%);background:var(--brown);color:#fff;
+  padding:9px 16px;border-radius:20px;font-size:12px;font-weight:600;z-index:60;opacity:0;
+  transition:opacity .25s;pointer-events:none;display:flex;align-items:center;gap:7px;}
+#toast .ic{width:14px;height:14px;color:var(--green);}
+#toast.show{opacity:1;}
+
+/* ===== Sheet de estado ===== */
+.st-opt{display:flex;align-items:center;gap:11px;padding:12px 8px;border-bottom:1px solid var(--alt);}
+.st-opt:last-child{border-bottom:none;}
+.st-opt .dot{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.st-opt .dot .ic{width:12px;height:12px;stroke-width:3;}
+.st-opt span{font-size:13.5px;font-weight:700;color:var(--brown);}
+
+/* ===== Ajustes ===== */
+.set-sec{margin-bottom:20px;}
+.set-sec-hd{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;color:var(--mid);
+  text-transform:uppercase;letter-spacing:.04em;margin-bottom:10px;}
+.set-sec-hd .ic{width:13px;height:13px;color:var(--accent);}
+.prof-card{background:var(--alt);border-radius:11px;padding:12px;display:flex;gap:11px;align-items:center;}
+.prof-avatar{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,var(--cobalt),var(--accent));
+  color:#fff;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;}
+.prof-avatar img{width:100%;height:100%;object-fit:cover;}
+.prof-info b{display:block;font-size:13.5px;color:var(--brown);}
+.prof-info span{font-size:11.5px;color:var(--mid);}
+.prof-note{font-size:10.5px;color:var(--light);margin-top:8px;}
+.pal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;}
+.pal-opt{aspect-ratio:1;border-radius:12px;border:2.5px solid transparent;display:flex;align-items:center;justify-content:center;position:relative;}
+.pal-opt.on{border-color:var(--brown);}
+.pal-opt .ic{width:16px;height:16px;color:#fff;}
+.pal-name{font-size:9px;font-weight:700;text-align:center;margin-top:4px;color:var(--mid);}
+.var-tip{font-size:10.5px;color:var(--light);margin-top:6px;line-height:1.5;}
+.var-tip code{background:var(--alt);padding:1px 4px;border-radius:4px;color:var(--apltx);font-weight:700;}
+
+/* ===== Botones más cómodos para el dedo (móvil) ===== */
+.hdr-btn{width:36px;height:36px;}
+.act-btn{width:31px;height:31px;}
+.chk{width:28px;height:28px;}
+
+/* ===== Balances / historial ===== */
+.res-item.wide{grid-column:1/-1;}
+.bal-nav{display:flex;align-items:center;justify-content:space-between;background:var(--alt);
+  border-radius:10px;padding:6px 8px;margin-bottom:12px;}
+.bal-nav b{font-size:13px;color:var(--brown);flex:1;text-align:center;}
+.bal-tabla-wrap{overflow-x:auto;margin-top:10px;border:1.5px solid var(--border);border-radius:10px;}
+.bal-tabla{width:100%;border-collapse:collapse;font-size:11px;min-width:480px;}
+.bal-tabla th{text-align:left;color:var(--mid);font-weight:800;padding:7px 8px;background:var(--alt);
+  position:sticky;top:0;text-transform:uppercase;font-size:9.5px;letter-spacing:.03em;}
+.bal-tabla td{padding:6px 8px;border-top:1px solid var(--alt);color:var(--brown);}
+.hist-range{display:grid;grid-template-columns:1fr 1fr;gap:0 10px;margin-bottom:6px;}
+#hist-lista{max-height:260px;overflow-y:auto;margin-top:10px;border-top:1px solid var(--alt);}
+.btn-danger{background:var(--rpl);color:var(--danger);}
+.bal-btn-row{display:flex;gap:9px;margin-top:6px;}
+
+/* ===== Modo escritorio (activado desde Ajustes → Apariencia → Vista) ===== */
+body.device-desktop #hdr-top,body.device-desktop #week-bar,body.device-desktop #hoy-btn{max-width:920px;margin-left:auto;margin-right:auto;}
+body.device-desktop #hdr{padding:16px 24px 14px;}
+body.device-desktop #resumen{padding:16px 16px 0;}
+body.device-desktop #resumen-grid{grid-template-columns:repeat(4,1fr);}
+body.device-desktop #filtro-bar{padding:12px 16px 0;max-width:920px;margin:0 auto;}
+body.device-desktop #days{padding:14px 16px 90px;display:grid;
+  grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:13px;align-items:start;}
+body.device-desktop .day-card{margin-bottom:0;}
+body.device-desktop .ov{align-items:center;}
+body.device-desktop .sheet{border-radius:16px;max-height:88vh;}
+body.device-desktop #fab{right:calc(50% - 460px + 18px);}
+@media (max-width:960px){ body.device-desktop #fab{right:18px;} }
+</style>
+</head>
+<body>
+
+<div id="hdr">
+  <div id="hdr-top">
+    <div id="hdr-id">
+      <div id="hdr-logo">--</div>
+      <div id="hdr-txt">
+        <div id="hdr-title"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg> Agenda</div>
+        <div id="hdr-sub">—</div>
+      </div>
+    </div>
+    <div id="hdr-acts">
+      <button id="install-btn" class="hdr-btn" onclick="doInstall()">
+        <svg class="ic" viewBox="0 0 24 24" style="width:12px;height:12px"><path d="M12 3v13m0 0l-5-5m5 5l5-5M5 21h14"/></svg>
+        Instalar
+      </button>
+      <button class="hdr-btn" onclick="abrirBusqueda()" title="Buscar">
+        <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      </button>
+      <button class="hdr-btn" onclick="abrirAjustes()" title="Ajustes">
+        <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.6 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82A1.65 1.65 0 003 13.09H2.9a2 2 0 110-4H3a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V2a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V8a1.65 1.65 0 001.51 1H22a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div id="week-bar">
+    <button class="wk-nav" onclick="cambiarSemana(-1)"><svg class="ic" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+    <div id="week-lbl">—</div>
+    <button class="wk-nav" onclick="cambiarSemana(1)"><svg class="ic" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+  </div>
+  <button id="hoy-btn" onclick="irHoy()">Ir a hoy</button>
+</div>
+
+<div id="resumen">
+  <div id="resumen-card">
+    <div id="resumen-hd"><svg class="ic" viewBox="0 0 24 24"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></svg> Resumen de la semana</div>
+    <div id="resumen-grid"></div>
+    <div id="resumen-modal"></div>
+  </div>
+</div>
+
+<div id="filtro-bar">
+  <select id="filtro-estado" onchange="ajustes.filtro=this.value;guardarAjustes();render();">
+    <option value="todas">Todas las citas</option>
+    <option value="presencial">Presenciales</option>
+    <option value="online">Online</option>
+    <option value="">Pendientes</option>
+    <option value="confirmada">Confirmadas</option>
+    <option value="asistio">Asistió</option>
+    <option value="no-asistio">No asistió</option>
+    <option value="cancelada">Canceladas</option>
+  </select>
+</div>
+
+<div style="padding:10px 10px 0;display:flex;gap:8px;">
+  <button class="btn" style="flex:1;background:var(--apl);color:var(--apltx);font-size:12px;padding:9px" onclick="abrirBalanceMes()">📊 Balance del mes</button>
+  <button class="btn" style="flex:1;background:var(--apl);color:var(--apltx);font-size:12px;padding:9px" onclick="abrirBalanceAno()">📈 Balance del año</button>
+</div>
+
+<div id="days"></div>
+
+<button id="fab" onclick="abrirModal(null,null)">
+  <svg class="ic" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+</button>
+
+<!-- ===== Modal: nueva/editar cita ===== -->
+<div id="modal-ov" class="ov" onclick="if(event.target===this)cerrarModal()">
+  <div class="sheet">
+    <h3 id="m-ttl"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Nueva cita</h3>
+    <div class="sub" id="m-sub"></div>
+
+    <div id="conflict-warn"><svg class="ic" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg><span id="conflict-txt"></span></div>
+
+    <div class="fld" style="position:relative">
+      <label>Paciente</label>
+      <input id="f-nombre" placeholder="Nombre del paciente" oninput="buscarPaciente(this.value)" onblur="autocompletarPacientePorNombreExacto(this.value)" autocomplete="off">
+      <div id="sug-box"></div>
+    </div>
+
+    <div class="row2">
+      <div class="fld">
+        <label>Día</label>
+        <select id="f-dia" onchange="regenerarHorasModal()"></select>
+      </div>
+      <div class="fld">
+        <label>Hora</label>
+        <select id="f-hora"></select>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="fld">
+        <label>Duración</label>
+        <select id="f-dur" onchange="regenerarHorasModal()">
+          <option value="15">15 min</option>
+          <option value="30">30 min</option>
+          <option value="45">45 min</option>
+          <option value="60" selected>60 min</option>
+          <option value="90">90 min</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label>WhatsApp</label>
+        <input id="f-tel" placeholder="Ej: 584121234567" inputmode="tel">
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="fld">
+        <label>Valor consulta</label>
+        <input id="f-valor" type="number" inputmode="decimal" placeholder="0">
+      </div>
+      <div class="fld">
+        <label>Moneda</label>
+        <select id="f-moneda"></select>
+      </div>
+    </div>
+
+    <div class="fld">
+      <label>Modalidad</label>
+      <div class="seg">
+        <button type="button" class="seg-btn on" id="seg-presencial" onclick="setModalidad(false)">
+          <svg class="ic" viewBox="0 0 24 24" style="display:inline;width:12px;height:12px;vertical-align:-1px"><rect x="4" y="3" width="16" height="18" rx="1"/><path d="M9 21v-4h6v4"/></svg>
+          Presencial</button>
+        <button type="button" class="seg-btn" id="seg-online" onclick="setModalidad(true)">
+          <svg class="ic" viewBox="0 0 24 24" style="display:inline;width:12px;height:12px;vertical-align:-1px"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3"/></svg>
+          Online</button>
+      </div>
+    </div>
+
+    <div class="fld">
+      <label>Repetir</label>
+      <div class="seg">
+        <button type="button" class="seg-btn on" data-rec="0" onclick="setRepeticion(0)">No se repite</button>
+        <button type="button" class="seg-btn" data-rec="1" onclick="setRepeticion(1)">Cada semana</button>
+        <button type="button" class="seg-btn" data-rec="2" onclick="setRepeticion(2)">Cada 2 semanas</button>
+        <button type="button" class="seg-btn" data-rec="4" onclick="setRepeticion(4)">Cada mes</button>
+      </div>
+    </div>
+
+    <div class="sheet-btns">
+      <button class="btn btn-cancel" onclick="cerrarModal()">Cancelar</button>
+      <button class="btn btn-save" onclick="guardarCita()">
+        <svg class="ic" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Guardar</button>
+    </div>
+    <button class="btn-stop" id="btn-stop-rec" style="display:none" onclick="detenerRepeticion()">Detener repetición de esta cita</button>
+  </div>
+</div>
+
+<!-- ===== Sheet: cambiar estado ===== -->
+<div id="estado-ov" class="ov" onclick="if(event.target===this)cerrarEstadoSheet()">
+  <div class="sheet">
+    <h3><svg class="ic" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>Estado de la cita</h3>
+    <div class="sub" id="estado-sub"></div>
+    <div id="estado-list"></div>
+  </div>
+</div>
+
+<!-- ===== Búsqueda ===== -->
+<div id="search-ov" class="ov" onclick="if(event.target===this)cerrarBusqueda()">
+  <div class="sheet">
+    <h3><svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>Buscar</h3>
+    <div class="sub">Por nombre, código de historia o teléfono</div>
+    <div id="search-input-wrap">
+      <svg class="ic" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <input id="search-input" placeholder="Escribe para buscar…" oninput="buscarCitas(this.value)" autocomplete="off">
+    </div>
+    <div id="search-res"></div>
+    <div id="search-empty" style="display:none">Sin resultados</div>
+  </div>
+</div>
+
+<!-- ===== Ajustes ===== -->
+<div id="set-ov" class="ov" onclick="if(event.target===this)cerrarAjustes()">
+  <div class="sheet">
+    <h3><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 11-4 0v-.09A1.65 1.65 0 008.6 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82A1.65 1.65 0 003 13.09H2.9a2 2 0 110-4H3a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V2a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V8a1.65 1.65 0 001.51 1H22a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>Ajustes</h3>
+    <div class="sub">Se guardan en este dispositivo</div>
+
+    <div class="set-sec">
+      <div class="set-sec-hd"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>Perfil</div>
+      <div class="prof-card">
+        <div class="prof-avatar" id="set-avatar">--</div>
+        <div class="prof-info">
+          <b id="set-nombre">—</b>
+          <span id="set-titulo">—</span>
+        </div>
+      </div>
+      <div class="prof-note">Estos datos se toman automáticamente de tu perfil en MedHC.</div>
+    </div>
+
+    <div class="set-sec">
+      <div class="set-sec-hd"><svg class="ic" viewBox="0 0 24 24"><path d="M23 4v6h-6"/><path d="M1 20v-6h6"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>Cuenta y sincronización</div>
+      <div id="sync-card" class="prof-note" style="padding:12px;border:1.5px solid var(--border);border-radius:12px;background:var(--surface)">
+        <div id="sync-status-line" style="font-size:12px;font-weight:700;color:var(--cobalt);margin-bottom:6px">Verificando sesión…</div>
+        <div id="sync-desc" style="font-size:11px;color:var(--mid);margin-bottom:10px">Inicia sesión con el mismo correo de Google que usas en MedHC para que tus pacientes y citas se sincronicen automáticamente entre esta Agenda y MedHC, en cualquier dispositivo.</div>
+        <button id="btn-sync-login" class="btn btn-save" style="width:100%" onclick="agLoginConGoogle()"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>Iniciar sesión con Google</button>
+        <button id="btn-sync-logout" class="btn" style="width:100%;display:none;background:var(--alt);color:var(--mid);border:1.5px solid var(--border)" onclick="agCerrarSesion()">Cerrar sesión de sincronización</button>
+      </div>
+    </div>
+
+    <div class="set-sec">
+      <div class="set-sec-hd"><svg class="ic" viewBox="0 0 24 24"><path d="M12 22a10 10 0 110-20 8 8 0 018 8 3 3 0 01-3 3h-2a2 2 0 00-1 3.7A2 2 0 0112 22z"/><circle cx="7.5" cy="10.5" r=".9"/><circle cx="10.5" cy="7" r=".9"/><circle cx="15.5" cy="7.5" r=".9"/></svg>Apariencia — color principal</div>
+      <div class="pal-grid" id="pal-grid"></div>
+      <div class="row2" style="margin-top:14px">
+        <div class="fld"><label>Tema</label>
+          <select id="set-tema" onchange="ajustes.tema=this.value;guardarAjustes();aplicarTema();">
+            <option value="claro">Claro</option>
+            <option value="oscuro">Oscuro</option>
+            <option value="auto">Automático</option>
+          </select>
+        </div>
+        <div class="fld"><label>Densidad</label>
+          <select id="set-vista" onchange="ajustes.vista=this.value;guardarAjustes();aplicarVista();">
+            <option value="comoda">Cómoda</option>
+            <option value="compacta">Compacta</option>
+          </select>
+        </div>
+      </div>
+      <div class="fld" style="margin-top:10px"><label>Vista (dispositivo)</label>
+        <select id="set-dispositivo" onchange="ajustes.dispositivo=this.value;guardarAjustes();aplicarDispositivo();">
+          <option value="auto">Automática</option>
+          <option value="movil">Celular</option>
+          <option value="escritorio">Escritorio</option>
+        </select>
+      </div>
+      <div class="prof-note">"Automática" detecta el tamaño de pantalla. "Celular" fuerza el diseño móvil. "Escritorio" usa una distribución más amplia.</div>
+    </div>
+
+    <div class="set-sec">
+      <div class="set-sec-hd"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Agenda — horario laboral</div>
+      <label style="display:block;font-size:10.5px;font-weight:700;color:var(--mid);margin-bottom:6px;text-transform:uppercase;letter-spacing:.04em;">Días de trabajo</label>
+      <div class="days-check" id="dias-lab-check"></div>
+      <div class="row3">
+        <div class="fld"><label>Inicio</label><select id="set-h-ini" onchange="ajustes.horaInicio=+this.value;guardarAjustes();"></select></div>
+        <div class="fld"><label>Cierre</label><select id="set-h-fin" onchange="ajustes.horaFin=+this.value;guardarAjustes();"></select></div>
+        <div class="fld"><label>Intervalo</label>
+          <select id="set-intervalo" onchange="ajustes.intervalo=+this.value;guardarAjustes();">
+            <option value="15">15 min</option>
+            <option value="30">30 min</option>
+            <option value="60">60 min</option>
+          </select>
+        </div>
+      </div>
+      <div class="fld"><label>Duración predeterminada</label>
+        <select id="set-dur-def" onchange="ajustes.duracionDefault=+this.value;guardarAjustes();">
+          <option value="15">15 min</option>
+          <option value="30">30 min</option>
+          <option value="45">45 min</option>
+          <option value="60">60 min</option>
+          <option value="90">90 min</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="set-sec">
+      <div class="set-sec-hd"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9 9.5c0-1 1-1.5 2.5-1.5S14 8.5 14 9.5c0 1.2-1 1.6-2.5 2S9 12.5 9 14c0 1 1 1.6 2.5 1.6S14 15 14 14"/><path d="M12 6.5v11"/></svg>Consulta</div>
+      <div class="row2">
+        <div class="fld"><label>Valor habitual</label><input id="set-tarifa" type="number" inputmode="decimal" placeholder="40" oninput="guardarAjustesLive()"></div>
+        <div class="fld"><label>Moneda</label><select id="set-moneda" onchange="guardarAjustesLive()"></select></div>
+      </div>
+      <div class="prof-note">Se autocompleta al crear una cita nueva. Puedes cambiar el valor de cada cita individualmente.</div>
+    </div>
+
+    <div class="set-sec">
+      <div class="set-sec-hd"><svg class="ic" viewBox="0 0 24 24"><path d="M20.5 3.5A11 11 0 002.1 17L1 23l6.2-1.1A11 11 0 1020.5 3.5z"/></svg>WhatsApp — mensaje predeterminado</div>
+      <div class="fld"><textarea id="set-msg" oninput="guardarAjustesLive()"></textarea></div>
+      <div class="var-tip">Variables disponibles: <code>{nombre}</code> <code>{fecha}</code> <code>{hora}</code> <code>{modalidad}</code> <code>{profesional}</code>. Se reemplazan automáticamente.</div>
+    </div>
+
+    <div class="set-sec">
+      <div class="set-sec-hd"><svg class="ic" viewBox="0 0 24 24"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></svg>Balances</div>
+      <div class="bal-btn-row" style="margin-top:0">
+        <button class="btn" style="background:var(--apl);color:var(--apltx)" onclick="cerrarAjustes();abrirBalanceMes()">📊 Balance mensual</button>
+        <button class="btn" style="background:var(--apl);color:var(--apltx)" onclick="cerrarAjustes();abrirBalanceAno()">📈 Balance anual</button>
+      </div>
+      <div class="prof-note">Desde cada balance puedes exportarlo directamente a Excel (.xlsx).</div>
+    </div>
+
+    <div class="set-sec">
+      <div class="set-sec-hd"><svg class="ic" viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4zm0 0v10l9 4 9-4V7"/></svg>Historial y datos</div>
+      <button class="btn" style="width:100%;background:var(--alt);color:var(--brown);border:1.5px solid var(--border)" onclick="cerrarAjustes();abrirHistorial()">🗂️ Consultar / eliminar historial</button>
+      <div class="prof-note">Permite revisar citas antiguas y eliminarlas de forma segura, sin afectar a los pacientes de MedHC.</div>
+    </div>
+
+    <div class="sheet-btns">
+      <button class="btn btn-save" onclick="cerrarAjustes()" style="flex:1"><svg class="ic" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>Listo</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Balance del mes ===== -->
+<div id="balance-mes-ov" class="ov" onclick="if(event.target===this)cerrarBalanceMes()">
+  <div class="sheet">
+    <h3><svg class="ic" viewBox="0 0 24 24"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></svg>Balance del mes</h3>
+    <div class="bal-nav">
+      <button class="wk-nav" style="color:var(--brown)" onclick="cambiarBalanceMes(-1)"><svg class="ic" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <b id="bal-mes-titulo">—</b>
+      <button class="wk-nav" style="color:var(--brown)" onclick="cambiarBalanceMes(1)"><svg class="ic" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+    </div>
+    <div id="bal-mes-body" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+    <div class="bal-btn-row">
+      <button class="btn btn-save" style="width:100%" onclick="exportarExcelMes()"><svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>📥 Exportar a Excel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Balance del año ===== -->
+<div id="balance-ano-ov" class="ov" onclick="if(event.target===this)cerrarBalanceAno()">
+  <div class="sheet">
+    <h3><svg class="ic" viewBox="0 0 24 24"><path d="M3 3v18h18M7 15l4-4 3 3 5-6"/></svg>Balance del año</h3>
+    <div class="bal-nav">
+      <button class="wk-nav" style="color:var(--brown)" onclick="cambiarBalanceAno(-1)"><svg class="ic" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+      <b id="bal-ano-titulo">—</b>
+      <button class="wk-nav" style="color:var(--brown)" onclick="cambiarBalanceAno(1)"><svg class="ic" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+    </div>
+    <div id="bal-ano-resumen" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;"></div>
+    <div class="bal-tabla-wrap"><div id="bal-ano-tabla"></div></div>
+    <div class="bal-btn-row">
+      <button class="btn btn-save" style="width:100%" onclick="exportarExcelAno()"><svg class="ic" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>📥 Exportar a Excel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Historial y datos ===== -->
+<div id="historial-ov" class="ov" onclick="if(event.target===this)cerrarHistorial()">
+  <div class="sheet">
+    <h3><svg class="ic" viewBox="0 0 24 24"><path d="M3 7l9-4 9 4-9 4-9-4zm0 0v10l9 4 9-4V7"/></svg>Historial y datos</h3>
+    <div class="sub">Consulta o elimina citas antiguas. Los pacientes de MedHC no se ven afectados.</div>
+    <div class="hist-range">
+      <div class="fld"><label>Desde</label><input type="date" id="hist-desde" onchange="renderHistorialLista()"></div>
+      <div class="fld"><label>Hasta</label><input type="date" id="hist-hasta" onchange="renderHistorialLista()"></div>
+    </div>
+    <button class="btn" style="width:100%;background:var(--rpl);color:var(--danger)" onclick="eliminarHistorialRango()">Eliminar citas de este período</button>
+    <div id="hist-lista"></div>
+    <div class="sheet-btns" style="margin-top:12px">
+      <button class="btn" style="background:var(--danger);color:#fff;width:100%" onclick="eliminarTodoHistorial()">🗑️ Eliminar todo el historial</button>
+    </div>
+    <div class="sheet-btns">
+      <button class="btn btn-save" style="width:100%" onclick="cerrarHistorial()">Listo</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Confirmación: eliminar todo el historial ===== -->
+<div id="confirm-borrar-ov" class="ov" onclick="if(event.target===this)cerrarConfirmBorrar()">
+  <div class="sheet">
+    <h3><svg class="ic" viewBox="0 0 24 24"><path d="M12 9v4m0 4h.01M10.3 3.9L1.8 18a2 2 0 001.7 3h17a2 2 0 001.7-3L13.7 3.9a2 2 0 00-3.4 0z"/></svg>Eliminar todo el historial</h3>
+    <div class="sub">Esta acción eliminará permanentemente todas las citas del historial. ¿Deseas continuar?</div>
+    <div class="sheet-btns">
+      <button class="btn btn-cancel" onclick="cerrarConfirmBorrar()">Cancelar</button>
+      <button class="btn" style="background:var(--danger);color:#fff" onclick="confirmarBorrarTodo()">Eliminar definitivamente</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+/* ============ Almacenamiento compartido con MedHC ============ */
+const AG_KEY='medhc_agenda_v1';        // MISMA clave que la app principal
+const REC_KEY='medhc_recurrencias_v1'; // registro propio de repeticiones
+const SET_KEY='medhc_agenda_ajustes_v1'; // ajustes propios de la agenda (color, tarifa, moneda, mensaje)
+const PROF_KEY='medhc_prof';           // perfil del profesional (lo crea la app principal)
+const LOGO_KEY='medhc_logo';           // opcional: logo del profesional en dataURL (si existe)
+
+let agAgenda={}, recurrencias=[];
+let semOff=0, modOnline=false, modRec=0, editDk=null, editIdx=null, editId=null, selPacHc='';
+let estDk=null, estIdx=null;
+
+function cargar(){
+  try{agAgenda=JSON.parse(localStorage.getItem(AG_KEY)||'{}');}catch(e){agAgenda={};}
+  try{recurrencias=JSON.parse(localStorage.getItem(REC_KEY)||'[]');}catch(e){recurrencias=[];}
+  agAsegurarIds();
+}
+// Asigna un identificador estable a cada cita (las citas antiguas no lo tenían).
+// Esto evita que al editar/enviar WhatsApp/eliminar se tome "la de arriba" por error
+// cuando la lista se muestra ordenada/filtrada mientras el arreglo interno no lo está.
+function agNuevoId(){ return 'c_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8); }
+// Id determinístico para citas VIEJAS que nunca tuvieron _id (antes de esta versión). Se calcula a
+// partir de datos que no cambian (día, hora, nombre, duración) para que, si dos dispositivos aún no
+// sincronizados le asignan un id a la MISMA cita antigua, ambos calculen EXACTAMENTE el mismo id —
+// evitando que al sincronizar queden tratadas como citas distintas (lo que hacía que una edición
+// pareciera no guardarse: en realidad estaba editando una copia con un id que el otro dispositivo
+// no reconocía).
+function agIdDeterministico(dk,c){
+  const base=dk+'|'+c.horaInicio+'|'+((c.nombre||'').trim().toLowerCase())+'|'+(c.duracion||'');
+  let h=5381;
+  for(let i=0;i<base.length;i++){ h=((h*33)^base.charCodeAt(i))>>>0; }
+  return 'c_'+h.toString(36);
+}
+function agAsegurarIds(){
+  let cambiado=false;
+  Object.keys(agAgenda).forEach(dk=>{
+    (agAgenda[dk]||[]).forEach(c=>{ if(!c._id){ c._id=agIdDeterministico(dk,c); cambiado=true; } });
+  });
+  if(cambiado) localStorage.setItem(AG_KEY,JSON.stringify(agAgenda));
+}
+function idxPorId(dk,id){
+  const arr=agAgenda[dk]||[];
+  const i=arr.findIndex(c=>c._id===id);
+  return i;
+}
+function guardarAgenda(inmediato){localStorage.setItem(AG_KEY,JSON.stringify(agAgenda));agSyncPush(inmediato);}
+function guardarRec(){localStorage.setItem(REC_KEY,JSON.stringify(recurrencias));agSyncPush();}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   SINCRONIZACIÓN SILENCIOSA CON MEDHC
+   ────────────────────────────────────────────────────────────────────────
+   La Agenda es un archivo HTML independiente (se puede instalar como PWA
+   aparte). Para que "hable" con MedHC sin pedir un segundo inicio de sesión:
+
+   1. Usa el MISMO proyecto de Firebase que MedHC (mismo firebaseConfig).
+      Si el profesional ya inició sesión con Google dentro de MedHC en este
+      mismo navegador/dispositivo, Firebase Auth ya dejó esa sesión guardada
+      para ese origen — así que la Agenda la detecta sola con
+      onAuthStateChanged, sin mostrar ninguna pantalla de login ni abrir
+      ningún popup. Si no hay sesión guardada, la Agenda sigue funcionando
+      100% local (localStorage) exactamente como antes.
+   2. Cuando SÍ hay sesión, la Agenda:
+        - Lee los pacientes reales desde Firestore (users/{uid}/pacientes),
+          que es donde vive esa información cuando MedHC trabaja en la nube
+          (si MedHC está en modo local, ya los toma de localStorage como antes).
+        - Sincroniza sus propias citas (agenda + recurrencias) contra
+          users/{uid}/agendaSync/main, así los cambios se reflejan en
+          cualquier dispositivo donde el profesional abra la Agenda o MedHC.
+      localStorage se sigue usando siempre como caché instantánea/offline.
+   ══════════════════════════════════════════════════════════════════════════ */
+const agFirebaseConfig={
+  apiKey:"AIzaSyAdCMm57dFHMv2s6SstFS02OzehBzv4NQA",
+  authDomain:"psicohcpc-7a140.firebaseapp.com",
+  projectId:"psicohcpc-7a140",
+  storageBucket:"psicohcpc-7a140.firebasestorage.app",
+  messagingSenderId:"374245814828",
+  appId:"1:374245814828:web:70c4ece62768c83f3a9789"
+};
+let agAuth=null, agDb=null, agUser=null, agCloudPatients=null;
+let agApplyingRemote=false, agPushTimer=null, agSyncStatus='checking'; // 'checking' | 'unavailable' | 'local' | 'synced'
+let agPatientsUnsub=null, agAgendaUnsub=null;
+
+function agInitFirebase(){
+  try{
+    if(window.__agFirebaseFailed || typeof firebase==='undefined') return;
+    const app = firebase.apps && firebase.apps.length ? firebase.apps[0] : firebase.initializeApp(agFirebaseConfig);
+    agAuth = firebase.auth(app);
+    agDb = firebase.firestore(app);
+  }catch(e){ agAuth=null; agDb=null; }
+  if(!agAuth){ agSyncStatus='unavailable'; pintarIdentidad(); return; }
+  // Por defecto solo ESCUCHA si ya hay sesión — nunca abre login ni popup por su cuenta.
+  // El profesional puede además iniciar sesión explícitamente desde Ajustes → Cuenta y sincronización
+  // (por ejemplo si abrió la Agenda como archivo/instalación aparte, sin la sesión ya guardada de MedHC).
+  agAuth.onAuthStateChanged(function(user){
+    if(user){
+      agUser = user;
+      agSyncStatus='synced';
+      agStartCloudPatients();
+      agStartCloudAgenda();
+    } else {
+      agUser = null;
+      agCloudPatients = null;
+      agSyncStatus='local';
+      // Al cerrar sesión, dejar de escuchar — así un futuro inicio de sesión arranca listeners limpios.
+      if(agPatientsUnsub){ agPatientsUnsub(); agPatientsUnsub=null; }
+      if(agAgendaUnsub){ agAgendaUnsub(); agAgendaUnsub=null; }
+    }
+    pintarIdentidad();
+    render();
+  });
+}
+
+function agStartCloudPatients(){
+  if(!agDb||!agUser||agPatientsUnsub) return; // ya hay un listener activo — evita duplicados
+  agPatientsUnsub = agDb.collection('users').doc(agUser.uid).collection('pacientes')
+    .onSnapshot(function(snap){
+      agCloudPatients = snap.docs.map(function(d){ const p=d.data()||{};
+        return {nombre:(p.name||p.nombre||'').trim(), hcCode:p.hcCode||p.codigo||'', telefono:p.telefono||p.repTelefono||''};
+      });
+    }, function(){ agCloudPatients=null; });
+}
+
+function agStartCloudAgenda(){
+  if(!agDb||!agUser||agAgendaUnsub) return; // ya hay un listener activo — evita duplicados
+  agAgendaUnsub = agDb.collection('users').doc(agUser.uid).collection('agendaSync').doc('main')
+    .onSnapshot(function(doc){
+      if(!doc.exists) { agSyncPush(true); return; }
+      const d=doc.data()||{};
+      agApplyingRemote=true;
+      try{
+        if(d.agenda) { agAgenda=d.agenda; agAsegurarIds(); localStorage.setItem(AG_KEY,JSON.stringify(agAgenda)); }
+        if(d.recurrencias) { recurrencias=d.recurrencias; localStorage.setItem(REC_KEY,JSON.stringify(recurrencias)); }
+      } finally { agApplyingRemote=false; }
+      render();
+    }, function(){ /* sin permisos o sin red: se sigue usando localStorage */ });
+}
+
+// Empuja el estado local hacia Firestore (con pequeño debounce para no saturar).
+function agSyncPush(inmediato){
+  if(agApplyingRemote || !agDb || !agUser) return;
+  if(agPushTimer) clearTimeout(agPushTimer);
+  const doPush=function(){
+    agDb.collection('users').doc(agUser.uid).collection('agendaSync').doc('main')
+      .set({agenda:agAgenda, recurrencias:recurrencias, updatedAt:new Date().toISOString()}, {merge:true})
+      .catch(function(){});
+  };
+  if(inmediato) doPush(); else agPushTimer=setTimeout(doPush, 700);
+}
+
+function fk(d){return d.toISOString().split('T')[0];} // mismo formato que la app principal
+function getLunes(off){
+  const hoy=new Date(),d=hoy.getDay()||7,l=new Date(hoy);
+  l.setDate(hoy.getDate()-(d-1)+off*7); l.setHours(0,0,0,0); return l;
+}
+function fmtH(m){const h=Math.floor(m/60),mn=m%60,ap=h>=12?'PM':'AM',h12=h>12?h-12:h===0?12:h;
+  return h12+':'+(mn===0?'00':mn<10?'0'+mn:mn)+' '+ap;}
+
+const DIAS=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const DIAS_C=['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+
+/* ============ Estados de la cita ============ */
+const ESTADOS=[
+  {v:'',           label:'Pendiente',   cls:'',              icon:''},
+  {v:'confirmada', label:'Confirmada',  cls:'st-confirmada', icon:'<svg class="ic" viewBox="0 0 24 24"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>'},
+  {v:'asistio',    label:'Asistió',     cls:'st-asistio',    icon:'<svg class="ic" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>'},
+  {v:'no-asistio', label:'No asistió',  cls:'st-no-asistio', icon:'<svg class="ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'},
+  {v:'cancelada',  label:'Cancelada',   cls:'st-cancelada',  icon:'<svg class="ic" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'}
+];
+function estadoMeta(v){return ESTADOS.find(e=>e.v===v)||ESTADOS[0];}
+
+/* ============ Monedas ============ */
+const MONEDAS={USD:'$',EUR:'€',VES:'Bs.',COP:'$',MXN:'$',GBP:'£',CAD:'$',BRL:'R$'};
+function fmtMoneda(valor,moneda){
+  const sim=MONEDAS[moneda]||'';
+  const n=Number(valor)||0;
+  return sim+n.toLocaleString('es-ES',{maximumFractionDigits:2})+' '+moneda;
+}
+
+/* ============ Paletas de color ============ */
+const PALETAS=[
+  {id:'azul',    nombre:'Azul',        cobalt:'#1A3A6E', accent:'#0891B2', apl:'#E0F5FB', apltx:'#0670A0'},
+  {id:'turquesa',nombre:'Turquesa',    cobalt:'#0F6E6B', accent:'#14B8A6', apl:'#E1FBF7', apltx:'#0F766E'},
+  {id:'morado',  nombre:'Morado',      cobalt:'#4C2A85', accent:'#7C3AED', apl:'#F1E8FE', apltx:'#6D28D9'},
+  {id:'verde',   nombre:'Verde',       cobalt:'#14532D', accent:'#22A55A', apl:'#E4F8EC', apltx:'#15803D'},
+  {id:'coral',   nombre:'Coral',       cobalt:'#9A3412', accent:'#F97316', apl:'#FFEDE0', apltx:'#C2410C'},
+  {id:'rosa',    nombre:'Rosa',        cobalt:'#9D174D', accent:'#EC4899', apl:'#FCE7F3', apltx:'#BE185D'},
+  {id:'gris',    nombre:'Gris oscuro', cobalt:'#1F2937', accent:'#4B5563', apl:'#F1F3F5', apltx:'#374151'}
+];
+function aplicarPaleta(id){
+  const p=PALETAS.find(x=>x.id===id)||PALETAS[0];
+  const r=document.documentElement.style;
+  r.setProperty('--cobalt',p.cobalt);
+  r.setProperty('--accent',p.accent);
+  r.setProperty('--apl',p.apl);
+  r.setProperty('--apltx',p.apltx);
+  const meta=document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.setAttribute('content',p.cobalt);
+}
+
+/* ============ Ajustes propios de la agenda ============ */
+const MSG_DEFAULT='Hola, {nombre} \ud83d\ude0a\n\nTe escribimos para recordarte tu cita de psicolog\u00eda con {profesional}:\n\n\ud83d\udcc5 {fecha}\n\ud83d\udd50 {hora}\n\ud83d\udcbb Modalidad: {modalidad}\n\nTe agradecemos confirmar tu asistencia.\n\n\u00a1Te esperamos!';
+const AJUSTES_DEFAULT={
+  color:'azul',tarifa:0,moneda:'USD',msg:MSG_DEFAULT,
+  tema:'claro',vista:'comoda',dispositivo:'auto',filtro:'todas',
+  diasLaborales:[1,2,3,4,5],horaInicio:8*60,horaFin:18*60,intervalo:15,duracionDefault:60
+};
+let ajustes=Object.assign({},AJUSTES_DEFAULT);
+function cargarAjustes(){
+  try{
+    const s=JSON.parse(localStorage.getItem(SET_KEY)||'{}');
+    ajustes=Object.assign({},AJUSTES_DEFAULT,s);
+  }catch(e){ajustes=Object.assign({},AJUSTES_DEFAULT);}
+  aplicarPaleta(ajustes.color);
+  aplicarTema();
+  aplicarVista();
+  aplicarDispositivo();
+}
+function guardarAjustes(){localStorage.setItem(SET_KEY,JSON.stringify(ajustes));}
+
+/* ============ Tema (claro/oscuro/automático) ============ */
+function aplicarTema(){
+  let modo=ajustes.tema||'claro';
+  if(modo==='auto'){
+    modo=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'oscuro':'claro';
+  }
+  document.documentElement.setAttribute('data-theme', modo==='oscuro'?'dark':'light');
+}
+if(window.matchMedia){
+  window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change',()=>{ if(ajustes.tema==='auto') aplicarTema(); });
+}
+
+/* ============ Vista compacta / cómoda ============ */
+function aplicarVista(){
+  document.body.classList.toggle('compact', ajustes.vista==='compacta');
+}
+
+/* ============ Vista de dispositivo: automática / celular / escritorio ============
+   "Automática" detecta el ancho de pantalla disponible. "Celular" y "Escritorio"
+   fuerzan el diseño correspondiente sin importar el tamaño real de la ventana. */
+function aplicarDispositivo(){
+  const modo=ajustes.dispositivo||'auto';
+  let esEscritorio;
+  if(modo==='escritorio') esEscritorio=true;
+  else if(modo==='movil') esEscritorio=false;
+  else{
+    // "Automática": además del ancho, se verifica si el dispositivo es táctil.
+    // Esto evita que un celular con "Solicitar sitio de escritorio" activado en el
+    // navegador (que reporta un ancho de ventana falso, ~980px) quede forzado a la
+    // vista de escritorio: un celular real casi siempre tiene puntero táctil (coarse).
+    const anchoAmplio = window.innerWidth>=900;
+    const esTactil = window.matchMedia && window.matchMedia('(pointer:coarse)').matches;
+    esEscritorio = anchoAmplio && !esTactil;
+  }
+  document.body.classList.toggle('device-desktop', esEscritorio);
+}
+window.addEventListener('resize', ()=>{ if((ajustes.dispositivo||'auto')==='auto') aplicarDispositivo(); });
+
+/* ============ Perfil del profesional (dinámico, viene de MedHC) ============ */
+function getProfesional(){
+  try{
+    const s=localStorage.getItem(PROF_KEY);
+    if(s){
+      const p=JSON.parse(s);
+      return {nombre:p.nombre||'',titulo:p.titulo||'Especialista',centro:p.centro||''};
+    }
+  }catch(e){}
+  return {nombre:'',titulo:'Especialista',centro:''};
+}
+function getLogo(){ try{return localStorage.getItem(LOGO_KEY)||'';}catch(e){return '';} }
+function iniciales(nombre){
+  const p=(nombre||'').trim().split(/\s+/).filter(Boolean);
+  if(!p.length) return 'Dr';
+  return (p[0][0]+(p[1]?p[1][0]:'')).toUpperCase();
+}
+function pintarIdentidad(){
+  const prof=getProfesional(), logo=getLogo();
+  const sub=document.getElementById('hdr-sub');
+  const base = prof.nombre ? (prof.nombre+' · '+prof.titulo) : 'Conectada con MedHC';
+  const estadoSync = agSyncStatus==='synced' ? ' · Sincronizada' : '';
+  sub.textContent = base + estadoSync;
+  const logoBox=document.getElementById('hdr-logo');
+  logoBox.innerHTML = logo ? `<img src="${logo}" alt="logo">` : iniciales(prof.nombre);
+  // Ajustes → tarjeta de perfil
+  document.getElementById('set-nombre').textContent = prof.nombre || 'Sin nombre configurado';
+  document.getElementById('set-titulo').textContent = [prof.titulo,prof.centro].filter(Boolean).join(' · ') || 'Especialista';
+  const av=document.getElementById('set-avatar');
+  av.innerHTML = logo ? `<img src="${logo}" alt="logo">` : iniciales(prof.nombre);
+  agActualizarTarjetaSync();
+  agConfigurarInstalacion();
+}
+
+/* ============ Cuenta / sincronización con MedHC (login visible + detección silenciosa) ============ */
+function agActualizarTarjetaSync(){
+  const linea=document.getElementById('sync-status-line');
+  const desc=document.getElementById('sync-desc');
+  const btnIn=document.getElementById('btn-sync-login');
+  const btnOut=document.getElementById('btn-sync-logout');
+  if(!linea) return; // aún no se ha pintado la vista de ajustes en el DOM
+  if(agSyncStatus==='checking'){
+    linea.textContent='Verificando sesión…';
+    desc.textContent='Un momento…';
+    btnIn.style.display='none'; btnOut.style.display='none';
+    return;
+  }
+  if(agSyncStatus==='unavailable'){
+    linea.textContent='Sincronización no disponible sin conexión';
+    desc.textContent='No se pudo cargar el servicio de sincronización (revisa tu conexión a internet). La Agenda sigue funcionando normalmente en este dispositivo.';
+    btnIn.style.display='none'; btnOut.style.display='none';
+    return;
+  }
+  if(agUser){
+    linea.textContent='Sincronizada como '+(agUser.email||agUser.displayName||'');
+    desc.textContent='Tus pacientes y citas se mantienen al día con MedHC automáticamente.';
+    btnIn.style.display='none'; btnOut.style.display='block';
+  } else {
+    linea.textContent='Sin sincronizar (modo local en este dispositivo)';
+    desc.textContent='Inicia sesión con el mismo correo de Google que usas en MedHC para que tus pacientes y citas se sincronicen automáticamente entre esta Agenda y MedHC, en cualquier dispositivo.';
+    btnIn.style.display='block'; btnOut.style.display='none';
+  }
+}
+function agLoginConGoogle(){
+  if(!agAuth){ alert('No se pudo cargar el servicio de sincronización. Revisa tu conexión a internet e inténtalo de nuevo.'); return; }
+  const btn=document.getElementById('btn-sync-login');
+  btn.disabled=true; btn.textContent='Conectando…';
+  const provider=new firebase.auth.GoogleAuthProvider();
+  agAuth.signInWithPopup(provider).then(function(){
+    toast('Cuenta conectada — sincronizando…');
+  }).catch(function(err){
+    alert('No se pudo iniciar sesión: '+(err&&err.message?err.message:'inténtalo de nuevo.'));
+  }).finally(function(){
+    btn.disabled=false; btn.innerHTML='<svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>Iniciar sesión con Google';
+  });
+}
+function agCerrarSesion(){
+  if(!agAuth||!agUser) return;
+  if(!confirm('Se cerrará la sincronización en este dispositivo. Tus citas seguirán guardadas localmente. ¿Continuar?')) return;
+  if(agPatientsUnsub){ agPatientsUnsub(); agPatientsUnsub=null; }
+  if(agAgendaUnsub){ agAgendaUnsub(); agAgendaUnsub=null; }
+  agAuth.signOut();
+}
+
+/* ============ Recurrencias ============ */
+function ensureRecurrencias(){
+  let changed=false;
+  const horizonWeeks=20;
+  recurrencias.filter(r=>r.activo).forEach(r=>{
+    const start=new Date(r.startDate+'T00:00:00');
+    for(let w=0; w<=horizonWeeks; w+=r.intervalWeeks){
+      const d=new Date(start); d.setDate(d.getDate()+w*7);
+      const dk=fk(d);
+      if(!agAgenda[dk]) agAgenda[dk]=[];
+      const existe=agAgenda[dk].some(c=>c.recurrenceId===r.id);
+      if(!existe){
+        agAgenda[dk].push({_id:agNuevoId(),nombre:r.nombre,horaInicio:r.horaInicio,duracion:r.duracion,estado:'',
+          hcCode:r.hcCode||'',telefono:r.telefono||'',online:!!r.online,recurrenceId:r.id,
+          valor:r.valor||0,moneda:r.moneda||ajustes.moneda});
+        changed=true;
+      }
+    }
+  });
+  if(changed) guardarAgenda();
+}
+
+/* ============ Pacientes (para autocompletar) ============ */
+function getPacientes(){
+  // Si hay sesión sincronizada con MedHC y ya llegaron los pacientes desde Firestore, usarlos
+  // (es donde viven realmente cuando el profesional trabaja en modo nube).
+  if(agCloudPatients) return agCloudPatients;
+  try{
+    const raw=localStorage.getItem('medhc_patients')||localStorage.getItem('patients')||'[]';
+    return JSON.parse(raw).map(p=>({nombre:(p.name||p.nombre||'').trim(),hcCode:p.hcCode||p.codigo||'',
+      telefono:p.telefono||p.repTelefono||''}));
+  }catch(e){return [];}
+}
+
+/* ============ Filtro ============ */
+function filtrarCitas(lista){
+  const f=ajustes.filtro||'todas';
+  if(f==='todas') return lista;
+  if(f==='presencial') return lista.filter(c=>!c.online);
+  if(f==='online') return lista.filter(c=>!!c.online);
+  return lista.filter(c=>(c.estado||'')===f);
+}
+
+/* ============ Render semana ============ */
+function cambiarSemana(d){semOff+=d;render();}
+function irHoy(){semOff=0;render();}
+
+function render(){
+  cargar();
+  ensureRecurrencias();
+  pintarIdentidad();
+  const lunes=getLunes(semOff);
+  const domingo=new Date(lunes); domingo.setDate(domingo.getDate()+6);
+  const op={day:'numeric',month:'short'};
+  document.getElementById('week-lbl').innerHTML=
+    lunes.toLocaleDateString('es-ES',op)+' – '+domingo.toLocaleDateString('es-ES',op)+
+    (semOff===0?'<small>Esta semana</small>':'<small>&nbsp;</small>');
+
+  const hoy=fk(new Date());
+  const cont=document.getElementById('days');
+  cont.innerHTML='';
+
+  const semanaKeys=[];
+  for(let i=0;i<7;i++){
+    const f=new Date(lunes); f.setDate(lunes.getDate()+i);
+    const dk=fk(f);
+    semanaKeys.push(dk);
+    const esHoy=dk===hoy;
+    const todasDia=(agAgenda[dk]||[]).slice().sort((a,b)=>a.horaInicio-b.horaInicio);
+    const citas=filtrarCitas(todasDia);
+
+    const card=document.createElement('div');
+    card.className='day-card'+(esHoy?' today':'');
+    card.innerHTML=`<div class="day-hd">
+        <div class="day-hd-name">${DIAS[i]}<span>${f.getDate()} ${f.toLocaleDateString('es-ES',{month:'short'})}</span></div>
+        <div class="day-hd-count">${citas.length}</div>
+      </div>
+      <div class="day-body" id="db-${dk}"></div>`;
+    cont.appendChild(card);
+    const body=card.querySelector('.day-body');
+
+    if(!citas.length){
+      body.innerHTML=`<div class="empty-day">${todasDia.length?'Sin coincidencias con el filtro':'Sin citas'}</div>`;
+    } else {
+      citas.forEach((c,idx)=>{
+        body.appendChild(renderCita(dk,c,idx));
+      });
+    }
+    const addRow=document.createElement('div');
+    addRow.className='add-row';
+    addRow.innerHTML=`<svg class="ic" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg> Agendar en ${DIAS_C[i]}`;
+    addRow.onclick=()=>abrirModal(dk,null);
+    body.appendChild(addRow);
+  }
+
+  renderResumen(semanaKeys);
+}
+
+function renderCita(dk,c,idx){
+  const div=document.createElement('div');
+  const isGhost=c.estado==='cancelada'||c.estado==='no-asistio';
+  div.className='cita'+(isGhost?' ghost':'');
+  const est=estadoMeta(c.estado);
+  const tags=[];
+  if(c.online) tags.push('<span class="tag online"><svg class="ic" viewBox="0 0 24 24"><rect x="2" y="6" width="14" height="12" rx="2"/><path d="M16 10l6-3v10l-6-3"/></svg>Online</span>');
+  if(c.recurrenceId) tags.push('<span class="tag rec"><svg class="ic" viewBox="0 0 24 24"><path d="M17 2l4 4-4 4M3 11V9a4 4 0 014-4h14M7 22l-4-4 4-4M21 13v2a4 4 0 01-4 4H3"/></svg>repite</span>');
+  if(c.hcCode) tags.push('<span class="tag hc">'+c.hcCode+'</span>');
+  if(c.valor) tags.push('<span class="tag val">'+fmtMoneda(c.valor,c.moneda||ajustes.moneda)+'</span>');
+  if(est.v) tags.push('<span class="tag estado-lbl">'+est.label+'</span>');
+
+  div.innerHTML=`
+    <div class="chk ${est.cls}" onclick="abrirEstadoSheet('${dk}','${c._id}')">${est.icon}</div>
+    <div class="cita-mid" onclick="abrirModal('${dk}','${c._id}')">
+      <div class="cita-top">
+        <span class="cita-hora">${fmtH(c.horaInicio)}</span>
+        <span class="cita-nombre">${c.nombre||'(sin nombre)'}</span>
+      </div>
+      ${tags.length?'<div class="cita-tags">'+tags.join('')+'</div>':''}
+    </div>
+    <div class="cita-acts">
+      <button class="act-btn act-wa" title="Enviar recordatorio" onclick="enviarWA('${dk}','${c._id}',event)">
+        <svg class="ic" viewBox="0 0 24 24" style="stroke:none;fill:#fff"><path d="M20.5 3.5A11 11 0 002.1 17L1 23l6.2-1.1A11 11 0 1020.5 3.5z"/></svg>
+      </button>
+      <button class="act-btn act-del" title="Eliminar" onclick="eliminarCita('${dk}','${c._id}',event)">
+        <svg class="ic" viewBox="0 0 24 24" style="stroke:var(--danger)"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>`;
+  return div;
+}
+
+/* ============ Estadísticas reutilizables (resumen semanal, balance mensual y anual) ============
+   Recorre una lista plana de citas y devuelve los conteos por estado/modalidad y los ingresos
+   agrupados por moneda (nunca se suman montos de monedas distintas como si fueran una sola). */
+function calcularStats(listaCitas){
+  const s={total:0,pendientes:0,confirmadas:0,asistio:0,noAsistio:0,canceladas:0,presenciales:0,online:0,ingresos:{}};
+  listaCitas.forEach(c=>{
+    s.total++;
+    const est=c.estado||'';
+    if(est==='') s.pendientes++;
+    else if(est==='confirmada') s.confirmadas++;
+    else if(est==='asistio') s.asistio++;
+    else if(est==='no-asistio') s.noAsistio++;
+    else if(est==='cancelada') s.canceladas++;
+    if(c.online) s.online++; else s.presenciales++;
+    if(est==='asistio'){
+      const mo=c.moneda||ajustes.moneda;
+      s.ingresos[mo]=(s.ingresos[mo]||0)+(Number(c.valor)||0);
+    }
+  });
+  return s;
+}
+function ingresosHtmlDeStats(s){
+  const monedas=Object.keys(s.ingresos);
+  if(!monedas.length) return fmtMoneda(0,ajustes.moneda);
+  return monedas.map(mo=>fmtMoneda(s.ingresos[mo],mo)).join(' · ');
+}
+
+/* ============ Resumen semanal ============ */
+function renderResumen(semanaKeys){
+  const citas=[];
+  semanaKeys.forEach(dk=>{ (agAgenda[dk]||[]).forEach(c=>citas.push(c)); });
+  const s=calcularStats(citas);
+  document.getElementById('resumen-grid').innerHTML=`
+    <div class="res-item"><b>${s.total}</b><span>Total de citas</span></div>
+    <div class="res-item ok"><b>${s.asistio}</b><span>Asistió</span></div>
+    <div class="res-item"><b>${s.pendientes}</b><span>Pendientes</span></div>
+    <div class="res-item"><b>${s.confirmadas}</b><span>Confirmadas</span></div>
+    <div class="res-item"><b>${s.noAsistio}</b><span>No asistió</span></div>
+    <div class="res-item"><b>${s.canceladas}</b><span>Canceladas</span></div>
+    <div class="res-item ok wide"><b style="font-size:14px">${ingresosHtmlDeStats(s)}</b><span>Ingresos</span></div>`;
+  document.getElementById('resumen-modal').innerHTML=
+    `<span><b>${s.presenciales}</b> presenciales</span><span><b>${s.online}</b> online</span>`;
+}
+
+/* ============ Búsqueda ============ */
+function abrirBusqueda(){
+  document.getElementById('search-input').value='';
+  document.getElementById('search-res').innerHTML='';
+  document.getElementById('search-empty').style.display='none';
+  document.getElementById('search-ov').classList.add('open');
+  setTimeout(()=>document.getElementById('search-input').focus(),150);
+}
+function cerrarBusqueda(){document.getElementById('search-ov').classList.remove('open');}
+function buscarCitas(q){
+  q=(q||'').trim().toLowerCase();
+  const res=document.getElementById('search-res');
+  const empty=document.getElementById('search-empty');
+  if(!q){res.innerHTML='';empty.style.display='none';return;}
+  const hallados=[];
+  Object.keys(agAgenda).sort().forEach(dk=>{
+    (agAgenda[dk]||[]).forEach((c)=>{
+      const hay=(c.nombre||'').toLowerCase().includes(q) ||
+                 (c.hcCode||'').toLowerCase().includes(q) ||
+                 (c.telefono||'').replace(/[^0-9]/g,'').includes(q.replace(/[^0-9]/g,''));
+      if(hay) hallados.push({dk,id:c._id,c});
+    });
+  });
+  if(!hallados.length){res.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  res.innerHTML=hallados.slice(0,40).map(h=>{
+    const f=new Date(h.dk+'T00:00:00');
+    return `<div class="sr-item" onclick='irAResultado("${h.dk}","${h.id}")'>
+      <div class="sr-day"><b>${f.getDate()}</b><span>${f.toLocaleDateString('es-ES',{month:'short'})}</span></div>
+      <div class="sr-mid"><b>${h.c.nombre||'(sin nombre)'}</b><span>${fmtH(h.c.horaInicio)} · ${DIAS[(f.getDay()+6)%7]}${h.c.hcCode?' · '+h.c.hcCode:''}</span></div>
+    </div>`;
+  }).join('');
+}
+function irAResultado(dk,id){
+  const destino=new Date(dk+'T00:00:00');
+  const lunesDestino=new Date(destino); const dow=destino.getDay()||7; lunesDestino.setDate(destino.getDate()-(dow-1)); lunesDestino.setHours(0,0,0,0);
+  const lunesActual=getLunes(0);
+  semOff=Math.round((lunesDestino-lunesActual)/(7*24*60*60*1000));
+  cerrarBusqueda();
+  render();
+  setTimeout(()=>abrirModal(dk,id),200);
+}
+
+/* ============ Estado de la cita ============ */
+function abrirEstadoSheet(dk,id){
+  const idx=idxPorId(dk,id);
+  estDk=dk; estIdx=idx;
+  const c=agAgenda[dk][idx];
+  document.getElementById('estado-sub').textContent=(c.nombre||'')+' · '+fmtH(c.horaInicio);
+  document.getElementById('estado-list').innerHTML=ESTADOS.map(e=>`
+    <div class="st-opt" onclick="fijarEstado('${e.v}')">
+      <div class="dot ${e.cls}">${e.icon}</div>
+      <span>${e.label}</span>
+    </div>`).join('');
+  document.getElementById('estado-ov').classList.add('open');
+}
+function cerrarEstadoSheet(){document.getElementById('estado-ov').classList.remove('open');}
+function fijarEstado(v){
+  if(estDk===null||estIdx===null) return;
+  agAgenda[estDk][estIdx].estado=v;
+  guardarAgenda(true);
+  cerrarEstadoSheet(); render();
+  toast('Estado actualizado');
+}
+
+function eliminarCita(dk,id,e){
+  e.stopPropagation();
+  if(!confirm('¿Eliminar esta cita?')) return;
+  const idx=idxPorId(dk,id);
+  if(idx<0) return;
+  agAgenda[dk].splice(idx,1);
+  if(!agAgenda[dk].length) delete agAgenda[dk];
+  guardarAgenda(true); render(); // empuja a la nube de inmediato, sin esperar el debounce
+}
+
+/* ============ WhatsApp (manual — sin API, sin envío automático) ============ */
+// Hora en formato amigable en español para el mensaje de WhatsApp (ej: "9:00 a. m.", "3:30 p. m.").
+// Se mantiene separada de fmtH() (que se usa en toda la interfaz) para no afectar el resto de la app.
+function fmtHoraWA(m){
+  const h=Math.floor(m/60), mn=m%60;
+  const ampm = h<12 ? 'a. m.' : 'p. m.';
+  const h12 = (h%12===0) ? 12 : (h%12);
+  const mmTxt = mn===0 ? '00' : (mn<10?'0'+mn:String(mn));
+  return h12+':'+mmTxt+' '+ampm;
+}
+function construirMensaje(c,dk){
+  const prof=getProfesional();
+  const f=new Date(dk+'T00:00:00');
+  // Fecha completa y comprensible, ej: "martes 8 de septiembre de 2026" (nunca solo dd/mm/aaaa).
+  const fecha=f.toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+  const plantilla=ajustes.msg||MSG_DEFAULT;
+  return plantilla
+    .replace(/\{nombre\}/g,c.nombre||'')
+    .replace(/\{fecha\}/g,fecha)
+    .replace(/\{hora\}/g,fmtHoraWA(c.horaInicio))
+    .replace(/\{modalidad\}/g,c.online?'Online':'Presencial')
+    .replace(/\{profesional\}/g,prof.nombre||'tu profesional');
+}
+function enviarWA(dk,id,e){
+  e.stopPropagation();
+  const idx=idxPorId(dk,id);
+  if(idx<0) return;
+  const c=agAgenda[dk][idx];
+  const msg=construirMensaje(c,dk);
+
+  // Si la cita no tiene teléfono guardado, intentar tomarlo del paciente (por código o por nombre)
+  // antes de abrir WhatsApp, para no caer en la lista de contactos sin un número prellenado.
+  let telRaw=(c.telefono||'').trim();
+  if(!telRaw){
+    const pacientes=getPacientes();
+    let match=null;
+    if(c.hcCode) match=pacientes.find(p=>p.hcCode && p.hcCode===c.hcCode);
+    if(!match && c.nombre) match=pacientes.find(p=>p.nombre.toLowerCase()===c.nombre.trim().toLowerCase());
+    if(match && match.telefono){
+      telRaw=match.telefono;
+      c.telefono=telRaw; guardarAgenda(); // se guarda para la próxima vez
+    }
+  }
+  let tel=telRaw.replace(/[^0-9]/g,'');
+
+  if(!tel){
+    // No hay teléfono registrado en ningún lado: pedirlo ahora, en vez de abrir la lista de contactos.
+    const ingresado=prompt('No hay un teléfono guardado para '+(c.nombre||'este paciente')+'.\nEscríbelo con código de país (ej: 584121234567) o deja vacío para copiar el mensaje.');
+    if(ingresado && ingresado.trim()){
+      tel=ingresado.replace(/[^0-9]/g,'');
+      c.telefono=ingresado.trim(); guardarAgenda();
+    } else {
+      // Copiar el mensaje para que el profesional lo pegue manualmente donde corresponda
+      copiarMensajeAlPortapapeles(msg);
+      return;
+    }
+  }
+
+  const texto=encodeURIComponent(msg);
+  const waUrl = `https://wa.me/${tel}?text=${texto}`;
+
+  // Intento de abrir WhatsApp Business en Android (best-effort, no garantizado).
+  // Si el dispositivo/navegador no lo soporta, cae automáticamente al enlace wa.me normal.
+  const esAndroid=/Android/i.test(navigator.userAgent);
+  if(esAndroid){
+    const intentUrl=`intent://send?phone=${tel}&text=${texto}#Intent;scheme=smsto;package=com.whatsapp.w4b;S.browser_fallback_url=${encodeURIComponent(waUrl)};end`;
+    window.location.href=intentUrl;
+    return;
+  }
+  window.open(waUrl,'_blank');
+}
+function copiarMensajeAlPortapapeles(msg){
+  const hacerToast=()=>toast('Mensaje copiado — pégalo en el chat del paciente');
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(msg).then(hacerToast).catch(()=>{ prompt('Copia el mensaje:',msg); });
+  } else {
+    prompt('Copia el mensaje:',msg);
+  }
+}
+
+/* ============ Modal: crear / editar cita ============ */
+function poblarMonedas(sel,valorSel){
+  sel.innerHTML=Object.keys(MONEDAS).map(m=>`<option value="${m}"${m===valorSel?' selected':''}>${m}</option>`).join('');
+}
+
+/* ============ Bloqueo inteligente de horarios según duración ============
+   Calcula qué citas ya ocupan un día (excluyendo la que se está editando y las
+   canceladas, que liberan el horario) y determina si un rango [inicio,inicio+dur)
+   se superpone con alguna de ellas. Se usa tanto para deshabilitar visualmente
+   las horas ya ocupadas como para bloquear el guardado si hay superposición real. */
+function calcularOcupados(dk,excludeId){
+  return (agAgenda[dk]||[]).filter(c=>c._id!==excludeId && c.estado!=='cancelada');
+}
+function rangoOcupado(inicio,dur,ocupados){
+  return ocupados.some(o=>inicio < (o.horaInicio+o.duracion) && (inicio+dur) > o.horaInicio);
+}
+// Reconstruye el <select> de horas: conserva TODAS las horas del horario laboral (no las
+// elimina), marcando como deshabilitadas (visualmente y funcionalmente) las que se
+// superpondrían con otra cita ya existente según la duración seleccionada.
+function poblarHorasModal(dk,dur,excludeId,horaPreferida){
+  const selHora=document.getElementById('f-hora');
+  const ini=Math.min(ajustes.horaInicio,ajustes.horaFin), fin=Math.max(ajustes.horaInicio,ajustes.horaFin);
+  const paso=ajustes.intervalo||15;
+  const ocupados=calcularOcupados(dk,excludeId);
+  selHora.innerHTML='';
+  for(let m=ini;m<=fin;m+=paso){
+    const bloqueada=rangoOcupado(m,dur,ocupados);
+    const o=document.createElement('option');
+    o.value=m; o.textContent=fmtH(m)+(bloqueada?' · ocupado':'');
+    if(bloqueada) o.disabled=true;
+    selHora.appendChild(o);
+  }
+  // Si la hora preferida (por ejemplo la que ya tenía una cita en edición, o una hora
+  // fuera del horario laboral configurado) no está en la lista, se agrega igualmente
+  // para no perder el dato — nunca se elimina información de una cita existente.
+  if(horaPreferida!=null && !Array.from(selHora.options).some(o=>+o.value===horaPreferida)){
+    const o=document.createElement('option');
+    o.value=horaPreferida; o.textContent=fmtH(horaPreferida)+' (fuera de horario)';
+    selHora.appendChild(o);
+  }
+  if(horaPreferida!=null) selHora.value=horaPreferida;
+  const actualDisabled = selHora.selectedIndex<0 || (selHora.options[selHora.selectedIndex] && selHora.options[selHora.selectedIndex].disabled);
+  if(actualDisabled){
+    const primeraLibre=Array.from(selHora.options).findIndex(o=>!o.disabled);
+    if(primeraLibre>=0) selHora.selectedIndex=primeraLibre;
+  }
+}
+// Se llama cuando el usuario cambia el día o la duración dentro del modal de cita:
+// recalcula qué horas quedan bloqueadas para esa combinación específica.
+function regenerarHorasModal(){
+  const dk=document.getElementById('f-dia').value;
+  const dur=parseInt(document.getElementById('f-dur').value)||60;
+  const horaActual=parseInt(document.getElementById('f-hora').value);
+  poblarHorasModal(dk,dur,editId,isNaN(horaActual)?null:horaActual);
+}
+
+function abrirModal(dk,id){
+  const idx = (id===null||id===undefined) ? null : idxPorId(dk,id);
+  editDk=dk; editIdx=idx; editId=(id===null||id===undefined)?null:id;
+  document.getElementById('conflict-warn').style.display='none';
+  document.getElementById('sug-box').style.display='none';
+  selPacHc='';
+
+  // Poblar select de días de la semana visible
+  const lunes=getLunes(semOff);
+  const selDia=document.getElementById('f-dia');
+  selDia.innerHTML='';
+  for(let i=0;i<7;i++){
+    const f=new Date(lunes); f.setDate(lunes.getDate()+i);
+    const k=fk(f);
+    const o=document.createElement('option');
+    o.value=k; o.textContent=DIAS[i]+' '+f.getDate()+' '+f.toLocaleDateString('es-ES',{month:'short'});
+    selDia.appendChild(o);
+  }
+
+  poblarMonedas(document.getElementById('f-moneda'),ajustes.moneda);
+
+  if(idx!==null){
+    // Editar
+    const c=agAgenda[dk][idx];
+    document.getElementById('m-ttl').innerHTML='<svg class="ic" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 114 4L7.5 20.5 2 22l1.5-5.5z"/></svg>Editar cita';
+    document.getElementById('m-sub').textContent='';
+    document.getElementById('f-nombre').value=c.nombre||'';
+    document.getElementById('f-dia').value=dk;
+    document.getElementById('f-dur').value=c.duracion||60;
+    // El horario de ESTA misma cita se excluye del bloqueo (para no bloquearse a sí misma),
+    // pero sigue impidiendo superponerse con cualquier otra cita del día.
+    poblarHorasModal(dk, c.duracion||60, editId, c.horaInicio);
+    document.getElementById('f-tel').value=c.telefono||'';
+    document.getElementById('f-valor').value=c.valor||'';
+    document.getElementById('f-moneda').value=c.moneda||ajustes.moneda;
+    selPacHc=c.hcCode||'';
+    setModalidad(!!c.online);
+    setRepeticion(0);
+    document.getElementById('btn-stop-rec').style.display = c.recurrenceId ? 'block' : 'none';
+  } else {
+    document.getElementById('m-ttl').innerHTML='<svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>Nueva cita';
+    document.getElementById('m-sub').textContent='Se guarda al instante en la agenda';
+    document.getElementById('f-nombre').value='';
+    if(dk) document.getElementById('f-dia').value=dk;
+    document.getElementById('f-dur').value=ajustes.duracionDefault||60;
+    const dkEfectivo = dk || document.getElementById('f-dia').value;
+    poblarHorasModal(dkEfectivo, ajustes.duracionDefault||60, null, ajustes.horaInicio);
+    document.getElementById('f-tel').value='';
+    document.getElementById('f-valor').value=ajustes.tarifa||'';
+    document.getElementById('f-moneda').value=ajustes.moneda;
+    setModalidad(false);
+    setRepeticion(0);
+    document.getElementById('btn-stop-rec').style.display='none';
+  }
+  document.getElementById('modal-ov').classList.add('open');
+  setTimeout(()=>document.getElementById('f-nombre').focus(),150);
+}
+function cerrarModal(){document.getElementById('modal-ov').classList.remove('open');}
+
+function setModalidad(online){
+  modOnline=online;
+  document.getElementById('seg-presencial').classList.toggle('on',!online);
+  document.getElementById('seg-online').classList.toggle('on',online);
+}
+function setRepeticion(v){
+  modRec=v;
+  document.querySelectorAll('[data-rec]').forEach(b=>b.classList.toggle('on',+b.dataset.rec===v));
+}
+
+function buscarPaciente(q){
+  const box=document.getElementById('sug-box');
+  q=(q||'').trim();
+  if(!q){box.style.display='none';return;}
+  const res=getPacientes().filter(p=>p.nombre.toLowerCase().includes(q.toLowerCase())).slice(0,5);
+  if(!res.length){box.style.display='none';return;}
+  box.innerHTML=res.map(p=>`<div class="sug-item" onclick='seleccionarPac(${JSON.stringify(p)})'>
+      <b>${p.nombre}</b><span>${p.hcCode||''}${p.telefono?' · '+p.telefono:''}</span>
+    </div>`).join('');
+  box.style.display='block';
+}
+function seleccionarPac(p){
+  document.getElementById('f-nombre').value=p.nombre;
+  if(p.telefono) document.getElementById('f-tel').value=p.telefono;
+  selPacHc=p.hcCode||'';
+  document.getElementById('sug-box').style.display='none';
+}
+// Si el profesional escribe el nombre completo (tal cual figura en MedHC) y no llega a
+// tocar la sugerencia, igual completamos teléfono/código al salir del campo — así no queda
+// una cita sin teléfono por no haber hecho clic en el listado.
+function autocompletarPacientePorNombreExacto(nombre){
+  nombre=(nombre||'').trim();
+  if(!nombre || document.getElementById('f-tel').value.trim()) return;
+  const match=getPacientes().find(p=>p.nombre.toLowerCase()===nombre.toLowerCase());
+  if(match){
+    if(match.telefono) document.getElementById('f-tel').value=match.telefono;
+    if(!selPacHc) selPacHc=match.hcCode||'';
+  }
+}
+
+function guardarCita(){
+  const nombre=document.getElementById('f-nombre').value.trim();
+  const dk=document.getElementById('f-dia').value;
+  const hi=parseInt(document.getElementById('f-hora').value);
+  const dur=parseInt(document.getElementById('f-dur').value);
+  const tel=document.getElementById('f-tel').value.trim();
+  const valor=parseFloat(document.getElementById('f-valor').value)||0;
+  const moneda=document.getElementById('f-moneda').value||ajustes.moneda;
+  if(!nombre){document.getElementById('f-nombre').focus();return;}
+
+  // Re-resolvemos el índice real por _id justo antes de guardar (y no confiamos en el que se
+  // calculó al abrir el modal), por si mientras tanto llegó una sincronización desde MedHC/otro
+  // dispositivo que cambió el orden del arreglo de ese día.
+  const idxActual = (editId && editDk) ? idxPorId(editDk, editId) : -1;
+
+  // Bloqueo real de horarios superpuestos: se valida también aquí (no solo visualmente en el
+  // <select>) para evitar que dos citas queden superpuestas por error. La propia cita en edición
+  // se excluye por su _id, así que sigue disponible para sí misma sin bloquearse a sí misma.
+  const ocupados=calcularOcupados(dk, editId);
+  if(rangoOcupado(hi,dur,ocupados)){
+    document.getElementById('conflict-txt').textContent='Ese horario se superpone con otra cita ya agendada. Elige otro horario.';
+    document.getElementById('conflict-warn').style.display='flex';
+    toast('Horario no disponible');
+    return;
+  }
+  document.getElementById('conflict-warn').style.display='none';
+
+  if(idxActual>=0 && editDk){
+    // Editar cita existente (si cambia de día, se mueve)
+    const c={...agAgenda[editDk][idxActual]};
+    agAgenda[editDk].splice(idxActual,1);
+    if(!agAgenda[editDk].length) delete agAgenda[editDk];
+    c.nombre=nombre; c.horaInicio=hi; c.duracion=dur; c.telefono=tel; c.online=modOnline;
+    c.valor=valor; c.moneda=moneda;
+    if(selPacHc) c.hcCode=selPacHc;
+    if(!agAgenda[dk]) agAgenda[dk]=[];
+    agAgenda[dk].push(c);
+    guardarAgenda(true);
+  } else {
+    const nueva={_id:agNuevoId(),nombre,horaInicio:hi,duracion:dur,estado:'',hcCode:selPacHc,telefono:tel,online:modOnline,valor,moneda};
+    if(modRec>0){
+      const recId='rec_'+Date.now();
+      nueva.recurrenceId=recId;
+      recurrencias.push({id:recId,nombre,hcCode:selPacHc,telefono:tel,online:modOnline,
+        horaInicio:hi,duracion:dur,intervalWeeks:modRec,startDate:dk,activo:true,valor,moneda});
+      guardarRec();
+    }
+    if(!agAgenda[dk]) agAgenda[dk]=[];
+    agAgenda[dk].push(nueva);
+    guardarAgenda(true);
+    if(modRec>0) ensureRecurrencias();
+  }
+  cerrarModal(); render();
+  toast(modRec>0?'Cita guardada — se repetirá automáticamente':'Cita guardada');
+}
+
+function detenerRepeticion(){
+  const idxActual = (editId && editDk) ? idxPorId(editDk, editId) : -1;
+  if(editDk===null||idxActual<0) return;
+  const c=agAgenda[editDk][idxActual];
+  if(!c.recurrenceId) return;
+  if(!confirm('Se detendrá la repetición y se borrarán las próximas citas ya generadas (no las pasadas). ¿Continuar?')) return;
+  const rid=c.recurrenceId;
+  const r=recurrencias.find(r=>r.id===rid);
+  if(r) r.activo=false;
+  guardarRec();
+  const hoy=fk(new Date());
+  Object.keys(agAgenda).forEach(dk=>{
+    if(dk>hoy){
+      agAgenda[dk]=agAgenda[dk].filter(c=>c.recurrenceId!==rid);
+      if(!agAgenda[dk].length) delete agAgenda[dk];
+    }
+  });
+  guardarAgenda();
+  cerrarModal(); render();
+  toast('Repetición detenida');
+}
+
+/* ============ Balance mensual y anual ============ */
+const MESES_LARGO=['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const MESES_CAP=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+function capitalizar(s){ return s ? s.charAt(0).toUpperCase()+s.slice(1) : s; }
+function citasDelMes(anio,mes){
+  const out=[];
+  Object.keys(agAgenda).forEach(dk=>{
+    const d=new Date(dk+'T00:00:00');
+    if(d.getFullYear()===anio && d.getMonth()===mes){
+      (agAgenda[dk]||[]).forEach(c=>out.push({dk,c}));
+    }
+  });
+  return out;
+}
+function citasDelAnio(anio){
+  const out=[];
+  Object.keys(agAgenda).forEach(dk=>{
+    if(new Date(dk+'T00:00:00').getFullYear()===anio){
+      (agAgenda[dk]||[]).forEach(c=>out.push({dk,c}));
+    }
+  });
+  return out;
+}
+
+let balMesAnio, balMesMes, balMesItems=[];
+function abrirBalanceMes(){
+  const hoy=new Date();
+  balMesAnio=hoy.getFullYear(); balMesMes=hoy.getMonth();
+  renderBalanceMes();
+  document.getElementById('balance-mes-ov').classList.add('open');
+}
+function cerrarBalanceMes(){ document.getElementById('balance-mes-ov').classList.remove('open'); }
+function cambiarBalanceMes(d){
+  balMesMes+=d;
+  if(balMesMes<0){ balMesMes=11; balMesAnio--; }
+  if(balMesMes>11){ balMesMes=0; balMesAnio++; }
+  renderBalanceMes();
+}
+function renderBalanceMes(){
+  document.getElementById('bal-mes-titulo').textContent='Balance de '+MESES_LARGO[balMesMes]+' de '+balMesAnio;
+  balMesItems=citasDelMes(balMesAnio,balMesMes);
+  const s=calcularStats(balMesItems.map(x=>x.c));
+  document.getElementById('bal-mes-body').innerHTML=`
+    <div class="res-item"><b>${s.total}</b><span>Total de citas</span></div>
+    <div class="res-item"><b>${s.pendientes}</b><span>Pendientes</span></div>
+    <div class="res-item"><b>${s.confirmadas}</b><span>Confirmadas</span></div>
+    <div class="res-item ok"><b>${s.asistio}</b><span>Asistió</span></div>
+    <div class="res-item"><b>${s.noAsistio}</b><span>No asistió</span></div>
+    <div class="res-item"><b>${s.canceladas}</b><span>Canceladas</span></div>
+    <div class="res-item"><b>${s.presenciales}</b><span>Presenciales</span></div>
+    <div class="res-item"><b>${s.online}</b><span>Online</span></div>
+    <div class="res-item ok wide"><b style="font-size:14px">${ingresosHtmlDeStats(s)}</b><span>Ingresos</span></div>`;
+}
+function exportarExcelMes(){
+  if(typeof XLSX==='undefined'){ alert('No se pudo cargar el motor de Excel. Verifica tu conexión a internet e inténtalo de nuevo.'); return; }
+  const s=calcularStats(balMesItems.map(x=>x.c));
+  const resumenData=[
+    ['Balance de '+MESES_LARGO[balMesMes]+' de '+balMesAnio],
+    [],
+    ['Total de citas', s.total],
+    ['Atendidas', s.asistio],
+    ['Pendientes', s.pendientes],
+    ['Confirmadas', s.confirmadas],
+    ['Canceladas', s.canceladas],
+    ['No asistieron', s.noAsistio],
+    ['Presenciales', s.presenciales],
+    ['Online', s.online],
+    [],
+    ['Ingresos por moneda']
+  ];
+  Object.keys(s.ingresos).forEach(mo=>resumenData.push([mo, s.ingresos[mo]]));
+  if(!Object.keys(s.ingresos).length) resumenData.push(['(sin ingresos registrados)']);
+  const wsResumen=XLSX.utils.aoa_to_sheet(resumenData);
+
+  const detalleHead=['Fecha','Día','Hora','Paciente','Modalidad','Duración','Estado','Valor','Moneda'];
+  const detalleRows=balMesItems.slice().sort((a,b)=>a.dk.localeCompare(b.dk)||a.c.horaInicio-b.c.horaInicio).map(x=>{
+    const f=new Date(x.dk+'T00:00:00');
+    return [x.dk, DIAS[(f.getDay()+6)%7], fmtH(x.c.horaInicio), x.c.nombre||'', x.c.online?'Online':'Presencial',
+      (x.c.duracion||'')+' min', estadoMeta(x.c.estado).label, x.c.valor||0, x.c.moneda||ajustes.moneda];
+  });
+  const wsDetalle=XLSX.utils.aoa_to_sheet([detalleHead].concat(detalleRows));
+
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,wsResumen,'Resumen');
+  XLSX.utils.book_append_sheet(wb,wsDetalle,'Detalle de citas');
+  XLSX.writeFile(wb, 'Balance_'+capitalizar(MESES_LARGO[balMesMes])+'_'+balMesAnio+'.xlsx');
+  toast('Excel generado');
+}
+
+let balAnio, balAnoItems=[];
+function abrirBalanceAno(){
+  balAnio=new Date().getFullYear();
+  renderBalanceAno();
+  document.getElementById('balance-ano-ov').classList.add('open');
+}
+function cerrarBalanceAno(){ document.getElementById('balance-ano-ov').classList.remove('open'); }
+function cambiarBalanceAno(d){ balAnio+=d; renderBalanceAno(); }
+function renderBalanceAno(){
+  document.getElementById('bal-ano-titulo').textContent='Balance '+balAnio;
+  balAnoItems=citasDelAnio(balAnio);
+  const s=calcularStats(balAnoItems.map(x=>x.c));
+  document.getElementById('bal-ano-resumen').innerHTML=`
+    <div class="res-item"><b>${s.total}</b><span>Total de citas del año</span></div>
+    <div class="res-item ok"><b>${s.asistio}</b><span>Atendidas</span></div>
+    <div class="res-item"><b>${s.canceladas}</b><span>Canceladas</span></div>
+    <div class="res-item"><b>${s.noAsistio}</b><span>No asistieron</span></div>
+    <div class="res-item"><b>${s.pendientes}</b><span>Pendientes</span></div>
+    <div class="res-item"><b>${s.presenciales}</b><span>Presenciales</span></div>
+    <div class="res-item"><b>${s.online}</b><span>Online</span></div>
+    <div class="res-item ok wide"><b style="font-size:14px">${ingresosHtmlDeStats(s)}</b><span>Ingresos del año</span></div>`;
+
+  let filas='', totTotal=0, totAtend=0, totCancel=0, totNoAsis=0;
+  const totIngresos={};
+  for(let m=0;m<12;m++){
+    const ms=calcularStats(citasDelMes(balAnio,m).map(x=>x.c));
+    totTotal+=ms.total; totAtend+=ms.asistio; totCancel+=ms.canceladas; totNoAsis+=ms.noAsistio;
+    Object.keys(ms.ingresos).forEach(mo=>{ totIngresos[mo]=(totIngresos[mo]||0)+ms.ingresos[mo]; });
+    const ingTxt=Object.keys(ms.ingresos).length ? Object.keys(ms.ingresos).map(mo=>fmtMoneda(ms.ingresos[mo],mo)).join(', ') : '—';
+    filas+=`<tr><td>${MESES_CAP[m]}</td><td>${ms.total}</td><td>${ms.asistio}</td><td>${ms.canceladas}</td><td>${ms.noAsistio}</td><td>${ingTxt}</td></tr>`;
+  }
+  const totIngTxt=Object.keys(totIngresos).length ? Object.keys(totIngresos).map(mo=>fmtMoneda(totIngresos[mo],mo)).join(', ') : '—';
+  filas+=`<tr style="font-weight:800;background:var(--alt)"><td>TOTAL ANUAL</td><td>${totTotal}</td><td>${totAtend}</td><td>${totCancel}</td><td>${totNoAsis}</td><td>${totIngTxt}</td></tr>`;
+  document.getElementById('bal-ano-tabla').innerHTML=`<table class="bal-tabla">
+    <thead><tr><th>Mes</th><th>Total</th><th>Atendidas</th><th>Canc.</th><th>No asist.</th><th>Ingresos</th></tr></thead>
+    <tbody>${filas}</tbody></table>`;
+}
+function exportarExcelAno(){
+  if(typeof XLSX==='undefined'){ alert('No se pudo cargar el motor de Excel. Verifica tu conexión a internet e inténtalo de nuevo.'); return; }
+  const s=calcularStats(balAnoItems.map(x=>x.c));
+  const resumenAnual=[
+    ['Balance Anual '+balAnio],
+    [],
+    ['Total de citas', s.total],
+    ['Atendidas', s.asistio],
+    ['Canceladas', s.canceladas],
+    ['No asistieron', s.noAsistio],
+    ['Pendientes', s.pendientes],
+    ['Presenciales', s.presenciales],
+    ['Online', s.online],
+    [],
+    ['Ingresos por moneda']
+  ];
+  Object.keys(s.ingresos).forEach(mo=>resumenAnual.push([mo, s.ingresos[mo]]));
+  if(!Object.keys(s.ingresos).length) resumenAnual.push(['(sin ingresos registrados)']);
+  const wsResumenAnual=XLSX.utils.aoa_to_sheet(resumenAnual);
+
+  const resumenMensualHead=['Mes','Total','Atendidas','Canceladas','No asistieron','Ingresos'];
+  const resumenMensualRows=[];
+  let totTotal=0, totAtend=0, totCancel=0, totNoAsis=0;
+  const totIngresos={};
+  for(let m=0;m<12;m++){
+    const ms=calcularStats(citasDelMes(balAnio,m).map(x=>x.c));
+    totTotal+=ms.total; totAtend+=ms.asistio; totCancel+=ms.canceladas; totNoAsis+=ms.noAsistio;
+    Object.keys(ms.ingresos).forEach(mo=>{ totIngresos[mo]=(totIngresos[mo]||0)+ms.ingresos[mo]; });
+    const ingTxt=Object.keys(ms.ingresos).length ? Object.keys(ms.ingresos).map(mo=>mo+' '+ms.ingresos[mo]).join(' / ') : '';
+    resumenMensualRows.push([MESES_CAP[m], ms.total, ms.asistio, ms.canceladas, ms.noAsistio, ingTxt]);
+  }
+  const totIngTxt=Object.keys(totIngresos).length ? Object.keys(totIngresos).map(mo=>mo+' '+totIngresos[mo]).join(' / ') : '';
+  resumenMensualRows.push(['TOTAL ANUAL', totTotal, totAtend, totCancel, totNoAsis, totIngTxt]);
+  const wsResumenMensual=XLSX.utils.aoa_to_sheet([resumenMensualHead].concat(resumenMensualRows));
+
+  const detalleHead=['Fecha','Día','Hora','Paciente','Modalidad','Duración','Estado','Valor','Moneda'];
+  const detalleRows=balAnoItems.slice().sort((a,b)=>a.dk.localeCompare(b.dk)||a.c.horaInicio-b.c.horaInicio).map(x=>{
+    const f=new Date(x.dk+'T00:00:00');
+    return [x.dk, DIAS[(f.getDay()+6)%7], fmtH(x.c.horaInicio), x.c.nombre||'', x.c.online?'Online':'Presencial',
+      (x.c.duracion||'')+' min', estadoMeta(x.c.estado).label, x.c.valor||0, x.c.moneda||ajustes.moneda];
+  });
+  const wsDetalle=XLSX.utils.aoa_to_sheet([detalleHead].concat(detalleRows));
+
+  const wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,wsResumenAnual,'Resumen anual');
+  XLSX.utils.book_append_sheet(wb,wsResumenMensual,'Resumen mensual');
+  XLSX.utils.book_append_sheet(wb,wsDetalle,'Detalle de citas');
+  XLSX.writeFile(wb, 'Balance_Anual_'+balAnio+'.xlsx');
+  toast('Excel generado');
+}
+
+/* ============ Historial y datos (Ajustes → Historial y datos) ============
+   Solo afecta a las citas de la agenda (agAgenda); nunca borra pacientes de MedHC. */
+function abrirHistorial(){
+  document.getElementById('hist-desde').value='';
+  document.getElementById('hist-hasta').value='';
+  renderHistorialLista();
+  document.getElementById('historial-ov').classList.add('open');
+}
+function cerrarHistorial(){ document.getElementById('historial-ov').classList.remove('open'); }
+function historialFiltrado(){
+  const hoy=fk(new Date());
+  const desde=document.getElementById('hist-desde').value;
+  const hasta=document.getElementById('hist-hasta').value;
+  const out=[];
+  Object.keys(agAgenda).sort().forEach(dk=>{
+    if(dk>=hoy) return; // el historial es solo de citas pasadas
+    if(desde && dk<desde) return;
+    if(hasta && dk>hasta) return;
+    (agAgenda[dk]||[]).forEach(c=>out.push({dk,c}));
+  });
+  return out;
+}
+function renderHistorialLista(){
+  const lista=historialFiltrado();
+  const cont=document.getElementById('hist-lista');
+  if(!lista.length){ cont.innerHTML='<div style="text-align:center;color:var(--light);font-size:12px;padding:20px 10px">Sin citas en este período</div>'; return; }
+  cont.innerHTML=lista.slice().reverse().slice(0,200).map(h=>{
+    const f=new Date(h.dk+'T00:00:00');
+    return `<div class="sr-item">
+      <div class="sr-day"><b>${f.getDate()}</b><span>${f.toLocaleDateString('es-ES',{month:'short'})}</span></div>
+      <div class="sr-mid"><b>${h.c.nombre||'(sin nombre)'}</b><span>${fmtH(h.c.horaInicio)} · ${estadoMeta(h.c.estado).label}</span></div>
+      <button class="act-btn act-del" onclick='eliminarCitaHistorial("${h.dk}","${h.c._id}")'><svg class="ic" viewBox="0 0 24 24" style="stroke:var(--danger)"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+    </div>`;
+  }).join('');
+}
+function eliminarCitaHistorial(dk,id){
+  if(!confirm('¿Eliminar esta cita del historial? Esta acción no se puede deshacer.')) return;
+  const idx=idxPorId(dk,id);
+  if(idx<0) return;
+  agAgenda[dk].splice(idx,1);
+  if(!agAgenda[dk].length) delete agAgenda[dk];
+  guardarAgenda(true);
+  renderHistorialLista(); render();
+  toast('Cita eliminada del historial');
+}
+function eliminarHistorialRango(){
+  const desde=document.getElementById('hist-desde').value;
+  const hasta=document.getElementById('hist-hasta').value;
+  if(!desde && !hasta){ alert('Selecciona al menos una fecha (desde y/o hasta) para eliminar un período.'); return; }
+  if(!confirm('Esta acción eliminará permanentemente las citas del historial en el período seleccionado. ¿Deseas continuar?')) return;
+  const hoy=fk(new Date());
+  let borradas=0;
+  Object.keys(agAgenda).forEach(dk=>{
+    if(dk>=hoy) return;
+    if(desde && dk<desde) return;
+    if(hasta && dk>hasta) return;
+    borradas+=(agAgenda[dk]||[]).length;
+    delete agAgenda[dk];
+  });
+  guardarAgenda(true);
+  renderHistorialLista(); render();
+  toast(borradas+' cita(s) eliminadas');
+}
+function eliminarTodoHistorial(){
+  document.getElementById('confirm-borrar-ov').classList.add('open');
+}
+function cerrarConfirmBorrar(){ document.getElementById('confirm-borrar-ov').classList.remove('open'); }
+function confirmarBorrarTodo(){
+  const hoy=fk(new Date());
+  Object.keys(agAgenda).forEach(dk=>{ if(dk<hoy) delete agAgenda[dk]; });
+  guardarAgenda(true);
+  cerrarConfirmBorrar();
+  renderHistorialLista(); render();
+  toast('Historial eliminado');
+}
+
+/* ============ Ajustes (color, tarifa, moneda, mensaje) ============ */
+function poblarPaletas(){
+  const grid=document.getElementById('pal-grid');
+  grid.innerHTML=PALETAS.map(p=>`
+    <div>
+      <div class="pal-opt${ajustes.color===p.id?' on':''}" style="background:linear-gradient(135deg,${p.cobalt},${p.accent})" onclick="elegirColor('${p.id}')">
+        ${ajustes.color===p.id?'<svg class="ic" viewBox="0 0 24 24" style="stroke-width:3"><polyline points="20 6 9 17 4 12"/></svg>':''}
+      </div>
+      <div class="pal-name">${p.nombre}</div>
+    </div>`).join('');
+}
+function elegirColor(id){
+  ajustes.color=id;
+  aplicarPaleta(id);
+  guardarAjustes();
+  poblarPaletas();
+}
+function guardarAjustesLive(){
+  ajustes.tarifa=parseFloat(document.getElementById('set-tarifa').value)||0;
+  ajustes.moneda=document.getElementById('set-moneda').value||'USD';
+  ajustes.msg=document.getElementById('set-msg').value||MSG_DEFAULT;
+  guardarAjustes();
+  renderResumenActual();
+}
+function renderResumenActual(){
+  const lunes=getLunes(semOff);
+  const keys=[];
+  for(let i=0;i<7;i++){const f=new Date(lunes);f.setDate(lunes.getDate()+i);keys.push(fk(f));}
+  renderResumen(keys);
+}
+function toggleDiaLab(i){
+  const set=new Set(ajustes.diasLaborales||[]);
+  if(set.has(i)) set.delete(i); else set.add(i);
+  ajustes.diasLaborales=Array.from(set).sort();
+  guardarAjustes();
+  poblarDiasLab();
+}
+function poblarDiasLab(){
+  const cont=document.getElementById('dias-lab-check');
+  const set=new Set(ajustes.diasLaborales||[]);
+  cont.innerHTML=DIAS_C.map((d,i)=>`<div class="day-check${set.has(i)?' on':''}" onclick="toggleDiaLab(${i})">${d}</div>`).join('');
+}
+function poblarHoras(sel,ini,fin,step,valorSel){
+  sel.innerHTML='';
+  for(let m=ini;m<=fin;m+=step){
+    const o=document.createElement('option'); o.value=m; o.textContent=fmtH(m);
+    sel.appendChild(o);
+  }
+  sel.value=valorSel;
+}
+function abrirAjustes(){
+  document.getElementById('set-tarifa').value=ajustes.tarifa||'';
+  poblarMonedas(document.getElementById('set-moneda'),ajustes.moneda);
+  document.getElementById('set-msg').value=ajustes.msg||MSG_DEFAULT;
+  document.getElementById('set-tema').value=ajustes.tema||'claro';
+  document.getElementById('set-vista').value=ajustes.vista||'comoda';
+  document.getElementById('set-dispositivo').value=ajustes.dispositivo||'auto';
+  poblarDiasLab();
+  poblarHoras(document.getElementById('set-h-ini'),0,23*60+45,15,ajustes.horaInicio);
+  poblarHoras(document.getElementById('set-h-fin'),0,23*60+45,15,ajustes.horaFin);
+  document.getElementById('set-intervalo').value=ajustes.intervalo||15;
+  document.getElementById('set-dur-def').value=ajustes.duracionDefault||60;
+  poblarPaletas();
+  pintarIdentidad();
+  document.getElementById('set-ov').classList.add('open');
+}
+function cerrarAjustes(){document.getElementById('set-ov').classList.remove('open');render();}
+
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.innerHTML='<svg class="ic" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>'+msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+/* ============ Instalación PWA ============ */
+let deferredPrompt=null;
+window.addEventListener('beforeinstallprompt',(e)=>{
+  e.preventDefault(); deferredPrompt=e;
+  document.getElementById('install-btn').classList.add('show');
+});
+function doInstall(){
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  deferredPrompt.userChoice.then(()=>{deferredPrompt=null;document.getElementById('install-btn').classList.remove('show');});
+}
+if('serviceWorker' in navigator){
+  window.addEventListener('load',()=>{
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  });
+}
+
+// La Agenda se descarga como un único archivo .html (para que puedas guardarla/enviarla fácilmente),
+// así que no viaja acompañada de manifest.json ni de los íconos como archivos aparte. Para que aun así
+// se pueda "Agregar a pantalla de inicio" con un ícono propio (con las iniciales y el color del
+// profesional), generamos el manifest y los íconos EN EL MOMENTO, dentro del propio navegador.
+function agGenerarIconoDataURL(size){
+  try{
+    const canvas=document.createElement('canvas');
+    canvas.width=size; canvas.height=size;
+    const ctx=canvas.getContext('2d');
+    const color=(getComputedStyle(document.documentElement).getPropertyValue('--cobalt')||'#1A3A6E').trim()||'#1A3A6E';
+    ctx.fillStyle=color; ctx.fillRect(0,0,size,size);
+    ctx.fillStyle='#fff';
+    ctx.font='bold '+Math.round(size*0.42)+'px system-ui, sans-serif';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(iniciales(getProfesional().nombre), size/2, size/2+size*0.03);
+    return canvas.toDataURL('image/png');
+  }catch(e){ return ''; }
+}
+function agConfigurarInstalacion(){
+  try{
+    const icon192=agGenerarIconoDataURL(192);
+    const icon512=agGenerarIconoDataURL(512);
+    if(!icon192) return;
+    const themeColor=(getComputedStyle(document.documentElement).getPropertyValue('--cobalt')||'#1A3A6E').trim()||'#1A3A6E';
+    const manifest={
+      name:'Agenda MedHC', short_name:'Agenda',
+      start_url:'.', scope:'.', display:'standalone', orientation:'portrait',
+      background_color:'#ffffff', theme_color:themeColor,
+      icons:[
+        {src:icon192, sizes:'192x192', type:'image/png', purpose:'any maskable'},
+        {src:icon512, sizes:'512x512', type:'image/png', purpose:'any maskable'}
+      ]
+    };
+    const blob=new Blob([JSON.stringify(manifest)],{type:'application/manifest+json'});
+    const url=URL.createObjectURL(blob);
+    let link=document.querySelector('link[rel="manifest"]');
+    if(!link){ link=document.createElement('link'); link.rel='manifest'; document.head.appendChild(link); }
+    link.setAttribute('href',url);
+
+    let apple=document.querySelector('link[rel="apple-touch-icon"]');
+    if(!apple){ apple=document.createElement('link'); apple.rel='apple-touch-icon'; document.head.appendChild(apple); }
+    apple.setAttribute('href',icon192);
+  }catch(e){}
+}
+
+/* ============ Init ============ */
+cargarAjustes(); // ya aplica tema, densidad y vista de dispositivo
+document.getElementById('filtro-estado').value=ajustes.filtro||'todas';
+render();
+agInitFirebase(); // intenta conectar en silencio con la sesión de MedHC (si existe en este navegador)
+setInterval(render, 60000); // refresca por si otra pestaña (la app principal) cambió datos
+document.addEventListener('visibilitychange',()=>{if(!document.hidden) render();});
+</script>
+</body>
+</html>
