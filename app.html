@@ -600,9 +600,8 @@ pre{background:var(--alt);border:1px solid var(--border);border-radius:9px;paddi
     <div id="settings-ok" style="display:none;text-align:center;margin-top:10px;font-size:12px;color:var(--accent);font-weight:700">Datos guardados correctamente</div>
     <div id="agenda-download-section" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)">
       <div style="font-size:12px;font-weight:800;color:var(--cobalt);margin-bottom:4px">Agenda MedHC (app)</div>
-      <div style="font-size:11px;color:var(--mid);margin-bottom:10px">Para tener la Agenda como app en tu celular (con ícono en la pantalla de inicio), tócala abajo en "Abrir Agenda" y luego usa el botón <b>Instalar</b> que aparece dentro de ella. El botón de descarga NO instala nada: solo guarda una copia del archivo en tus Descargas, útil para respaldo o para enviarla a otro dispositivo.</div>
+      <div style="font-size:11px;color:var(--mid);margin-bottom:10px">Para tener la Agenda como app en tu celular (con ícono en la pantalla de inicio, sincronizada de verdad con MedHC), tócala abajo en "Abrir Agenda" y luego usa el botón <b>Instalar</b> que aparece dentro de ella.</div>
       <a href="agenda.html" target="_blank" style="display:block;text-align:center;width:100%;padding:10px;background:linear-gradient(135deg,var(--cobalt),var(--accent));color:#fff;border:none;border-radius:9px;font-size:13px;font-weight:700;cursor:pointer;text-decoration:none;margin-bottom:8px">📱 Abrir Agenda (e instalar desde ahí)</a>
-      <button onclick="descargarAgendaApp()" style="width:100%;padding:10px;background:var(--alt);color:var(--mid);border:1.5px solid var(--border);border-radius:9px;font-size:13px;font-weight:700;cursor:pointer">📄 Descargar copia de respaldo (.html)</button>
     </div>
     <div id="delete-own-account-section" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border)"><button onclick="confirmDeleteOwnAccount()" style="width:100%;padding:10px;background:#FEF2F2;color:#DC2626;border:1.5px solid #FECACA;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer">Eliminar mi cuenta</button></div>
   </div>
@@ -13389,29 +13388,6 @@ document.addEventListener('DOMContentLoaded', agendaFabSync);
     },500);
   };
 })();
-</script>
-<script>
-/* ============ Descarga de la Agenda MedHC como archivo independiente ============ */
-function descargarAgendaApp(){
-  // Descarga siempre el archivo agenda.html REAL, publicado junto a esta app — la MISMA
-  // implementación que ya sincroniza con Firebase. Ya no existe una copia de respaldo
-  // congelada dentro de app.html: si la descarga falla, se avisa en vez de entregar
-  // silenciosamente una versión antigua que podría no coincidir con los datos actuales.
-  fetch("agenda.html", {cache:"no-store"})
-    .then(r=>{ if(!r.ok) throw new Error("no-ok"); return r.text(); })
-    .then(html=>{ if(!html || html.length<500) throw new Error("vacio"); disparaDescargaAgenda(html); })
-    .catch(()=>{
-      alert("No se pudo descargar la Agenda. Revisa tu conexión a internet e inténtalo de nuevo.");
-    });
-}
-function disparaDescargaAgenda(html){
-  const blob = new Blob([html], {type:"text/html"});
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url; a.download = "agenda-medhc.html";
-  document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  setTimeout(()=>URL.revokeObjectURL(url), 4000);
-}
 </script>
 </body>
 </html>
