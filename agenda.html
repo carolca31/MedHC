@@ -38,7 +38,7 @@ html[data-theme="dark"] .tag.online{color:#F5C15C;}
 html[data-theme="dark"] .tag.val{color:#5FD68C;}
 html[data-theme="dark"] .tag.hc,html[data-theme="dark"] .tag.estado-lbl{color:var(--mid);}
 html[data-theme="dark"] .sug-item,html[data-theme="dark"] .sr-item{border-color:var(--alt);}
-html,body{height:100%;background:var(--bg);}
+html,body{height:100%;background:var(--bg);overflow-x:hidden;}
 body{font-family:'Segoe UI',Arial,sans-serif;color:var(--brown);font-size:14px;
   padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom);
   -webkit-overflow-scrolling:touch;transition:background .2s,color .2s;}
@@ -1915,9 +1915,13 @@ window.addEventListener('beforeinstallprompt',(e)=>{
 // que es la única forma real de instalarla en ese sistema (Compartir → Agregar a pantalla de inicio).
 function agEsIOS(){ return /iphone|ipad|ipod/i.test(navigator.userAgent) && !window.MSStream; }
 function agYaInstalada(){ return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone===true; }
-if(agEsIOS() && !agYaInstalada()){
-  const btnIOS=document.getElementById('install-btn');
-  if(btnIOS) btnIOS.classList.add('show');
+// El botón "Instalar" se muestra siempre que la Agenda NO esté ya instalada, sin depender de que
+// el navegador dispare "beforeinstallprompt" (en Chrome/Android ese evento no siempre llega en la
+// primera visita). Si el navegador sí ofrece el diálogo nativo, se usa; si no, se muestran
+// instrucciones manuales según la plataforma.
+if(!agYaInstalada()){
+  const btnInst=document.getElementById('install-btn');
+  if(btnInst) btnInst.classList.add('show');
 }
 function doInstall(){
   if(deferredPrompt){
@@ -1927,6 +1931,11 @@ function doInstall(){
   }
   if(agEsIOS()){
     alert('Para instalar la Agenda en tu iPhone/iPad:\n\n1. Toca el botón Compartir (el cuadrado con la flecha hacia arriba), en la barra de Safari.\n2. Elige "Agregar a pantalla de inicio".\n3. Confirma tocando "Agregar".\n\nAsí te queda un ícono propio, como una app.');
+    return;
+  }
+  const esAndroid=/Android/i.test(navigator.userAgent);
+  if(esAndroid){
+    alert('Para instalar la Agenda en tu teléfono:\n\n1. Toca el menú ⋮ (los tres puntos) arriba a la derecha del navegador.\n2. Elige "Instalar aplicación" o "Agregar a pantalla de inicio".\n3. Confirma.\n\nAsí te queda un ícono propio, como una app, sin la barra del navegador.');
     return;
   }
   toast('Ya está instalada, o tu navegador aún no ofrece instalarla aquí');
