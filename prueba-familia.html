@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+<title>Cuestionario para la familia — MedHC</title>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-app-compat.js" onerror="window.__fbFailed=true"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore-compat.js" onerror="window.__fbFailed=true"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{--bg:#F4F6F9;--surface:#fff;--border:#D1DCE8;--accent:#0891B2;--cobalt:#1A3A6E;--cobalt-light:#EEF2FA;--brown:#1E2A3A;--mid:#4A5568;--light:#94A3B8;}
+body{font-family:'Segoe UI',Arial,sans-serif;background:var(--bg);color:var(--brown);min-height:100vh;}
+#wrap{max-width:520px;margin:0 auto;min-height:100vh;display:flex;flex-direction:column;background:var(--surface);box-shadow:0 0 24px rgba(0,0,0,.05);}
+#head{padding:16px 20px 14px;border-bottom:2px solid var(--border);background:linear-gradient(135deg,rgba(93,201,201,.09),rgba(245,200,66,.09));}
+#head h1{font-size:15px;color:var(--cobalt);}
+#head p{font-size:11.5px;color:var(--mid);margin-top:3px;}
+#progress-bar{height:5px;background:var(--border);}
+#progress-fill{height:100%;background:var(--accent);width:0%;transition:width .25s;}
+#body{flex:1;padding:24px 20px;display:flex;flex-direction:column;}
+.q-label{font-size:15px;font-weight:700;color:var(--brown);margin-bottom:16px;line-height:1.4;}
+.area-tag{font-size:10.5px;font-weight:800;color:var(--accent);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;}
+.opt{display:block;width:100%;text-align:left;padding:13px 14px;margin-bottom:10px;border:1.5px solid var(--border);border-radius:10px;background:#fff;font-size:13.5px;cursor:pointer;transition:.15s;line-height:1.4;}
+.opt:active,.opt.sel{border-color:var(--accent);background:var(--cobalt-light);}
+.opt.unsure{color:var(--mid);font-style:italic;}
+textarea,input{width:100%;padding:11px 13px;border:1.5px solid var(--border);border-radius:10px;font-size:13.5px;font-family:inherit;outline:none;}
+textarea:focus,input:focus{border-color:var(--accent);}
+textarea{resize:vertical;line-height:1.5;}
+#nav{display:flex;gap:10px;padding:14px 20px 22px;border-top:1px solid var(--border);}
+button.nav-btn{flex:1;padding:13px;border:none;border-radius:10px;font-size:13.5px;font-weight:700;cursor:pointer;}
+#btn-back{background:#EEF2F6;color:var(--mid);}
+#btn-next{background:var(--cobalt);color:#fff;}
+#btn-next:disabled{opacity:.4;cursor:not-allowed;}
+.center{margin:auto;text-align:center;padding:20px;}
+.center h2{font-size:16px;color:var(--cobalt);margin-bottom:10px;}
+.center p{font-size:13px;color:var(--mid);line-height:1.6;}
+.clarify{margin-top:12px;padding:10px 12px;background:#FEF3C7;border-radius:8px;font-size:12px;color:#92400E;display:none;}
+label.f{display:block;font-size:12px;font-weight:700;color:var(--mid);margin-bottom:5px;margin-top:12px;}
+label.f:first-child{margin-top:0;}
+#final-icon{font-size:38px;margin-bottom:12px;}
+</style>
+</head>
+<body>
+<div id="wrap">
+  <div id="head">
+    <h1 id="head-title">Cuestionario para la familia</h1>
+    <p id="head-sub">Sus respuestas ayudan al profesional a conocer mejor al niño o niña.</p>
+  </div>
+  <div id="progress-bar"><div id="progress-fill"></div></div>
+  <div id="body"><div class="center"><p>Cargando…</p></div></div>
+  <div id="nav" style="display:none">
+    <button class="nav-btn" id="btn-back" onclick="goBack()">Atrás</button>
+    <button class="nav-btn" id="btn-next" onclick="goNext()" disabled>Siguiente</button>
+  </div>
+</div>
+
+<script>
+const firebaseConfig={
+  apiKey:"AIzaSyAdCMm57dFHMv2s6SstFS02OzehBzv4NQA",
+  authDomain:"psicohcpc-7a140.firebaseapp.com",
+  projectId:"psicohcpc-7a140",
+  storageBucket:"psicohcpc-7a140.firebasestorage.app",
+  messagingSenderId:"374245814828",
+  appId:"1:374245814828:web:70c4ece62768c83f3a9789"
+};
+let db=null,useLocal=false;
+try{
+  if(window.__fbFailed) throw new Error('no firebase');
+  firebase.initializeApp(firebaseConfig);
+  db=firebase.firestore();
+}catch(e){useLocal=true;}
+
+// ── Banco de las 15 áreas ──
+const CARS2_AREAS=[
+{id:1,n:"Relación con las personas",q:[
+ {t:"¿Cómo suele relacionarse su hijo con otras personas?",o:["Busca espontáneamente a otras personas para conversar, jugar o compartir.","Se relaciona con otras personas, aunque algunas veces necesita ayuda para iniciar o mantener la interacción.","Se relaciona poco y generalmente necesita que otra persona facilite el contacto.","Tiende a mantenerse aislado y responde poco cuando otras personas intentan interactuar con él."]},
+ {t:"Cuando alguien intenta hablarle o jugar con él, ¿cómo suele responder?",o:["Responde espontáneamente y participa.","Responde, aunque algunas veces necesita tiempo o ayuda.","Responde de manera limitada.","Frecuentemente parece no prestar atención o no responder."]},
+ {t:"¿Busca espontáneamente a otras personas para compartir algo que le interesa?",o:["Sí, frecuentemente.","Sí, pero no siempre.","Lo hace pocas veces.","Casi nunca o nunca."]},
+ {t:"Cuando necesita ayuda o se siente mal, ¿busca a una persona conocida?",o:["Sí, de manera espontánea.","Generalmente sí.","Solo algunas veces.","Rara vez o nunca."]},
+ {t:"¿Cómo suele utilizar el contacto visual durante una interacción?",o:["Lo utiliza de manera natural.","Lo utiliza, aunque algunas veces es breve o irregular.","Lo utiliza poco.","Evita frecuentemente mirar a la persona."]}
+]},
+{id:2,n:"Imitación",q:[
+ {t:"¿Imita espontáneamente acciones que observa en otras personas?",o:["Sí, habitualmente.","Sí, aunque algunas veces necesita que se lo indiquen.","Lo hace pocas veces.","Rara vez o nunca."]},
+ {t:"Cuando usted le enseña cómo hacer algo, ¿puede repetirlo?",o:["Sí, fácilmente.","Sí, después de varios intentos.","Necesita bastante ayuda.","Le resulta muy difícil o no lo hace."]},
+ {t:"¿Imita gestos sencillos?",o:["Sí, espontáneamente.","Sí, cuando se le solicita.","Solo algunos.","Rara vez o nunca."]},
+ {t:"¿Imita sonidos, palabras o expresiones de otras personas?",o:["Frecuentemente.","Algunas veces.","Pocas veces.","Rara vez o nunca."]}
+]},
+{id:3,n:"Respuestas emocionales",q:[
+ {t:"Cuando ocurre algo agradable, ¿cómo expresa alegría?",o:["De una manera acorde con la situación.","Algunas veces de manera poco habitual.","Frecuentemente de una manera muy intensa o poco relacionada con la situación.","Presenta muy poca respuesta emocional o una respuesta difícil de relacionar con lo ocurrido."]},
+ {t:"Cuando se frustra o se enoja, ¿cómo reacciona?",o:["Su reacción suele ser proporcional y puede recuperarse.","Algunas veces reacciona con mayor intensidad de la esperada.","Sus reacciones suelen ser muy intensas o difíciles de regular.","Sus reacciones son extremadamente intensas o parecen no relacionarse con lo ocurrido."]},
+ {t:"¿Puede cambiar rápidamente de una emoción a otra?",o:["No de manera significativa.","Algunas veces.","Frecuentemente.","Muy frecuentemente y con gran dificultad para regularse."]}
+]},
+{id:4,n:"Uso del cuerpo",q:[
+ {t:"¿Realiza movimientos repetitivos con las manos, dedos, brazos o cuerpo?",o:["No.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]},
+ {t:"¿Se balancea, gira, camina de puntillas o realiza movimientos corporales repetitivos?",o:["No.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]},
+ {t:"¿Adopta posturas corporales inusuales?",o:["No.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]},
+ {t:"¿Presenta conductas de lastimarse, golpearse o morderse?",o:["Nunca.","Ocasionalmente.","Frecuentemente.","De manera intensa o repetida."]}
+]},
+{id:5,n:"Uso de objetos",q:[
+ {t:"¿Cómo suele jugar con sus juguetes?",o:["Los utiliza de manera funcional y variada.","Algunas veces juega de manera repetitiva.","Frecuentemente utiliza los objetos de una manera poco habitual o repetitiva.","Se concentra intensamente en determinadas partes o acciones con los objetos."]},
+ {t:"¿Suele ordenar, alinear, girar o clasificar objetos repetidamente?",o:["No.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]},
+ {t:"¿Se interesa más por una parte de un objeto que por utilizarlo como un todo?",o:["No.","Algunas veces.","Frecuentemente.","De manera intensa y persistente."]}
+]},
+{id:6,n:"Adaptación al cambio",q:[
+ {t:"¿Cómo reacciona cuando cambia una rutina habitual?",o:["Se adapta fácilmente.","Puede molestarse un poco, pero se adapta.","Presenta dificultades claras para aceptar el cambio.","El cambio provoca reacciones muy intensas."]},
+ {t:"¿Qué ocurre cuando debe dejar una actividad que disfruta?",o:["Puede hacerlo sin dificultad importante.","Necesita algunos avisos.","Presenta resistencia importante.","Puede presentar una reacción intensa o descontrolada."]},
+ {t:"¿Necesita que las actividades se realicen siempre de una determinada manera?",o:["No.","Algunas veces.","Frecuentemente.","De manera muy rígida."]}
+]},
+{id:7,n:"Respuesta visual",q:[
+ {t:"¿Cómo utiliza la mirada cuando conversa con alguien?",o:["De manera natural.","Algunas veces evita o reduce el contacto visual.","Utiliza poco el contacto visual.","Evita marcadamente mirar a las personas."]},
+ {t:"¿Observa objetos desde ángulos inusuales o muy cerca de los ojos?",o:["Nunca.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]},
+ {t:"¿Muestra un interés particular por luces, sombras, reflejos o movimientos visuales?",o:["No.","Algunas veces.","Frecuentemente.","De manera intensa y persistente."]}
+]},
+{id:8,n:"Respuesta auditiva",q:[
+ {t:"¿Responde cuando lo llaman por su nombre?",o:["Casi siempre.","Algunas veces necesita que lo llamen nuevamente.","Frecuentemente no responde.","Parece no responder incluso cuando se intenta llamar su atención directamente."]},
+ {t:"¿Hay sonidos cotidianos que le molestan mucho?",o:["No.","Algunos sonidos le molestan.","Muchos sonidos le generan una reacción intensa.","Presenta una reacción extrema ante determinados sonidos."]},
+ {t:"¿Se tapa los oídos o intenta evitar determinados sonidos?",o:["Nunca.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]}
+]},
+{id:9,n:"Gusto, olfato y tacto",q:[
+ {t:"¿Tiene preferencias muy marcadas respecto a alimentos, sabores o texturas?",o:["No.","Algunas preferencias.","Preferencias o rechazos frecuentes.","Restricciones o reacciones muy intensas."]},
+ {t:"¿Le molestan determinadas prendas, telas, etiquetas u objetos por cómo se sienten al tocarlos?",o:["No.","Algunas veces.","Frecuentemente.","De manera intensa."]},
+ {t:"¿Busca tocar, oler o explorar repetidamente determinados objetos?",o:["No.","Algunas veces.","Frecuentemente.","De manera intensa y persistente."]},
+ {t:"¿Parece reaccionar poco ante dolor, frío, calor u otras sensaciones?",o:["No.","Algunas veces.","Frecuentemente.","De manera marcada."]}
+]},
+{id:10,n:"Miedo o nerviosismo",q:[
+ {t:"¿Tiene miedos que parecen inusuales para su edad?",o:["No.","Algunos.","Varios o muy intensos.","Miedos muy intensos o persistentes."]},
+ {t:"¿Presenta miedo ante situaciones que aparentemente no representan peligro?",o:["No.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]},
+ {t:"¿Hay situaciones potencialmente peligrosas ante las cuales parece mostrar poco miedo?",o:["No.","Algunas veces.","Frecuentemente.","De manera marcada."]}
+]},
+{id:11,n:"Comunicación verbal",q:[
+ {t:"¿Cómo utiliza el lenguaje para comunicarse?",o:["Lo utiliza de manera espontánea y funcional.","Presenta algunas peculiaridades.","Su comunicación verbal es limitada, repetitiva o poco habitual.","Presenta dificultades marcadas para utilizar el lenguaje con finalidad comunicativa."]},
+ {t:"¿Repite palabras o frases que acaba de escuchar?",o:["Nunca o casi nunca.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]},
+ {t:"¿Repite frases de películas, videos o conversaciones anteriores?",o:["No.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]},
+ {t:"¿Habla repetidamente sobre determinados temas?",o:["No.","Algunas veces.","Frecuentemente.","De manera intensa y difícil de interrumpir."]}
+]},
+{id:12,n:"Comunicación no verbal",q:[
+ {t:"¿Utiliza gestos para comunicarse?",o:["Sí, de manera natural.","Utiliza algunos gestos, aunque de forma limitada.","Utiliza pocos gestos.","Casi no utiliza gestos comunicativos."]},
+ {t:"¿Señala para mostrar algo que le interesa?",o:["Sí, espontáneamente.","Algunas veces.","Pocas veces.","Casi nunca o nunca."]},
+ {t:"¿Comprende los gestos y expresiones de otras personas?",o:["Sí, adecuadamente.","Algunas veces presenta dificultad.","Presenta dificultades frecuentes.","Presenta dificultades marcadas."]}
+]},
+{id:13,n:"Nivel de actividad",q:[
+ {t:"¿Cómo describiría su nivel de actividad en comparación con otros niños de su edad?",o:["Similar a lo esperado.","Un poco más activo o menos activo.","Claramente más activo o menos activo.","Extremadamente activo o extremadamente poco activo."]},
+ {t:"¿Le cuesta permanecer sentado cuando la situación lo requiere?",o:["No.","Algunas veces.","Frecuentemente.","Casi siempre."]},
+ {t:"¿Puede permanecer concentrado en una actividad?",o:["Sí, de acuerdo con lo esperado para su edad.","Algunas veces necesita ayuda.","Frecuentemente necesita redirección.","Presenta gran dificultad para mantenerse en una actividad."]}
+]},
+{id:14,n:"Nivel y consistencia de la respuesta intelectual",q:[
+ {t:"¿Cómo aprende cosas nuevas?",o:["Aprende de acuerdo con lo esperado para su edad.","Presenta algunas dificultades.","Presenta dificultades claras en varias situaciones.","Presenta dificultades importantes y generalizadas."]},
+ {t:"¿Existen áreas en las que destaque mucho respecto a otras?",o:["No hay diferencias importantes.","Hay algunas diferencias.","Existe una diferencia marcada.","Existe una diferencia muy marcada entre sus habilidades."]},
+ {t:"¿Cómo responde cuando debe resolver un problema nuevo?",o:["Busca estrategias y puede resolverlo de acuerdo con su edad.","Necesita alguna ayuda.","Necesita bastante ayuda.","Presenta gran dificultad para resolver situaciones nuevas."]}
+]},
+{id:15,n:"Impresión general",q:[
+ {t:"¿Cuáles son las conductas que más le preocupan actualmente?",open:1},
+ {t:"¿Desde cuándo las observa?",open:1},
+ {t:"¿En qué situaciones aparecen con mayor frecuencia?",open:1},
+ {t:"¿En qué ambientes aparecen (casa, escuela, comunidad u otros)?",open:1},
+ {t:"¿Qué situaciones suelen desencadenarlas?",open:1},
+ {t:"¿Cuánto interfieren con la vida cotidiana?",open:1},
+ {t:"¿Qué características considera usted más diferentes respecto a otros niños de su edad?",open:1},
+ {t:"¿Hay alguna conducta que considere especialmente llamativa?",open:1}
+]}
+];
+
+// ── Flatten a linear step list: [intro, ...questions, observación, final] ──
+const STEPS=[];
+STEPS.push({type:'intro'});
+CARS2_AREAS.forEach(area=>{
+  area.q.forEach((qq,qi)=>{
+    STEPS.push({type:qq.open?'open':'mc',area,qq,qi,key:`a${area.id}_p${qi}`});
+  });
+});
+STEPS.push({type:'observacion'});
+STEPS.push({type:'final'});
+
+let stepIdx=0,answers={},token=null,doc=null,docRef=null;
+
+function qs(name){return new URLSearchParams(location.search).get(name);}
+
+async function init(){
+  token=qs('token');
+  if(!token){renderError('Enlace inválido. Solicite un nuevo enlace al profesional.');return;}
+  try{
+    docRef=db.collection('pruebasCARS2').doc(token);
+    const snap=await docRef.get();
+    if(!snap.exists){renderError('Este enlace no es válido o ya expiró.');return;}
+    doc=snap.data();
+    if(doc.activo===false){renderError('Este enlace fue desactivado por el profesional. Solicite uno nuevo si es necesario.');return;}
+    if(doc.completado){renderError('Este cuestionario ya fue respondido. Gracias.');return;}
+    answers=doc.respuestas||{};
+    if(doc.ninoNombre)document.getElementById('head-sub').textContent='Sobre '+doc.ninoNombre+' — responda pensando en lo que ocurre habitualmente.';
+    render();
+  }catch(e){renderError('No se pudo cargar el cuestionario. Verifique su conexión e intente de nuevo.');}
+}
+
+function renderError(msg){
+  document.getElementById('body').innerHTML=`<div class="center"><h2>Aviso</h2><p>${msg}</p></div>`;
+}
+
+function updateProgress(){
+  const pct=Math.round((stepIdx/(STEPS.length-1))*100);
+  document.getElementById('progress-fill').style.width=pct+'%';
+}
+
+function render(){
+  updateProgress();
+  const step=STEPS[stepIdx];
+  const nav=document.getElementById('nav');
+  const body=document.getElementById('body');
+  if(step.type==='intro'){
+    nav.style.display='flex';
+    document.getElementById('btn-back').style.visibility='hidden';
+    document.getElementById('btn-next').disabled=false;
+    body.innerHTML=`<div class="center">
+      <div id="final-icon">📋</div>
+      <h2>Antes de comenzar</h2>
+      <p>Esta entrevista busca conocer cómo se comporta habitualmente el niño o niña en diferentes situaciones. Responda pensando en lo que ocurre normalmente durante los últimos meses.<br><br>No existen respuestas buenas o malas. Si no está segura o seguro de algo, puede indicarlo — hay una opción para eso en cada pregunta.</p>
+    </div>`;
+    return;
+  }
+  if(step.type==='observacion'){
+    nav.style.display='flex';
+    document.getElementById('btn-back').style.visibility='visible';
+    document.getElementById('btn-next').disabled=false;
+    body.innerHTML=`
+      <div class="area-tag">Para terminar</div>
+      <div class="q-label">¿Hay algo más que quiera comentarle al profesional?</div>
+      <textarea id="obs-input" rows="5" placeholder="Puede dejarlo en blanco si no desea agregar nada.">${answers.__obs||''}</textarea>`;
+    document.getElementById('obs-input').addEventListener('input',e=>{answers.__obs=e.target.value;});
+    return;
+  }
+  if(step.type==='final'){
+    nav.style.display='none';
+    body.innerHTML=`<div class="center">
+      <div id="final-icon">✅</div>
+      <h2>¡Gracias por completar el cuestionario!</h2>
+      <p>Sus respuestas ya fueron enviadas al profesional. Espere los resultados en su próxima consulta.</p>
+    </div>`;
+    submitFinal();
+    return;
+  }
+  // mc or open question
+  nav.style.display='flex';
+  document.getElementById('btn-back').style.visibility='visible';
+  const area=step.area;
+  if(step.type==='open'){
+    document.getElementById('btn-next').disabled=false;
+    body.innerHTML=`
+      <div class="area-tag">Área ${area.id} · ${area.n}</div>
+      <div class="q-label">${step.qq.t}</div>
+      <textarea id="open-input" rows="4" placeholder="Escriba su respuesta...">${answers[step.key]||''}</textarea>`;
+    document.getElementById('open-input').addEventListener('input',e=>{answers[step.key]=e.target.value;});
+    return;
+  }
+  const current=answers[step.key];
+  const letters='ABCDE';
+  let optsHtml=step.qq.o.map((txt,i)=>`<button class="opt${current===letters[i]?' sel':''}" data-l="${letters[i]}" onclick="selectMC('${step.key}','${letters[i]}')">${txt}</button>`).join('');
+  optsHtml+=`<button class="opt unsure${current==='E'?' sel':''}" data-l="E" onclick="selectMC('${step.key}','E')">No estoy seguro/a o no puedo determinarlo.</button>`;
+  body.innerHTML=`
+    <div class="area-tag">Área ${area.id} · ${area.n}</div>
+    <div class="q-label">${step.qq.t}</div>
+    <div id="opts">${optsHtml}</div>
+    <div class="clarify" id="clarify-box">Cuénteme un poco más: ¿en qué situaciones suele ocurrir y qué hace el niño o niña específicamente? (opcional, puede escribirlo en observaciones al final)</div>`;
+  document.getElementById('btn-next').disabled=!current;
+  if(current==='E')document.getElementById('clarify-box').style.display='block';
+}
+
+function selectMC(key,letter){
+  answers[key]=letter;
+  document.querySelectorAll('#opts .opt').forEach(b=>b.classList.remove('sel'));
+  document.querySelector(`#opts .opt[data-l="${letter}"]`).classList.add('sel');
+  document.getElementById('btn-next').disabled=false;
+  const cb=document.getElementById('clarify-box');
+  if(cb)cb.style.display=(letter==='E')?'block':'none';
+  autosave();
+}
+
+function autosave(){
+  if(!docRef)return;
+  docRef.set({respuestas:answers},{merge:true}).catch(()=>{});
+}
+
+function goNext(){
+  if(stepIdx<STEPS.length-1){stepIdx++;render();window.scrollTo(0,0);}
+}
+function goBack(){
+  if(stepIdx>0){stepIdx--;render();window.scrollTo(0,0);}
+}
+
+async function submitFinal(){
+  try{
+    await docRef.set({
+      respuestas:answers,
+      observacionFamilia:answers.__obs||'',
+      completado:true,
+      completadoEn:new Date().toISOString()
+    },{merge:true});
+  }catch(e){}
+}
+
+if(db){init();}
+else{renderError('No se pudo conectar. Verifique su conexión a internet y vuelva a abrir el enlace.');}
+</script>
+</body>
+</html>
