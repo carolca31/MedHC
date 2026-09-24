@@ -2504,7 +2504,7 @@ function renderTab(){
             "CDI — Inventario de Depresión Infantil","BDI (Beck — adolescente)",
             "SCARED — Ansiedad","MASC — Ansiedad","STAI — Estado/Rasgo",
             "CBCL — padres","YSR — autoreporte (11-18 años)","BASC-3",
-            "SCQ — Comunicación Social","ADOS-2","CARS",
+            "SCQ — Comunicación Social","ADOS-2","CARS","CARS-2 — Escala de Calificación del Autismo",
             "WISC-V","Raven general","Leiter-3 (no verbal)","K-ABC",
             "Neuropsi","Trail Making Test","Stroop",
             "Rosenberg — Autoestima","CDI — Inventario de Depresión",
@@ -2595,7 +2595,7 @@ function renderTab(){
           "Bender Gestalt","Bender Gestalt II","Figura Humana (Koppitz)","Figura Humana (Machover)",
           "Raven color (hasta 11 años)","Raven general (12+ años)","WISC-V","WPPSI",
           "Neuropsi","Neuropsi Atención y Memoria","ENFEN",
-          "ADOS-2","M-CHAT-R","CARS","SCQ (Cuestionario de Comunicación Social)",
+          "ADOS-2","M-CHAT-R","CARS","CARS-2 — Escala de Calificación del Autismo","SCQ (Cuestionario de Comunicación Social)",
           "CBCL — padres","CBCL — maestros","YSR (autoreporte 11-18 años)",
           "CDI — Inventario de Depresión Infantil","SCARED — Ansiedad","MASC — Ansiedad",
           "CMAS-R — Ansiedad Manifiesta","Beck — Ansiedad","Beck — Depresión (adolescente)",
@@ -6049,14 +6049,223 @@ function delEval(i){const p=getP();p.evaluaciones=p.evaluaciones.filter((_,x)=>x
 // ── Plantillas personalizadas según el test aplicado ──
 function matchTestTemplate(nombre){
   const n=(nombre||"").toLowerCase();
+  if(/cars-?\s?2|cars2/.test(n))return"cars2";
   if(/raven|wisc|wippsi|wppsi|bender|matrices|stanford|terman|beta|toni/.test(n))return"cognitivo";
   if(/desarrollo|edpi|nelson|denver|vineland|abreviada|molidi|merrill|psicomotor/.test(n))return"desarrollo";
   if(/conners|vanderbilt|srs|bpc|achenbach|escala.*conducta|cbcl/.test(n))return"conductual";
   return null;
 }
+// ── CARS-2: banco de las 15 áreas (compartido en espíritu con el portal familiar) ──
+const CARS2_PORTAL_URL='https://medhc.app/prueba-familia.html';
+const CARS2_AREAS=[
+{id:1,n:"Relación con las personas",q:[
+ {t:"¿Cómo suele relacionarse su hijo con otras personas?",o:["Busca espontáneamente a otras personas para conversar, jugar o compartir.","Se relaciona con otras personas, aunque algunas veces necesita ayuda para iniciar o mantener la interacción.","Se relaciona poco y generalmente necesita que otra persona facilite el contacto.","Tiende a mantenerse aislado y responde poco cuando otras personas intentan interactuar con él."]},
+ {t:"Cuando alguien intenta hablarle o jugar con él, ¿cómo suele responder?",o:["Responde espontáneamente y participa.","Responde, aunque algunas veces necesita tiempo o ayuda.","Responde de manera limitada.","Frecuentemente parece no prestar atención o no responder."]},
+ {t:"¿Busca espontáneamente a otras personas para compartir algo que le interesa?",o:["Sí, frecuentemente.","Sí, pero no siempre.","Lo hace pocas veces.","Casi nunca o nunca."]},
+ {t:"Cuando necesita ayuda o se siente mal, ¿busca a una persona conocida?",o:["Sí, de manera espontánea.","Generalmente sí.","Solo algunas veces.","Rara vez o nunca."]},
+ {t:"¿Cómo suele utilizar el contacto visual durante una interacción?",o:["Lo utiliza de manera natural.","Lo utiliza, aunque algunas veces es breve o irregular.","Lo utiliza poco.","Evita frecuentemente mirar a la persona."]}
+]},
+{id:2,n:"Imitación",q:[
+ {t:"¿Imita espontáneamente acciones que observa en otras personas?",o:["Sí, habitualmente.","Sí, aunque algunas veces necesita que se lo indiquen.","Lo hace pocas veces.","Rara vez o nunca."]},
+ {t:"Cuando usted le enseña cómo hacer algo, ¿puede repetirlo?",o:["Sí, fácilmente.","Sí, después de varios intentos.","Necesita bastante ayuda.","Le resulta muy difícil o no lo hace."]},
+ {t:"¿Imita gestos sencillos?",o:["Sí, espontáneamente.","Sí, cuando se le solicita.","Solo algunos.","Rara vez o nunca."]},
+ {t:"¿Imita sonidos, palabras o expresiones de otras personas?",o:["Frecuentemente.","Algunas veces.","Pocas veces.","Rara vez o nunca."]}
+]},
+{id:3,n:"Respuestas emocionales",q:[
+ {t:"Cuando ocurre algo agradable, ¿cómo expresa alegría?",o:["De una manera acorde con la situación.","Algunas veces de manera poco habitual.","Frecuentemente de una manera muy intensa o poco relacionada con la situación.","Presenta muy poca respuesta emocional o una respuesta difícil de relacionar con lo ocurrido."]},
+ {t:"Cuando se frustra o se enoja, ¿cómo reacciona?",o:["Su reacción suele ser proporcional y puede recuperarse.","Algunas veces reacciona con mayor intensidad de la esperada.","Sus reacciones suelen ser muy intensas o difíciles de regular.","Sus reacciones son extremadamente intensas o parecen no relacionarse con lo ocurrido."]},
+ {t:"¿Puede cambiar rápidamente de una emoción a otra?",o:["No de manera significativa.","Algunas veces.","Frecuentemente.","Muy frecuentemente y con gran dificultad para regularse."]}
+]},
+{id:4,n:"Uso del cuerpo",q:[
+ {t:"¿Realiza movimientos repetitivos con las manos, dedos, brazos o cuerpo?",o:["No.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]},
+ {t:"¿Se balancea, gira, camina de puntillas o realiza movimientos corporales repetitivos?",o:["No.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]},
+ {t:"¿Adopta posturas corporales inusuales?",o:["No.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]},
+ {t:"¿Presenta conductas de lastimarse, golpearse o morderse?",o:["Nunca.","Ocasionalmente.","Frecuentemente.","De manera intensa o repetida."]}
+]},
+{id:5,n:"Uso de objetos",q:[
+ {t:"¿Cómo suele jugar con sus juguetes?",o:["Los utiliza de manera funcional y variada.","Algunas veces juega de manera repetitiva.","Frecuentemente utiliza los objetos de una manera poco habitual o repetitiva.","Se concentra intensamente en determinadas partes o acciones con los objetos."]},
+ {t:"¿Suele ordenar, alinear, girar o clasificar objetos repetidamente?",o:["No.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]},
+ {t:"¿Se interesa más por una parte de un objeto que por utilizarlo como un todo?",o:["No.","Algunas veces.","Frecuentemente.","De manera intensa y persistente."]}
+]},
+{id:6,n:"Adaptación al cambio",q:[
+ {t:"¿Cómo reacciona cuando cambia una rutina habitual?",o:["Se adapta fácilmente.","Puede molestarse un poco, pero se adapta.","Presenta dificultades claras para aceptar el cambio.","El cambio provoca reacciones muy intensas."]},
+ {t:"¿Qué ocurre cuando debe dejar una actividad que disfruta?",o:["Puede hacerlo sin dificultad importante.","Necesita algunos avisos.","Presenta resistencia importante.","Puede presentar una reacción intensa o descontrolada."]},
+ {t:"¿Necesita que las actividades se realicen siempre de una determinada manera?",o:["No.","Algunas veces.","Frecuentemente.","De manera muy rígida."]}
+]},
+{id:7,n:"Respuesta visual",q:[
+ {t:"¿Cómo utiliza la mirada cuando conversa con alguien?",o:["De manera natural.","Algunas veces evita o reduce el contacto visual.","Utiliza poco el contacto visual.","Evita marcadamente mirar a las personas."]},
+ {t:"¿Observa objetos desde ángulos inusuales o muy cerca de los ojos?",o:["Nunca.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]},
+ {t:"¿Muestra un interés particular por luces, sombras, reflejos o movimientos visuales?",o:["No.","Algunas veces.","Frecuentemente.","De manera intensa y persistente."]}
+]},
+{id:8,n:"Respuesta auditiva",q:[
+ {t:"¿Responde cuando lo llaman por su nombre?",o:["Casi siempre.","Algunas veces necesita que lo llamen nuevamente.","Frecuentemente no responde.","Parece no responder incluso cuando se intenta llamar su atención directamente."]},
+ {t:"¿Hay sonidos cotidianos que le molestan mucho?",o:["No.","Algunos sonidos le molestan.","Muchos sonidos le generan una reacción intensa.","Presenta una reacción extrema ante determinados sonidos."]},
+ {t:"¿Se tapa los oídos o intenta evitar determinados sonidos?",o:["Nunca.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]}
+]},
+{id:9,n:"Gusto, olfato y tacto",q:[
+ {t:"¿Tiene preferencias muy marcadas respecto a alimentos, sabores o texturas?",o:["No.","Algunas preferencias.","Preferencias o rechazos frecuentes.","Restricciones o reacciones muy intensas."]},
+ {t:"¿Le molestan determinadas prendas, telas, etiquetas u objetos por cómo se sienten al tocarlos?",o:["No.","Algunas veces.","Frecuentemente.","De manera intensa."]},
+ {t:"¿Busca tocar, oler o explorar repetidamente determinados objetos?",o:["No.","Algunas veces.","Frecuentemente.","De manera intensa y persistente."]},
+ {t:"¿Parece reaccionar poco ante dolor, frío, calor u otras sensaciones?",o:["No.","Algunas veces.","Frecuentemente.","De manera marcada."]}
+]},
+{id:10,n:"Miedo o nerviosismo",q:[
+ {t:"¿Tiene miedos que parecen inusuales para su edad?",o:["No.","Algunos.","Varios o muy intensos.","Miedos muy intensos o persistentes."]},
+ {t:"¿Presenta miedo ante situaciones que aparentemente no representan peligro?",o:["No.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]},
+ {t:"¿Hay situaciones potencialmente peligrosas ante las cuales parece mostrar poco miedo?",o:["No.","Algunas veces.","Frecuentemente.","De manera marcada."]}
+]},
+{id:11,n:"Comunicación verbal",q:[
+ {t:"¿Cómo utiliza el lenguaje para comunicarse?",o:["Lo utiliza de manera espontánea y funcional.","Presenta algunas peculiaridades.","Su comunicación verbal es limitada, repetitiva o poco habitual.","Presenta dificultades marcadas para utilizar el lenguaje con finalidad comunicativa."]},
+ {t:"¿Repite palabras o frases que acaba de escuchar?",o:["Nunca o casi nunca.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]},
+ {t:"¿Repite frases de películas, videos o conversaciones anteriores?",o:["No.","Algunas veces.","Frecuentemente.","Muy frecuentemente."]},
+ {t:"¿Habla repetidamente sobre determinados temas?",o:["No.","Algunas veces.","Frecuentemente.","De manera intensa y difícil de interrumpir."]}
+]},
+{id:12,n:"Comunicación no verbal",q:[
+ {t:"¿Utiliza gestos para comunicarse?",o:["Sí, de manera natural.","Utiliza algunos gestos, aunque de forma limitada.","Utiliza pocos gestos.","Casi no utiliza gestos comunicativos."]},
+ {t:"¿Señala para mostrar algo que le interesa?",o:["Sí, espontáneamente.","Algunas veces.","Pocas veces.","Casi nunca o nunca."]},
+ {t:"¿Comprende los gestos y expresiones de otras personas?",o:["Sí, adecuadamente.","Algunas veces presenta dificultad.","Presenta dificultades frecuentes.","Presenta dificultades marcadas."]}
+]},
+{id:13,n:"Nivel de actividad",q:[
+ {t:"¿Cómo describiría su nivel de actividad en comparación con otros niños de su edad?",o:["Similar a lo esperado.","Un poco más activo o menos activo.","Claramente más activo o menos activo.","Extremadamente activo o extremadamente poco activo."]},
+ {t:"¿Le cuesta permanecer sentado cuando la situación lo requiere?",o:["No.","Algunas veces.","Frecuentemente.","Casi siempre."]},
+ {t:"¿Puede permanecer concentrado en una actividad?",o:["Sí, de acuerdo con lo esperado para su edad.","Algunas veces necesita ayuda.","Frecuentemente necesita redirección.","Presenta gran dificultad para mantenerse en una actividad."]}
+]},
+{id:14,n:"Nivel y consistencia de la respuesta intelectual",q:[
+ {t:"¿Cómo aprende cosas nuevas?",o:["Aprende de acuerdo con lo esperado para su edad.","Presenta algunas dificultades.","Presenta dificultades claras en varias situaciones.","Presenta dificultades importantes y generalizadas."]},
+ {t:"¿Existen áreas en las que destaque mucho respecto a otras?",o:["No hay diferencias importantes.","Hay algunas diferencias.","Existe una diferencia marcada.","Existe una diferencia muy marcada entre sus habilidades."]},
+ {t:"¿Cómo responde cuando debe resolver un problema nuevo?",o:["Busca estrategias y puede resolverlo de acuerdo con su edad.","Necesita alguna ayuda.","Necesita bastante ayuda.","Presenta gran dificultad para resolver situaciones nuevas."]}
+]},
+{id:15,n:"Impresión general",q:[
+ {t:"¿Cuáles son las conductas que más le preocupan actualmente?",open:1},
+ {t:"¿Desde cuándo las observa?",open:1},
+ {t:"¿En qué situaciones aparecen con mayor frecuencia?",open:1},
+ {t:"¿En qué ambientes aparecen (casa, escuela, comunidad u otros)?",open:1},
+ {t:"¿Qué situaciones suelen desencadenarlas?",open:1},
+ {t:"¿Cuánto interfieren con la vida cotidiana?",open:1},
+ {t:"¿Qué características considera usted más diferentes respecto a otros niños de su edad?",open:1},
+ {t:"¿Hay alguna conducta que considere especialmente llamativa?",open:1}
+]}
+];
+const CARS2_PUNTAJES=[1,1.5,2,2.5,3,3.5,4];
+async function generarCars2Token(evalIdx){
+  const p=getP();const ev=p.evaluaciones[evalIdx];
+  const token=Math.random().toString(36).slice(2,9).toUpperCase();
+  const doc={
+    token,pid:p.id,evalId:ev.id,activo:true,completado:false,
+    ninoNombre:getPDisplayName(p)||'',respuestas:{},observacionFamilia:'',
+    creadoEn:new Date().toISOString()
+  };
+  try{
+    await db.collection('pruebasCARS2').doc(token).set(doc);
+    ev.cars2Token=token;ev.cars2Activo=true;ev.cars2Completado=false;
+    saveP({...p});renderTab();
+    watchCars2Token(evalIdx,token);
+  }catch(e){alert('No se pudo generar el enlace. Verifica la conexión.');}
+}
+async function desactivarCars2(evalIdx){
+  const p=getP();const ev=p.evaluaciones[evalIdx];
+  if(!ev.cars2Token)return;
+  if(!confirm('¿Desactivar este enlace? La familia no podrá seguir respondiendo.'))return;
+  try{
+    await db.collection('pruebasCARS2').doc(ev.cars2Token).set({activo:false},{merge:true});
+    ev.cars2Activo=false;saveP({...p});renderTab();
+  }catch(e){}
+}
+function copiarLinkCars2(evalIdx){
+  const p=getP();const ev=p.evaluaciones[evalIdx];
+  const link=`${CARS2_PORTAL_URL}?token=${ev.cars2Token}`;
+  navigator.clipboard&&navigator.clipboard.writeText(link);
+  showToastMsg('Enlace copiado');
+}
+const cars2Listeners={};
+function watchCars2Token(evalIdx,token){
+  if(!token||cars2Listeners[token])return;
+  cars2Listeners[token]=db.collection('pruebasCARS2').doc(token).onSnapshot(async(doc)=>{
+    if(!doc.exists)return;
+    const d=doc.data();
+    const p=getP();if(!p)return;
+    const ev=(p.evaluaciones||[]).find(e=>e.id===(d.evalId));
+    if(!ev)return;
+    ev.cars2Completado=!!d.completado;
+    ev.cars2Respuestas=d.respuestas||{};
+    ev.cars2ObservacionFamilia=d.observacionFamilia||'';
+    ev.cars2FilledAt=d.completadoEn||'';
+    saveP({...p});
+    if(activeTab==='evaluaciones')renderTab();
+  });
+}
+function cars2AreaResumen(area,respuestas){
+  if(area.id===15){
+    return area.q.map((qq,i)=>{
+      const r=(respuestas||{})[`a15_p${i}`]||'';
+      return `<div style="margin-bottom:6px"><b style="font-size:11px">${esc(qq.t)}</b><div style="font-size:11px;color:var(--mid)">${esc(r)||'<i>Sin respuesta</i>'}</div></div>`;
+    }).join('');
+  }
+  return area.q.map((qq,i)=>{
+    const letra=(respuestas||{})[`a${area.id}_p${i}`];
+    const idx='ABCDE'.indexOf(letra);
+    const txt=idx>=0&&idx<4?qq.o[idx]:(letra==='E'?'No estoy seguro/a':'<i>Sin responder</i>');
+    return `<div style="margin-bottom:5px;font-size:11px"><b>${esc(qq.t)}</b><br><span style="color:var(--mid)">${esc(txt)}</span></div>`;
+  }).join('');
+}
+function updCars2Score(evalIdx,areaId,val){
+  const p=getP();const ev=p.evaluaciones[evalIdx];
+  ev.cars2Scores=ev.cars2Scores||{};
+  ev.cars2Scores[areaId]=val;
+  saveP({...p});
+}
+function updCars2AreaNota(evalIdx,areaId,val){
+  const p=getP();const ev=p.evaluaciones[evalIdx];
+  ev.cars2Notas=ev.cars2Notas||{};
+  ev.cars2Notas[areaId]=val;
+  saveP({...p});
+}
 const EVAL_AREAS_DESARROLLO=[["areaFisica","Área física"],["areaMotoraGruesa","Área motora gruesa"],["areaMotoraFina","Área motora fina"],["areaCognitiva","Área cognitiva"],["areaSocial","Área social"],["areaAfectiva","Área afectiva"],["areaMoral","Área moral"],["areaSexual","Área sexual"],["areaLenguaje","Área de lenguaje"]];
 const EVAL_NIVELES_DESARROLLO=["Acorde a la edad","Por encima de lo esperado","Por debajo de lo esperado","Retraso significativo"];
 function evalTemplateFields(i,ev,tpl){
+  if(tpl==="cars2"){
+    if(!ev.cars2Token){
+      return`<div style="margin-top:10px;padding:14px;background:var(--apl);border-radius:9px">
+        <div style="font-size:10px;font-weight:800;color:var(--adk);text-transform:uppercase;margin-bottom:8px">Entrevista para la familia (CARS-2)</div>
+        <div style="font-size:11px;color:var(--mid);margin-bottom:10px">Genera un enlace único y privado para que el cuidador responda la entrevista de las 15 áreas desde su teléfono. El enlace es independiente del portal de historia clínica.</div>
+        <button onclick="generarCars2Token(${i})" style="background:var(--cobalt);color:#fff;border:none;padding:9px 14px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer"> Generar enlace para la familia</button>
+      </div>`;
+    }
+    const link=`${CARS2_PORTAL_URL}?token=${ev.cars2Token}`;
+    if(!ev.cars2Completado){
+      return`<div style="margin-top:10px;padding:14px;background:var(--apl);border-radius:9px">
+        <div style="font-size:10px;font-weight:800;color:var(--adk);text-transform:uppercase;margin-bottom:8px">Entrevista para la familia (CARS-2)</div>
+        <div style="font-size:11px;color:${ev.cars2Activo===false?'var(--danger)':'#065F46'};font-weight:700;margin-bottom:8px">${ev.cars2Activo===false?'⏸ Enlace desactivado':'⏳ Esperando respuesta de la familia'}</div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <input readonly value="${esc(link)}" style="flex:1;min-width:160px;font-size:11px" onclick="this.select()">
+          <button onclick="copiarLinkCars2(${i})" style="padding:8px 12px;border:none;border-radius:7px;background:var(--cobalt);color:#fff;font-size:11px;font-weight:700;cursor:pointer">Copiar</button>
+          ${ev.cars2Activo!==false?`<button onclick="desactivarCars2(${i})" style="padding:8px 12px;border:1px solid #fca5a5;border-radius:7px;background:#fef2f2;color:#dc2626;font-size:11px;font-weight:700;cursor:pointer">Desactivar</button>`:''}
+        </div>
+      </div>`;
+    }
+    // Completado: mostrar resumen por área con puntaje editable por el profesional
+    const scores=ev.cars2Scores||{};const notas=ev.cars2Notas||{};
+    const areasHtml=CARS2_AREAS.map(area=>`
+      <div class="icard" style="margin-bottom:8px">
+        <div style="padding:10px 12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+            <strong style="font-size:11.5px;color:var(--cobalt)">${area.id}. ${esc(area.n)}</strong>
+            ${area.id!==15?`<select onchange="updCars2Score(${i},${area.id},this.value)" style="width:auto;padding:4px 8px;font-size:11px">
+              <option value="">Puntaje...</option>
+              ${CARS2_PUNTAJES.map(v=>`<option value="${v}"${String(scores[area.id])===String(v)?' selected':''}>${v}</option>`).join('')}
+            </select>`:''}
+          </div>
+          <div style="background:var(--surface);border-radius:7px;padding:8px 10px;margin-bottom:6px">${cars2AreaResumen(area,ev.cars2Respuestas)}</div>
+          ${area.id!==15?`<textarea rows="2" placeholder="Valoración descriptiva del profesional para esta área..." oninput="updCars2AreaNota(${i},${area.id},this.value)" style="font-size:11px">${esc(notas[area.id]||'')}</textarea>`:''}
+        </div>
+      </div>`).join('');
+    return`<div style="margin-top:10px;padding:14px;background:var(--apl);border-radius:9px">
+      <div style="font-size:10px;font-weight:800;color:#065F46;text-transform:uppercase;margin-bottom:4px"> Entrevista familiar completada</div>
+      <div style="font-size:10px;color:var(--mid);margin-bottom:10px">${ev.cars2FilledAt?('Respondida el '+esc(ev.cars2FilledAt.slice(0,10))):''}${ev.cars2ObservacionFamilia?' · La familia dejó una observación adicional (ver Área 15 / abajo)':''}</div>
+      ${ev.cars2ObservacionFamilia?`<div style="font-size:11px;background:#FEF3C7;padding:8px 10px;border-radius:7px;margin-bottom:10px"><b>Observación de la familia:</b><br>${esc(ev.cars2ObservacionFamilia)}</div>`:''}
+      <div style="font-size:10px;color:var(--mid);margin-bottom:8px">Cada área muestra lo reportado por el cuidador. El puntaje (1 a 4) y la valoración descriptiva quedan a criterio exclusivo del profesional; esto no constituye un diagnóstico automático.</div>
+      ${areasHtml}
+    </div>`;
+  }
   if(tpl==="cognitivo"){
     return`<div style="margin-top:10px;padding:12px;background:var(--apl);border-radius:9px">
       <div style="font-size:10px;font-weight:800;color:var(--adk);text-transform:uppercase;margin-bottom:8px">Prueba cognitiva/intelectual</div>
@@ -7330,6 +7539,11 @@ async function init(){
             if(pat.familyToken && pat.familyActive && !pat.familyCompleted){
               watchFamilyToken(pat.id);
             }
+            (pat.evaluaciones||[]).forEach(function(ev,idx){
+              if(ev.cars2Token && ev.cars2Activo!==false && !ev.cars2Completado){
+                watchCars2Token(idx,ev.cars2Token);
+              }
+            });
           });
         });
       // Update plan display in sidebar
